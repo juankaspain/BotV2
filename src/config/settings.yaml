@@ -1,0 +1,208 @@
+# BotV2 Configuration
+# All 26 Audit Improvements Implemented
+
+system:
+  name: "BotV2"
+  version: "1.0.0"
+  environment: "production"  # production, staging, development
+  log_level: "INFO"
+
+trading:
+  initial_capital: 3000  # EUR
+  trading_interval: 60   # seconds
+  max_position_size: 0.15  # 15% of portfolio max
+  min_position_size: 0.01  # 1% of portfolio min
+  max_open_positions: 10
+  
+risk:
+  circuit_breaker:
+    level_1_drawdown: -5.0    # Stop trading at -5% daily DD
+    level_2_drawdown: -10.0   # Reduce position size 50%
+    level_3_drawdown: -15.0   # Emergency liquidation
+    cooldown_minutes: 30      # Wait 30min after trigger
+    
+  correlation_threshold: 0.7  # Reduce if correlation > 0.7
+  max_portfolio_correlation: 0.4
+  
+  kelly:
+    fraction: 0.25  # Conservative Kelly (25% of full)
+    min_probability: 0.55  # Minimum win probability
+    
+  sharpe_target: 2.5
+  max_drawdown_tolerance: -20.0
+  
+execution:
+  slippage_model: "realistic"  # realistic, aggressive, conservative
+  commission_percent: 0.0005  # 0.05% per trade
+  market_impact_percent: 0.001  # 0.1%
+  
+  order_types:
+    market: true
+    limit: true
+    stop_loss: true
+    take_profit: true
+    
+  simulation:
+    model: "microstructure"
+    include_bid_ask_spread: true
+    include_order_book_depth: true
+    include_time_of_day_effects: true
+    realistic_fills: true
+
+data:
+  validation:
+    check_nan: true
+    check_infinity: true
+    check_outliers: true
+    check_ohlc_consistency: true
+    check_volume: true
+    outlier_std_threshold: 5
+    
+  normalization:
+    method: "zscore"  # zscore, minmax, robust
+    lookback_period: 252  # days
+    clip_range: [-3, 3]
+    
+  drift_detection:
+    enabled: true
+    method: "adwin"
+    delta: 0.002
+
+ensemble:
+  voting_method: "weighted_average"
+  confidence_threshold: 0.5
+  min_strategies_agree: 3
+  
+  adaptive_allocation:
+    method: "sharpe_based"
+    rebalance_frequency: "daily"
+    smoothing_alpha: 0.7
+    lookback_days: 20
+    
+  correlation_management:
+    recalculate_frequency: "hourly"
+    correlation_lookback: 60  # minutes
+    method: "pearson"  # pearson, spearman
+
+strategies:
+  enabled_count: 20
+  
+  # Base strategies (15)
+  base:
+    - momentum
+    - stat_arb
+    - regime
+    - mean_reversion
+    - volatility_expansion
+    - breakout
+    - fibonacci
+    - macd_momentum
+    - rsi_divergence
+    - bollinger_bands
+    - stochastic
+    - ichimoku
+    - elliot_wave
+    - vix_hedge
+    - sector_rotation
+  
+  # New high-performance strategies (5)
+  advanced:
+    - cross_exchange_arb
+    - liquidation_flow
+    - high_prob_bonds
+    - liquidity_provision
+    - domain_specialization
+
+liquidation_detection:
+  enabled: true
+  cascade_threshold: 0.6  # 60% probability triggers action
+  lookback_window: 300  # seconds
+  recent_liquidation_count: 50
+  action_on_cascade: "reduce_positions"  # reduce_positions, close_all, hedge
+  
+monitoring:
+  real_time: true
+  update_frequency: 5  # seconds
+  
+  metrics:
+    - daily_returns
+    - sharpe_ratio
+    - max_drawdown
+    - win_rate
+    - profit_factor
+    - recovery_factor
+    - sortino_ratio
+    - calmar_ratio
+    
+  alerts:
+    email: false
+    slack: false
+    telegram: false
+
+state_persistence:
+  enabled: true
+  checkpoint_frequency: 300  # Every 5 minutes
+  backup_frequency: 3600  # Every hour
+  
+  storage:
+    type: "postgresql"  # postgresql, sqlite, redis
+    host: "localhost"
+    port: 5432
+    database: "botv2"
+    user: "botv2_user"
+    # password: set via environment variable POSTGRES_PASSWORD
+    
+  backup:
+    path: "./backups"
+    retention_days: 30
+    compress: true
+
+markets:
+  primary: "polymarket"
+  
+  polymarket:
+    base_url: "https://clob.polymarket.com"
+    api_key_env: "POLYMARKET_API_KEY"
+    markets:
+      - "election_2024"
+      - "crypto_btc_eoy"
+      - "ai_developments"
+      - "sports_events"
+      
+  fallback:
+    - "kalshi"
+    - "predictit"
+
+backtesting:
+  enabled: true
+  start_date: "2023-01-01"
+  end_date: "2025-12-31"
+  initial_capital: 3000
+  
+  simulation:
+    realistic_slippage: true
+    realistic_commissions: true
+    realistic_market_impact: true
+    partial_fills: true
+    
+  output:
+    save_trades: true
+    save_equity_curve: true
+    save_metrics: true
+    generate_report: true
+
+dashboard:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8050
+  debug: false
+  
+  refresh_rate: 5  # seconds
+  
+  charts:
+    - equity_curve
+    - daily_returns
+    - drawdown
+    - strategy_performance
+    - correlation_heatmap
+    - position_sizes
