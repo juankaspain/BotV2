@@ -1,6 +1,11 @@
 # BotV2 Trading System - Docker Compose Configuration
 # Production-Ready Multi-Container Setup
-# Services: Main App + Dashboard + PostgreSQL + Redis
+# Services: Trading Bot + Dashboard + PostgreSQL + Redis
+
+# ARCHITECTURE:
+#   Trading Bot → Writes to → PostgreSQL/Redis
+#   Dashboard → Reads from → PostgreSQL/Redis
+#   (No API layer needed - direct DB access)
 
 # IMPORTANT: Copy local.env to .env before running:
 #   cp local.env .env
@@ -8,7 +13,7 @@
 
 services:
   # ============================================================================
-  # Main Application Container (Trading Bot)
+  # Trading Bot Container (Background Process)
   # ============================================================================
   botv2-app:
     container_name: botv2-app
@@ -21,11 +26,10 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - FLASK_ENV=production
-      - LOG_LEVEL=INFO
-    command: ["python", "src/main.py"]  # Trading bot entry point
-    ports:
-      - "8000:5000"
+      - TRADING_MODE=${TRADING_MODE:-paper}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    command: ["python", "src/main.py"]  # Trading bot (async process, NO HTTP server)
+    # NOTE: No port mapping - this is a background process, not an API
     depends_on:
       botv2-postgres:
         condition: service_healthy
@@ -33,7 +37,7 @@ services:
         condition: service_healthy
     networks:
       - botv2-network
-    restart: on-failure:3  # FIXED: Stop after 3 failures (no infinite loop)
+    restart: on-failure:3  # Stop after 3 failures (no infinite loop)
     healthcheck:
       test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
       interval: 30s
@@ -60,13 +64,13 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - DASH_ENV=production
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - FLASK_APP=src.dashboard.web_app
       - DASHBOARD_HOST=0.0.0.0
       - DASHBOARD_PORT=8050
-    command: ["python", "-m", "src.dashboard.web_app"]  # Dashboard entry point
+    command: ["python", "-m", "src.dashboard.web_app"]  # Dashboard HTTP server
     ports:
-      - "8050:8050"
+      - "8050:8050"  # Dashboard web interface
     depends_on:
       botv2-postgres:
         condition: service_healthy
@@ -74,7 +78,7 @@ services:
         condition: service_healthy
     networks:
       - botv2-network
-    restart: on-failure:3  # FIXED: Stop after 3 failures (no infinite loop)
+    restart: on-failure:3  # Stop after 3 failures (no infinite loop)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8050/"]
       interval: 30s
