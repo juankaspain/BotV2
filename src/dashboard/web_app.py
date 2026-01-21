@@ -1,10 +1,13 @@
 """
 Web Dashboard
 Real-time monitoring dashboard using Flask/Dash
+SECURITY: HTTP Basic Authentication implemented
 """
 
 import logging
-from flask import Flask
+import os
+from flask import Flask, request, Response
+from functools import wraps
 import dash
 from dash import dcc, html, Input, Output
 import plotly.graph_objs as go
@@ -12,24 +15,126 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 from typing import Dict, List
+import hashlib
+import secrets
 
 logger = logging.getLogger(__name__)
 
 
+class DashboardAuth:
+    """
+    HTTP Basic Authentication for Dashboard
+    
+    Uses environment variables for credentials:
+    - DASHBOARD_USERNAME (default: admin)
+    - DASHBOARD_PASSWORD (required, no default for security)
+    """
+    
+    def __init__(self):
+        """Initialize authentication"""
+        
+        self.username = os.getenv('DASHBOARD_USERNAME', 'admin')
+        self.password_hash = self._get_password_hash()
+        
+        if not self.password_hash:
+            logger.critical(
+                "⚠️ DASHBOARD_PASSWORD not set! Dashboard will be INSECURE. "
+                "Set environment variable before starting."
+            )
+            # Generate temporary password for first run
+            temp_password = secrets.token_urlsafe(16)
+            logger.warning(f"🔑 Temporary password generated: {temp_password}")
+            logger.warning("IMPORTANT: Set DASHBOARD_PASSWORD env var for production!")
+            self.password_hash = self._hash_password(temp_password)
+    
+    def _get_password_hash(self) -> str:
+        """Get password hash from environment"""
+        password = os.getenv('DASHBOARD_PASSWORD')
+        if password:
+            return self._hash_password(password)
+        return None
+    
+    def _hash_password(self, password: str) -> str:
+        """Hash password with SHA-256"""
+        return hashlib.sha256(password.encode()).hexdigest()
+    
+    def check_credentials(self, username: str, password: str) -> bool:
+        """
+        Verify username and password
+        
+        Args:
+            username: Provided username
+            password: Provided password
+            
+        Returns:
+            True if credentials valid, False otherwise
+        """
+        if not self.password_hash:
+            # If no password set, allow access (dev mode)
+            logger.warning("⚠️ No password configured, allowing access (DEV MODE)")
+            return True
+        
+        username_match = secrets.compare_digest(username, self.username)
+        password_match = secrets.compare_digest(
+            self._hash_password(password),
+            self.password_hash
+        )
+        
+        return username_match and password_match
+    
+    def authenticate_decorator(self, f):
+        """
+        Decorator for Flask routes requiring authentication
+        
+        Usage:
+            @auth.authenticate_decorator
+            def my_route():
+                return "Protected content"
+        """
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            auth = request.authorization
+            
+            if not auth or not self.check_credentials(auth.username, auth.password):
+                logger.warning(
+                    f"Failed login attempt from {request.remote_addr} "
+                    f"(username: {auth.username if auth else 'none'})"
+                )
+                return Response(
+                    'Authentication required.\n'
+                    'Please login with valid credentials.',
+                    401,
+                    {'WWW-Authenticate': 'Basic realm="BotV2 Dashboard"'}
+                )
+            
+            logger.debug(f"Authenticated user: {auth.username} from {request.remote_addr}")
+            return f(*args, **kwargs)
+        
+        return decorated
+
+
 class TradingDashboard:
     """
-    Real-time trading dashboard
+    Real-time trading dashboard with authentication
     
     Features:
+    - 🔒 HTTP Basic Authentication
     - Equity curve
     - Live P&L
     - Strategy performance
     - Risk metrics
     - Trade history
+    
+    Security:
+    - Credentials from environment variables
+    - Password hashing (SHA-256)
+    - Constant-time comparison to prevent timing attacks
+    - Login attempt logging
+    - Auto-generated temporary password if not configured
     """
     
     def __init__(self, config):
-        """Initialize dashboard"""
+        """Initialize dashboard with authentication"""
         
         self.config = config
         
@@ -40,9 +145,15 @@ class TradingDashboard:
         self.debug = dash_config.get('debug', False)
         self.refresh_rate = dash_config.get('refresh_rate', 5) * 1000  # Convert to ms
         
+        # Initialize authentication
+        self.auth = DashboardAuth()
+        
         # Flask/Dash app
         self.server = Flask(__name__)
         self.app = dash.Dash(__name__, server=self.server)
+        
+        # Apply authentication to all routes
+        self._setup_authentication()
         
         # Data (shared with main system)
         self.portfolio_data = []
@@ -54,13 +165,36 @@ class TradingDashboard:
         self._build_layout()
         self._setup_callbacks()
         
-        logger.info(f"✓ Dashboard initialized on {self.host}:{self.port}")
+        logger.info(f"✅ Dashboard initialized on {self.host}:{self.port}")
+        logger.info(f"🔒 Authentication: ENABLED (user: {self.auth.username})")
+    
+    def _setup_authentication(self):
+        """Setup authentication for all Flask routes"""
+        
+        @self.server.before_request
+        @self.auth.authenticate_decorator
+        def require_auth():
+            """Require authentication for all requests"""
+            pass
+        
+        logger.info("✅ Authentication middleware installed")
     
     def _build_layout(self):
         """Build dashboard layout"""
         
         self.app.layout = html.Div([
-            html.H1("BotV2 Trading Dashboard", style={'textAlign': 'center'}),
+            # Header with security badge
+            html.Div([
+                html.H1("BotV2 Trading Dashboard", style={'display': 'inline-block', 'marginRight': 20}),
+                html.Span("🔒 Secured", style={
+                    'backgroundColor': '#28a745',
+                    'color': 'white',
+                    'padding': '5px 15px',
+                    'borderRadius': '5px',
+                    'fontSize': '14px',
+                    'fontWeight': 'bold'
+                })
+            ], style={'textAlign': 'center', 'marginBottom': 20}),
             
             # Auto-refresh interval
             dcc.Interval(
@@ -74,22 +208,22 @@ class TradingDashboard:
                 html.Div([
                     html.H3("Portfolio Value"),
                     html.Div(id='portfolio-value', style={'fontSize': 32, 'fontWeight': 'bold'})
-                ], className='summary-box'),
+                ], className='summary-box', style={'flex': 1, 'textAlign': 'center', 'padding': 20, 'border': '1px solid #ddd', 'margin': 10}),
                 
                 html.Div([
                     html.H3("Total P&L"),
                     html.Div(id='total-pnl', style={'fontSize': 32, 'fontWeight': 'bold'})
-                ], className='summary-box'),
+                ], className='summary-box', style={'flex': 1, 'textAlign': 'center', 'padding': 20, 'border': '1px solid #ddd', 'margin': 10}),
                 
                 html.Div([
                     html.H3("Win Rate"),
                     html.Div(id='win-rate', style={'fontSize': 32, 'fontWeight': 'bold'})
-                ], className='summary-box'),
+                ], className='summary-box', style={'flex': 1, 'textAlign': 'center', 'padding': 20, 'border': '1px solid #ddd', 'margin': 10}),
                 
                 html.Div([
                     html.H3("Sharpe Ratio"),
                     html.Div(id='sharpe-ratio', style={'fontSize': 32, 'fontWeight': 'bold'})
-                ], className='summary-box'),
+                ], className='summary-box', style={'flex': 1, 'textAlign': 'center', 'padding': 20, 'border': '1px solid #ddd', 'margin': 10}),
             ], style={'display': 'flex', 'justifyContent': 'space-around', 'marginBottom': 20}),
             
             # Equity Curve
@@ -308,4 +442,98 @@ class TradingDashboard:
         """Create risk metrics table"""
         
         if not self.risk_metrics:
-            return html.Div("No risk metrics availab
+            return html.Div("No risk metrics available", style={'padding': 20})
+        
+        rows = []
+        for metric, value in self.risk_metrics.items():
+            rows.append(html.Tr([
+                html.Td(metric.replace('_', ' ').title(), style={'padding': 10, 'fontWeight': 'bold'}),
+                html.Td(f"{value:.2f}", style={'padding': 10})
+            ]))
+        
+        return html.Table(
+            [html.Tbody(rows)],
+            style={'width': '100%', 'border': '1px solid #ddd'}
+        )
+    
+    def _create_trades_table(self) -> html.Table:
+        """Create recent trades table"""
+        
+        if not self.trades_data:
+            return html.Div("No trades yet", style={'padding': 20})
+        
+        # Show last 10 trades
+        recent = self.trades_data[-10:]
+        
+        header = html.Tr([
+            html.Th('Time', style={'padding': 10, 'backgroundColor': '#f0f0f0'}),
+            html.Th('Strategy', style={'padding': 10, 'backgroundColor': '#f0f0f0'}),
+            html.Th('Action', style={'padding': 10, 'backgroundColor': '#f0f0f0'}),
+            html.Th('Size', style={'padding': 10, 'backgroundColor': '#f0f0f0'}),
+            html.Th('P&L', style={'padding': 10, 'backgroundColor': '#f0f0f0'})
+        ])
+        
+        rows = []
+        for trade in reversed(recent):
+            pnl = trade.get('pnl', 0)
+            pnl_color = 'green' if pnl >= 0 else 'red'
+            
+            rows.append(html.Tr([
+                html.Td(trade.get('timestamp', 'N/A'), style={'padding': 10}),
+                html.Td(trade.get('strategy', 'N/A'), style={'padding': 10}),
+                html.Td(trade.get('action', 'N/A'), style={'padding': 10}),
+                html.Td(f"{trade.get('size', 0):.4f}", style={'padding': 10}),
+                html.Td(f"€{pnl:,.2f}", style={'padding': 10, 'color': pnl_color})
+            ]))
+        
+        return html.Table(
+            [html.Thead(header), html.Tbody(rows)],
+            style={'width': '100%', 'border': '1px solid #ddd', 'borderCollapse': 'collapse'}
+        )
+    
+    def update_data(self, portfolio: Dict, trades: List, strategies: Dict, risk: Dict):
+        """
+        Update dashboard data from main trading system
+        
+        Args:
+            portfolio: Current portfolio state
+            trades: Recent trades list
+            strategies: Strategy performance dict
+            risk: Risk metrics dict
+        """
+        self.portfolio_data.append({
+            'timestamp': datetime.now(),
+            'equity': portfolio.get('equity', 0),
+            'cash': portfolio.get('cash', 0),
+            'positions': len(portfolio.get('positions', {}))
+        })
+        
+        self.trades_data = trades
+        self.strategy_data = strategies
+        self.risk_metrics = risk
+    
+    def run(self):
+        """Start dashboard server"""
+        
+        logger.info("="*70)
+        logger.info("🚀 Starting BotV2 Dashboard...")
+        logger.info(f"🌐 URL: http://{self.host}:{self.port}")
+        logger.info(f"🔒 Authentication: REQUIRED")
+        logger.info(f"👤 Username: {self.auth.username}")
+        logger.info("🔑 Password: Set via DASHBOARD_PASSWORD env var")
+        logger.info("="*70)
+        
+        self.app.run_server(
+            host=self.host,
+            port=self.port,
+            debug=self.debug
+        )
+
+
+if __name__ == "__main__":
+    # Test dashboard standalone
+    from src.config.config_manager import ConfigManager
+    
+    config = ConfigManager()
+    dashboard = TradingDashboard(config)
+    dashboard.run()
