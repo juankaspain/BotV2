@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Required - BotV2 Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e0e6ed;
+            padding: 20px;
+        }
+
+        .error-container {
+            background: rgba(26, 31, 58, 0.95);
+            border: 1px solid rgba(79, 209, 197, 0.2);
+            border-radius: 16px;
+            padding: 48px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(79, 209, 197, 0.1);
+            animation: fadeIn 0.4s ease-out;
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .error-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 32px;
+            position: relative;
+        }
+
+        .error-icon svg {
+            width: 100%;
+            height: 100%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ff6b6b;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .error-code {
+            font-size: 14px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .error-message {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #c9d1d9;
+            margin-bottom: 32px;
+        }
+
+        .error-details {
+            background: rgba(10, 14, 39, 0.6);
+            border-left: 3px solid #4fd1c5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            text-align: left;
+        }
+
+        .error-details h3 {
+            font-size: 16px;
+            color: #4fd1c5;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .error-details ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .error-details li {
+            font-size: 14px;
+            color: #8b949e;
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .error-details li:before {
+            content: '•';
+            position: absolute;
+            left: 8px;
+            color: #4fd1c5;
+            font-weight: bold;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+            color: #0a0e27;
+            box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 209, 197, 0.4);
+            background: linear-gradient(135deg, #5fe1d5 0%, #48c2bc 100%);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(79, 209, 197, 0.1);
+            color: #4fd1c5;
+            border: 1px solid rgba(79, 209, 197, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(79, 209, 197, 0.2);
+            border-color: rgba(79, 209, 197, 0.5);
+        }
+
+        .security-notice {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(79, 209, 197, 0.1);
+            font-size: 13px;
+            color: #6e7681;
+            line-height: 1.6;
+        }
+
+        .security-notice strong {
+            color: #4fd1c5;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .error-container {
+                padding: 32px 24px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .error-icon {
+                width: 80px;
+                height: 80px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <!-- Error Icon -->
+        <div class="error-icon">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Shield Background -->
+                <path d="M60 10L20 30V55C20 78.5 35.5 100 60 110C84.5 100 100 78.5 100 55V30L60 10Z" 
+                      fill="#ff6b6b" opacity="0.1"/>
+                <path d="M60 10L20 30V55C20 78.5 35.5 100 60 110C84.5 100 100 78.5 100 55V30L60 10Z" 
+                      stroke="#ff6b6b" stroke-width="2" fill="none"/>
+                
+                <!-- X Mark -->
+                <line x1="45" y1="45" x2="75" y2="75" stroke="#ff6b6b" stroke-width="4" stroke-linecap="round"/>
+                <line x1="75" y1="45" x2="45" y2="75" stroke="#ff6b6b" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <!-- Error Content -->
+        <div class="error-code">HTTP 401 - Unauthorized</div>
+        <h1>Authentication Failed</h1>
+        <p class="error-message">
+            Invalid credentials. Please check your username and password and try again.
+        </p>
+
+        <!-- Error Details -->
+        <div class="error-details">
+            <h3>🔐 Security Information</h3>
+            <ul>
+                <li>Failed login attempts are logged for security purposes</li>
+                <li>Rate limiting: Maximum 10 attempts per minute</li>
+                <li>Account lockout may occur after multiple failed attempts</li>
+                <li>Contact your administrator if you forgot your credentials</li>
+            </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="button-group">
+            <button class="btn btn-primary" onclick="window.location.reload()">
+                🔄 Try Again
+            </button>
+            <button class="btn btn-secondary" onclick="showCredentials()">
+                ℹ️ Help
+            </button>
+        </div>
+
+        <!-- Security Notice -->
+        <div class="security-notice">
+            <strong>BotV2 Dashboard v2.0 (Secure)</strong><br>
+            Protected by enterprise-grade security<br>
+            Rate Limiting • Brute Force Protection • Audit Logging
+        </div>
+    </div>
+
+    <script>
+        // Auto-focus on reload button with keyboard
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                window.location.reload();
+            }
+        });
+
+        // Show help information
+        function showCredentials() {
+            alert(
+                'BotV2 Dashboard Login Help\n\n' +
+                '• Default username: admin\n' +
+                '• Password: Set via DASHBOARD_PASSWORD environment variable\n' +
+                '• Ensure credentials are correct (case-sensitive)\n' +
+                '• Check if rate limiting is active (wait 1 minute)\n\n' +
+                'For assistance, contact your system administrator.'
+            );
+        }
+
+        // Add fade-in animation
+        document.querySelector('.error-container').style.opacity = '0';
+        setTimeout(() => {
+            document.querySelector('.error-container').style.opacity = '1';
+        }, 100);
+    </script>
+</body>
+</html>
