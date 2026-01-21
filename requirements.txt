@@ -1,10 +1,10 @@
 # BotV2 - Dependencias Python (Pinned Versions)
 # Trading System with 26 Audit Improvements
 # Fixed for Python 3.11 + Docker compatibility
+# Note: python>=3.10 is handled by Dockerfile (not a pip package)
 
 # ===== CORE =====
-python>=3.10
-pyyaml>=6.0
+pyyaml==6.0
 
 # ===== DATA & MATH =====
 numpy==1.24.3
@@ -52,23 +52,25 @@ python-dotenv==1.0.0
 colorlog==6.8.0
 tqdm==4.66.1
 
-# ===== ADDITIONAL (v5.0+ ML Features) =====
-tensorflow==2.14.0rc1  # Optional, for LSTM models
-torch==2.1.1  # Optional, alternative to TensorFlow
-ta-lib==0.4.28  # Technical analysis library
-
 # ===== SECURITY & VALIDATION =====
 cryptography==41.0.7
 pydantic==2.5.0
 python-jose==3.3.0
 
-# ===== DISTRIBUTED SYSTEMS (v6.0+) =====
-apache-airflow==2.7.1  # Optional, for workflow orchestration
-kafka-python==2.0.2  # Optional, for message queues
-pyspark==3.5.0  # Optional, for distributed computing
+# ===== OPTIONAL: ML Models (Uncomment if needed) =====
+# These are large and slow to install - only use if you need them
+# tensorflow==2.14.0rc1  # LSTM models - ~800MB
+# torch==2.1.1  # Alternative to TensorFlow - ~600MB
+# ta-lib==0.4.28  # Technical analysis - requires compilation
+
+# ===== OPTIONAL: Distributed Systems (Uncomment if needed) =====
+# These are for v6.0+ distributed architecture
+# apache-airflow==2.7.1  # Workflow orchestration - ~200MB
+# kafka-python==2.0.2  # Message queues - ~50MB
+# pyspark==3.5.0  # Distributed computing - ~200MB
 
 # Notes:
-# - asyncio is built-in Python 3.11, no need to specify version
-# - TensorFlow/PyTorch are marked optional (large downloads)
-# - Versions are pinned to ensure reproducibility
-# - All versions tested with Python 3.11 on Alpine Linux
+# - Python version: Specified in Dockerfile (python:3.11-alpine)
+# - All versions are pinned to ensure reproducibility
+# - Tested with Python 3.11 on Alpine Linux
+# - Optional packages commented out to speed up base installation
