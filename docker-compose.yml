@@ -63,7 +63,6 @@ services:
       # All secrets (POSTGRES_*, SECRET_KEY, etc) loaded from .env
       - DASH_ENV=production
       - LOG_LEVEL=INFO
-      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}  # Optional: Slack integration
     ports:
       - "8050:8050"
     depends_on:
