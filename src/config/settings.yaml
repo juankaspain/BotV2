@@ -157,9 +157,88 @@ state_persistence:
     retention_days: 30
     compress: true
 
-markets:
+# ============================================================================
+# EXCHANGE CONFIGURATIONS
+# ============================================================================
+
+exchanges:
+  # Primary exchange (Polymarket for prediction markets)
   primary: "polymarket"
   
+  # Binance - Fully supported and active
+  binance:
+    enabled: false  # Set to true to enable
+    api_key_env: "BINANCE_API_KEY"
+    api_secret_env: "BINANCE_SECRET"
+    testnet: false
+    trading_pairs:
+      - "BTC/EUR"
+      - "ETH/EUR"
+      - "BNB/EUR"
+    rate_limit: 1200  # requests per minute
+    commission: 0.001  # 0.1%
+  
+  # Coinbase Pro - Optional
+  coinbase:
+    enabled: false  # Set to true to enable
+    api_key_env: "COINBASE_API_KEY"
+    api_secret_env: "COINBASE_SECRET"
+    api_passphrase_env: "COINBASE_PASSPHRASE"
+    testnet: false
+    trading_pairs:
+      - "BTC/EUR"
+      - "ETH/EUR"
+    rate_limit: 10  # requests per second
+    commission: 0.005  # 0.5%
+  
+  # Kraken - Optional
+  kraken:
+    enabled: false  # Set to true to enable
+    api_key_env: "KRAKEN_API_KEY"
+    api_secret_env: "KRAKEN_SECRET"
+    testnet: false
+    trading_pairs:
+      - "XBT/EUR"  # BTC on Kraken
+      - "ETH/EUR"
+    rate_limit: 15  # requests per second
+    commission: 0.0026  # 0.26% (maker/taker average)
+  
+  # Finst - PREPARATORY (API not yet available)
+  # Status: Waiting for Finst to release public API
+  # Contact: support@finst.com to request API access
+  finst:
+    enabled: false  # Keep false until API is available
+    api_available: false  # Will be updated when API launches
+    api_key_env: "FINST_API_KEY"  # Placeholder
+    api_secret_env: "FINST_SECRET"  # Placeholder
+    testnet: false
+    trading_pairs:
+      - "BTC/EUR"
+      - "ETH/EUR"
+      - "USDT/EUR"
+      - "SOL/EUR"
+      - "ADA/EUR"
+    rate_limit: 60  # Estimated - to be confirmed
+    commission: 0.0015  # 0.15% (current platform fee)
+    notes: |
+      Finst is a European crypto exchange (Netherlands) with 340+ cryptocurrencies.
+      Ultra-low fees (0.15% flat) and strong security focus.
+      API is not yet publicly available as of January 2026.
+      This configuration is preparatory for future integration.
+      
+      To request API access:
+      - Email: support@finst.com
+      - Subject: "API Access Request for Algorithmic Trading"
+      
+      When API becomes available:
+      1. Obtain API credentials from Finst platform
+      2. Set environment variables: FINST_API_KEY and FINST_SECRET
+      3. Update api_available to true
+      4. Set enabled to true
+      5. Test with small amounts first
+
+markets:
+  # Prediction markets configuration
   polymarket:
     base_url: "https://clob.polymarket.com"
     api_key_env: "POLYMARKET_API_KEY"
