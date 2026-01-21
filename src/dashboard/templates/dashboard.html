@@ -3,370 +3,533 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BotV2 Trading Dashboard</title>
+    <title>BotV2 Professional Dashboard v2.0</title>
     
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/professional.css') }}">
-    
-    <!-- Libraries -->
+    <!-- Socket.IO Client -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <!-- Plotly for Charts -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .version-badge {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #1a1a2e;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            border-color: #00d4ff;
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        .metric-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .metric-change {
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+        
+        .positive { color: #4caf50; }
+        .negative { color: #f44336; }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .chart-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chart-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, #00d4ff, #0099cc);
+            border-radius: 2px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        th {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+        
+        tr:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 212, 255, 0.95);
+            color: #1a1a2e;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.5);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(0, 212, 255, 0.1);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .metric-value {
+                font-size: 2rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
-<body class="dark-theme" x-data="dashboardState()">
-    <!-- Navigation Bar -->
-    <nav class="navbar">
-        <div class="navbar-left">
-            <div class="navbar-brand">
-                <div class="brand-icon">🤖</div>
-                <div class="brand-text">
-                    <h1>BotV2</h1>
-                    <span class="brand-tagline">Professional Trading System</span>
-                </div>
-            </div>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>
+            🤖 BotV2 Dashboard
+            <span class="version-badge">v2.0 Professional</span>
+        </h1>
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="connectionStatus">Connecting...</span>
         </div>
-        
-        <div class="navbar-center">
-            <div class="status-badge" :class="statusClass">
-                <span class="status-dot"></span>
-                <span class="status-text" x-text="connectionStatus">Conectando...</span>
-            </div>
-        </div>
-        
-        <div class="navbar-right">
-            <div class="navbar-actions">
-                <button class="nav-btn" @click="toggleRealtime" title="Real-time updates">
-                    <span x-show="realtimeActive">🔴</span>
-                    <span x-show="!realtimeActive">⚪</span>
-                </button>
-                
-                <button class="nav-btn" @click="toggleTheme" title="Toggle theme">
-                    <span x-show="darkMode">🌙</span>
-                    <span x-show="!darkMode">☀️</span>
-                </button>
-                
-                <button class="nav-btn" @click="exportReport" title="Export report">
-                    💾
-                </button>
-                
-                <button class="nav-btn" @click="toggleFullscreen" title="Fullscreen">
-                    ⛶
-                </button>
-                
-                <div class="divider"></div>
-                
-                <div class="time-display" x-text="currentTime">00:00:00</div>
-            </div>
-        </div>
-    </nav>
-    
-    <!-- Main Container -->
-    <div class="main-container">
-        <!-- Alerts -->
-        <div class="alerts-container" id="alerts-container"></div>
-        
-        <!-- KPI Cards Section -->
-        <section class="kpi-section">
-            <div class="section-header">
-                <h2>Key Performance Indicators</h2>
-                <div class="header-actions">
-                    <button class="btn-small" @click="refreshKPIs">Refresh</button>
-                </div>
-            </div>
-            
-            <div class="kpi-grid">
-                <!-- Portfolio Value -->
-                <div class="kpi-card primary">
-                    <div class="kpi-header">
-                        <span class="kpi-label">Portfolio Value</span>
-                        <span class="kpi-icon">💰</span>
-                    </div>
-                    <div class="kpi-value" id="portfolio-value">€0.00</div>
-                    <div class="kpi-trend" id="portfolio-trend">+0.00%</div>
-                    <div class="kpi-bar">
-                        <div class="kpi-fill" style="width: 50%"></div>
-                    </div>
-                </div>
-                
-                <!-- Total P&L -->
-                <div class="kpi-card">
-                    <div class="kpi-header">
-                        <span class="kpi-label">Total P&L</span>
-                        <span class="kpi-icon">📈</span>
-                    </div>
-                    <div class="kpi-value" id="pnl-value">€0.00</div>
-                    <div class="kpi-trend positive" id="pnl-change">+0.00%</div>
-                    <div class="kpi-detail">Last 30 days</div>
-                </div>
-                
-                <!-- Win Rate -->
-                <div class="kpi-card">
-                    <div class="kpi-header">
-                        <span class="kpi-label">Win Rate</span>
-                        <span class="kpi-icon">🎯</span>
-                    </div>
-                    <div class="kpi-value" id="winrate-value">0.0%</div>
-                    <div class="kpi-detail" id="trades-count">0 trades executed</div>
-                    <div class="kpi-bar">
-                        <div class="kpi-fill positive" style="width: 65%"></div>
-                    </div>
-                </div>
-                
-                <!-- Sharpe Ratio -->
-                <div class="kpi-card">
-                    <div class="kpi-header">
-                        <span class="kpi-label">Sharpe Ratio</span>
-                        <span class="kpi-icon">📊</span>
-                    </div>
-                    <div class="kpi-value" id="sharpe-value">0.00</div>
-                    <div class="kpi-rating" id="sharpe-rating">N/A</div>
-                    <div class="kpi-detail">Risk-adjusted return</div>
-                </div>
-                
-                <!-- Max Drawdown -->
-                <div class="kpi-card">
-                    <div class="kpi-header">
-                        <span class="kpi-label">Max Drawdown</span>
-                        <span class="kpi-icon">📉</span>
-                    </div>
-                    <div class="kpi-value" id="drawdown-value">0.0%</div>
-                    <div class="kpi-detail" id="current-dd">Current: 0.0%</div>
-                    <div class="kpi-bar">
-                        <div class="kpi-fill warning" style="width: 35%"></div>
-                    </div>
-                </div>
-                
-                <!-- Volatility -->
-                <div class="kpi-card">
-                    <div class="kpi-header">
-                        <span class="kpi-label">Volatility</span>
-                        <span class="kpi-icon">📐</span>
-                    </div>
-                    <div class="kpi-value" id="volatility-value">0.0%</div>
-                    <div class="kpi-rating" id="vol-rating">N/A</div>
-                    <div class="kpi-detail">Daily volatility (std)</div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Charts Section -->
-        <section class="charts-section">
-            <div class="section-header">
-                <h2>Performance Analytics</h2>
-                <div class="header-actions">
-                    <select class="select-period" id="period-select" @change="changePeriod($event)">
-                        <option value="1D">1 Day</option>
-                        <option value="1W" selected>1 Week</option>
-                        <option value="1M">1 Month</option>
-                        <option value="3M">3 Months</option>
-                        <option value="1Y">1 Year</option>
-                        <option value="ALL">All Time</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Main Equity Chart -->
-            <div class="chart-container full-width">
-                <div class="chart-header-bar">
-                    <h3>Equity Curve</h3>
-                    <div class="chart-stats">
-                        <span class="stat-item" id="chart-stat-return">Return: 0%</span>
-                        <span class="stat-item" id="chart-stat-dd">Max DD: 0%</span>
-                        <span class="stat-item" id="chart-stat-trades">Trades: 0</span>
-                    </div>
-                </div>
-                <div id="equity-chart" class="plotly-chart"></div>
-                <div class="chart-footer">
-                    <span class="chart-source">Real-time data from connected exchanges</span>
-                </div>
-            </div>
-            
-            <!-- Secondary Charts Grid -->
-            <div class="charts-grid">
-                <!-- Daily Returns -->
-                <div class="chart-container">
-                    <div class="chart-header-bar">
-                        <h3>Daily Returns</h3>
-                    </div>
-                    <div id="returns-chart" class="plotly-chart small"></div>
-                </div>
-                
-                <!-- Drawdown History -->
-                <div class="chart-container">
-                    <div class="chart-header-bar">
-                        <h3>Drawdown Analysis</h3>
-                    </div>
-                    <div id="drawdown-chart" class="plotly-chart small"></div>
-                </div>
-                
-                <!-- Return Distribution -->
-                <div class="chart-container">
-                    <div class="chart-header-bar">
-                        <h3>Return Distribution</h3>
-                    </div>
-                    <div id="distribution-chart" class="plotly-chart small"></div>
-                </div>
-                
-                <!-- Monthly Returns -->
-                <div class="chart-container">
-                    <div class="chart-header-bar">
-                        <h3>Monthly Returns</h3>
-                    </div>
-                    <div id="monthly-chart" class="plotly-chart small"></div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Strategy Performance Section -->
-        <section class="strategies-section">
-            <div class="section-header">
-                <h2>Strategy Performance</h2>
-                <div class="header-actions">
-                    <select class="select-metric" id="metric-select" @change="changeMetric($event)">
-                        <option value="return">Returns</option>
-                        <option value="sharpe">Sharpe Ratio</option>
-                        <option value="winrate">Win Rate</option>
-                        <option value="trades">Trade Count</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="chart-container full-width">
-                <div id="strategies-chart" class="plotly-chart"></div>
-            </div>
-            
-            <!-- Strategy Cards -->
-            <div class="strategy-cards-grid" id="strategy-cards-container">
-                <!-- Strategy cards will be populated dynamically -->
-            </div>
-        </section>
-        
-        <!-- Risk & Analytics Section -->
-        <section class="risk-section">
-            <div class="section-header">
-                <h2>Risk Analysis & Correlations</h2>
-            </div>
-            
-            <div class="risk-grid">
-                <!-- Risk Metrics -->
-                <div class="chart-container">
-                    <div class="chart-header-bar">
-                        <h3>Risk Metrics</h3>
-                    </div>
-                    <div class="risk-metrics-list" id="risk-metrics-list">
-                        <!-- Risk metrics will be populated dynamically -->
-                    </div>
-                </div>
-                
-                <!-- Correlation Heatmap -->
-                <div class="chart-container">
-                    <div class="chart-header-bar">
-                        <h3>Correlation Matrix</h3>
-                    </div>
-                    <div id="correlation-heatmap" class="plotly-chart small"></div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Recent Trades Section -->
-        <section class="trades-section">
-            <div class="section-header">
-                <h2>Recent Trades</h2>
-                <div class="header-actions">
-                    <input type="text" class="search-input" placeholder="Search trades..." id="trades-search">
-                    <button class="btn-small" @click="refreshTrades">Refresh</button>
-                </div>
-            </div>
-            
-            <div class="table-wrapper">
-                <table class="trades-table" id="trades-table">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Strategy</th>
-                            <th>Symbol</th>
-                            <th>Type</th>
-                            <th>Amount</th>
-                            <th>Price</th>
-                            <th>P&L</th>
-                            <th>P&L %</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="trades-tbody">
-                        <tr class="no-data">
-                            <td colspan="9">No trades yet</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-        
-        <!-- System Status Section -->
-        <section class="system-section">
-            <div class="section-header">
-                <h2>System Status</h2>
-            </div>
-            
-            <div class="status-grid">
-                <div class="status-card">
-                    <div class="status-icon connected">✓</div>
-                    <div class="status-info">
-                        <div class="status-name">Binance Connection</div>
-                        <div class="status-value" id="binance-status">Connected</div>
-                    </div>
-                </div>
-                
-                <div class="status-card">
-                    <div class="status-icon connected">✓</div>
-                    <div class="status-info">
-                        <div class="status-name">Kraken Connection</div>
-                        <div class="status-value" id="kraken-status">Connected</div>
-                    </div>
-                </div>
-                
-                <div class="status-card">
-                    <div class="status-icon connected">✓</div>
-                    <div class="status-info">
-                        <div class="status-name">Data Feed</div>
-                        <div class="status-value" id="datafeed-status">Active</div>
-                    </div>
-                </div>
-                
-                <div class="status-card">
-                    <div class="status-icon connected">✓</div>
-                    <div class="status-info">
-                        <div class="status-name">Order Optimizer</div>
-                        <div class="status-value" id="optimizer-status">Active</div>
-                    </div>
-                </div>
-            </div>
-        </section>
     </div>
     
-    <!-- Footer -->
-    <footer class="dashboard-footer">
-        <div class="footer-left">
-            <span>© 2026 BotV2 Trading System</span>
+    <!-- Metrics Cards -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-label">💰 Portfolio Value</div>
+            <div class="metric-value" id="portfolioValue">€0.00</div>
+            <div class="metric-change" id="portfolioChange">--</div>
         </div>
-        <div class="footer-center">
-            <span id="last-update">Last update: --:--:--</span>
+        
+        <div class="metric-card">
+            <div class="metric-label">📈 Total P&L</div>
+            <div class="metric-value" id="totalPnL">€0.00</div>
+            <div class="metric-change" id="pnlPercent">--</div>
         </div>
-        <div class="footer-right">
-            <span id="data-latency">Latency: 0ms</span>
+        
+        <div class="metric-card">
+            <div class="metric-label">🎯 Win Rate</div>
+            <div class="metric-value" id="winRate">0%</div>
+            <div class="metric-change" id="totalTrades">0 trades</div>
         </div>
-    </footer>
+        
+        <div class="metric-card">
+            <div class="metric-label">⚡ Sharpe Ratio</div>
+            <div class="metric-value" id="sharpeRatio">0.00</div>
+            <div class="metric-change" id="maxDrawdown">Max DD: 0%</div>
+        </div>
+    </div>
     
-    <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/professional.js') }}"></script>
+    <!-- Equity Curve -->
+    <div class="chart-container">
+        <div class="chart-title">📊 Equity Curve</div>
+        <div id="equityChart" style="height: 400px;"></div>
+    </div>
+    
+    <!-- Daily Returns -->
+    <div class="chart-container">
+        <div class="chart-title">📉 Daily Returns</div>
+        <div id="returnsChart" style="height: 300px;"></div>
+    </div>
+    
+    <!-- Strategy Performance -->
+    <div class="chart-container">
+        <div class="chart-title">🎮 Strategy Performance</div>
+        <div id="strategiesChart" style="height: 400px;"></div>
+    </div>
+    
+    <!-- Risk Metrics -->
+    <div class="chart-container">
+        <div class="chart-title">⚠️ Risk Metrics</div>
+        <div id="riskMetrics">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading risk analytics...
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Trades -->
+    <div class="chart-container">
+        <div class="chart-title">💼 Recent Trades</div>
+        <div id="tradesTable">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading trades...
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Socket.IO Connection
+        const socket = io();
+        
+        // Connection handlers
+        socket.on('connect', () => {
+            console.log('✅ Connected to dashboard');
+            document.getElementById('connectionStatus').textContent = 'Connected';
+            document.getElementById('statusDot').style.background = '#4caf50';
+            socket.emit('request_update', { component: 'all' });
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('❌ Disconnected from dashboard');
+            document.getElementById('connectionStatus').textContent = 'Disconnected';
+            document.getElementById('statusDot').style.background = '#f44336';
+        });
+        
+        socket.on('connected', (data) => {
+            console.log('Server message:', data.message);
+            showToast('Connected to BotV2 Dashboard v' + data.version, 'info');
+        });
+        
+        // Data update handler
+        socket.on('update', (data) => {
+            console.log('📡 Received update:', data);
+            
+            if (data.overview) updateOverview(data.overview);
+            if (data.equity) updateEquityChart(data.equity);
+            if (data.strategies) updateStrategiesChart(data.strategies);
+            if (data.risk) updateRiskMetrics(data.risk);
+        });
+        
+        // Alert handler
+        socket.on('alert', (alert) => {
+            showToast(alert.message, alert.level);
+        });
+        
+        // Update overview metrics
+        function updateOverview(data) {
+            document.getElementById('portfolioValue').textContent = 
+                '€' + data.equity.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            
+            const changeClass = data.daily_change >= 0 ? 'positive' : 'negative';
+            const changeSymbol = data.daily_change >= 0 ? '+' : '';
+            document.getElementById('portfolioChange').innerHTML = 
+                `<span class="${changeClass}">${changeSymbol}€${data.daily_change.toFixed(2)} (${changeSymbol}${data.daily_change_pct.toFixed(2)}%)</span>`;
+            
+            const totalReturn = ((data.equity / 3000) - 1) * 100; // Assuming 3000 initial
+            const pnlClass = totalReturn >= 0 ? 'positive' : 'negative';
+            const pnlSymbol = totalReturn >= 0 ? '+' : '';
+            document.getElementById('totalPnL').innerHTML = 
+                `<span class="${pnlClass}">${pnlSymbol}€${(data.equity - 3000).toFixed(2)}</span>`;
+            document.getElementById('pnlPercent').innerHTML = 
+                `<span class="${pnlClass}">${pnlSymbol}${totalReturn.toFixed(2)}%</span>`;
+            
+            document.getElementById('winRate').textContent = data.win_rate.toFixed(1) + '%';
+            document.getElementById('totalTrades').textContent = data.total_trades + ' trades';
+            
+            document.getElementById('sharpeRatio').textContent = data.sharpe_ratio.toFixed(2);
+            document.getElementById('maxDrawdown').textContent = 'Max DD: ' + data.max_drawdown.toFixed(2) + '%';
+        }
+        
+        // Update equity chart
+        function updateEquityChart(data) {
+            const trace1 = {
+                x: data.timestamps,
+                y: data.equity,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Equity',
+                line: { color: '#00d4ff', width: 2 }
+            };
+            
+            const trace2 = {
+                x: data.timestamps,
+                y: data.sma_20,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'SMA 20',
+                line: { color: '#ffa726', width: 1, dash: 'dash' }
+            };
+            
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(255,255,255,0.02)',
+                font: { color: '#e0e0e0' },
+                xaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+                yaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+                margin: { l: 50, r: 20, t: 20, b: 50 },
+                showlegend: true,
+                legend: { x: 0, y: 1 }
+            };
+            
+            Plotly.newPlot('equityChart', [trace1, trace2], layout, { responsive: true });
+        }
+        
+        // Update strategies chart
+        function updateStrategiesChart(data) {
+            const strategies = data.strategies.slice(0, 10); // Top 10
+            
+            const trace = {
+                x: strategies.map(s => s.name),
+                y: strategies.map(s => s.total_return),
+                type: 'bar',
+                marker: {
+                    color: strategies.map(s => s.total_return >= 0 ? '#4caf50' : '#f44336')
+                }
+            };
+            
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(255,255,255,0.02)',
+                font: { color: '#e0e0e0' },
+                xaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+                yaxis: { 
+                    gridcolor: 'rgba(255,255,255,0.1)',
+                    title: 'Return (%)'
+                },
+                margin: { l: 50, r: 20, t: 20, b: 100 }
+            };
+            
+            Plotly.newPlot('strategiesChart', [trace], layout, { responsive: true });
+        }
+        
+        // Update risk metrics
+        function updateRiskMetrics(data) {
+            const html = `
+                <table>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>Sharpe Ratio</td>
+                        <td>${data.sharpe_ratio.toFixed(2)}</td>
+                        <td><span class="${data.sharpe_ratio > 2 ? 'positive' : 'negative'}">${data.sharpe_ratio > 2 ? '✅ Excellent' : '⚠️ Monitor'}</span></td>
+                    </tr>
+                    <tr>
+                        <td>Sortino Ratio</td>
+                        <td>${data.sortino_ratio.toFixed(2)}</td>
+                        <td><span class="${data.sortino_ratio > 2 ? 'positive' : 'negative'}">${data.sortino_ratio > 2 ? '✅ Good' : '⚠️ Monitor'}</span></td>
+                    </tr>
+                    <tr>
+                        <td>Max Drawdown</td>
+                        <td>${data.max_drawdown.toFixed(2)}%</td>
+                        <td><span class="${data.max_drawdown > -15 ? 'positive' : 'negative'}">${data.max_drawdown > -15 ? '✅ Safe' : '🔴 Critical'}</span></td>
+                    </tr>
+                    <tr>
+                        <td>Current Drawdown</td>
+                        <td>${data.current_drawdown.toFixed(2)}%</td>
+                        <td><span class="${data.current_drawdown > -10 ? 'positive' : 'negative'}">${data.current_drawdown > -10 ? '✅ Safe' : '⚠️ Alert'}</span></td>
+                    </tr>
+                    <tr>
+                        <td>Volatility (Annual)</td>
+                        <td>${data.volatility.toFixed(2)}%</td>
+                        <td><span class="${data.volatility < 30 ? 'positive' : 'negative'}">${data.volatility < 30 ? '✅ Low' : '⚠️ High'}</span></td>
+                    </tr>
+                    <tr>
+                        <td>VaR (95%)</td>
+                        <td>${data.var_95.toFixed(2)}%</td>
+                        <td>ℹ️ Risk measure</td>
+                    </tr>
+                    <tr>
+                        <td>CVaR (95%)</td>
+                        <td>${data.cvar_95.toFixed(2)}%</td>
+                        <td>ℹ️ Tail risk</td>
+                    </tr>
+                </table>
+            `;
+            document.getElementById('riskMetrics').innerHTML = html;
+        }
+        
+        // Show toast notification
+        function showToast(message, level = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            
+            if (level === 'warning') toast.style.background = '#ff9800';
+            if (level === 'danger') toast.style.background = '#f44336';
+            if (level === 'success') toast.style.background = '#4caf50';
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+        
+        // Fetch initial data via API
+        async function fetchInitialData() {
+            try {
+                const [overview, equity, strategies, risk] = await Promise.all([
+                    fetch('/api/overview').then(r => r.json()),
+                    fetch('/api/equity').then(r => r.json()),
+                    fetch('/api/strategies').then(r => r.json()),
+                    fetch('/api/risk').then(r => r.json())
+                ]);
+                
+                updateOverview(overview);
+                updateEquityChart(equity);
+                updateStrategiesChart(strategies);
+                updateRiskMetrics(risk);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                showToast('Error loading dashboard data', 'danger');
+            }
+        }
+        
+        // Auto-refresh every 10 seconds (in addition to WebSocket)
+        setInterval(() => {
+            socket.emit('request_update', { component: 'all' });
+        }, 10000);
+        
+        // Load initial data
+        fetchInitialData();
+    </script>
 </body>
 </html>
