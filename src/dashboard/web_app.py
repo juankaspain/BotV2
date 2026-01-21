@@ -122,7 +122,7 @@ class ProfessionalDashboard:
     Architecture:
     - Flask + SocketIO for real-time updates
     - Flask-Limiter for rate limiting (10 req/min per IP)
-    - Flask-Talisman for HTTPS enforcement + security headers
+    - Flask-Talisman for HTTPS enforcement + security headers (PRODUCTION ONLY)
     - Plotly for interactive charts
     - Custom CSS/JS for Bloomberg-style UI
     - WebSocket push for instant updates
@@ -131,8 +131,8 @@ class ProfessionalDashboard:
     
     Security:
     - Rate limiting on all endpoints
-    - HTTPS enforcement in production
-    - Security headers (HSTS, CSP, X-Frame-Options)
+    - HTTPS enforcement in production (disabled in development)
+    - Security headers (HSTS, CSP, X-Frame-Options) - production only
     - Brute force protection
     - Audit logging
     """
@@ -168,7 +168,7 @@ class ProfessionalDashboard:
         
         # Setup security middleware
         self._setup_rate_limiting()
-        self._setup_https_enforcement()
+        self._setup_https_enforcement()  # Only active in production
         
         # Data stores
         self.portfolio_history = []
@@ -230,7 +230,12 @@ class ProfessionalDashboard:
         logger.info("✅ Rate limiting middleware installed (10 req/min per IP)")
     
     def _setup_https_enforcement(self):
-        """Setup HTTPS enforcement and security headers"""
+        """
+        Setup HTTPS enforcement and security headers (PRODUCTION ONLY)
+        
+        Development: NO Talisman installed - pure HTTP
+        Production: Talisman enforces HTTPS + security headers
+        """
         
         if self.is_production:
             # Production: Enforce HTTPS and security headers
@@ -264,8 +269,10 @@ class ProfessionalDashboard:
             )
             logger.info("✅ HTTPS enforcement + security headers enabled (production)")
         else:
-            # Development: No HTTPS enforcement (allow localhost HTTP)
-            logger.info("⚠️ HTTPS enforcement disabled (development mode - HTTP only)")
+            # Development: NO HTTPS enforcement, NO Talisman
+            # Pure HTTP for localhost development
+            logger.info("⚠️ HTTPS enforcement DISABLED (development mode)")
+            logger.info("🌐 Access dashboard: http://localhost:8050 (HTTP only, no HTTPS)")
     
     def _setup_authentication(self):
         """Setup authentication for all Flask routes except /health"""
@@ -798,6 +805,11 @@ class ProfessionalDashboard:
         logger.info(f"🔐 HTTPS: {'ENFORCED' if self.is_production else 'DISABLED (dev)'}")
         logger.info("✨ Features: WebSocket, Real-time, Advanced Analytics, Enterprise Security")
         logger.info(f"📊 Health Check: http://{self.host}:{self.port}/health")
+        
+        if not self.is_production:
+            logger.warning("⚠️ DEVELOPMENT MODE: Use HTTP (not HTTPS) to access dashboard")
+            logger.warning(f"🌐 Access: http://localhost:{self.port}")
+        
         logger.info("="*70)
         
         self.socketio.run(
