@@ -1,10 +1,21 @@
-# BotV2 - Git Ignore
+# ═════════════════════════════════════════════════════════════════════
+# BotV2 - Comprehensive Git Ignore
+# Security-hardened version with all sensitive patterns
+# ═════════════════════════════════════════════════════════════════════
 
-# Python
+# ═════════════════════════════════════════════════════════════════════
+# PYTHON
+# ═════════════════════════════════════════════════════════════════════
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -18,53 +29,540 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+PIPFILE.lock
 
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv
+# PyInstaller
+*.manifest
+*.spec
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Logs
-logs/
-*.log
-
-# Database
-*.db
-*.sqlite3
-backups/
-
-# Secrets
-.env
-secrets/
-*.key
-*.pem
-
-# Data
-data/
-*.csv
-*.parquet
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb
-
-# Coverage
-.coverage
+# Unit test / coverage reports
 htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
 .pytest_cache/
 
-# BotV2 Specific
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.env.*
+!.env.example
+!.env.template
+.env.local
+.env.*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ═════════════════════════════════════════════════════════════════════
+# SECRETS & CREDENTIALS
+# ═════════════════════════════════════════════════════════════════════
+
+# Environment files
+*.env
+*.env.*
+!.env.example
+!.env.template
+.env.local
+.env.*.local
+
+# Secret files
+*.secret
+*.secrets
+secrets/
+credentials.json
+credentials.yaml
+config/secrets.yaml
+config/*.secret.yaml
+
+# API Keys
+*api_key*
+*apikey*
+api_keys.txt
+api-keys.json
+
+# Authentication tokens
+*.token
+*auth_token*
+auth.json
+auth.yaml
+jwt_secret*
+
+# SSH & GPG keys
+*.key
+*.ppk
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+known_hosts
+.ssh/
+
+# PGP
+secring.*
+pubring.*
+secring.gpg
+pubring.gpg
+secring.kbx
+pubring.kbx
+
+# Cloud provider credentials
+.aws/
+.azure/
+.gcloud/
+gcp-credentials.json
+aws-credentials.json
+azure-credentials.json
+service-account.json
+
+# Certificates
+*.crt
+*.cer
+*.cert
+*.pem
+!requirements.txt
+*.p12
+*.pfx
+*.csr
+ca-bundle.crt
+cert-chain.pem
+letsencrypt/
+acme-challenge/
+
+# HashiCorp Vault
+.vault-token
+vault-token
+
+# Kubernetes secrets
+kube-config
+*.kubeconfig
+secret.yaml
+secrets.yaml
+
+# ═════════════════════════════════════════════════════════════════════
+# DATABASE
+# ═════════════════════════════════════════════════════════════════════
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# PostgreSQL
+*.pgsql
+*.psql
+
+# MySQL
+*.mysql
+*.sql
+
+# Database dumps
+*.dump
+*.sql.gz
+*.sql.bz2
+
+# Database backups
+backups/
+db_backups/
+*.backup
+*.bak
+
+# Database configs
+database.ini
+db.config
+*.db.config
+
+# ═════════════════════════════════════════════════════════════════════
+# TRADING DATA (SENSITIVE)
+# ═════════════════════════════════════════════════════════════════════
+
+# Trade history
+trades/
+trade_history/
+*.trades.json
+*.trades.csv
+execution_log.csv
+order_log.csv
+
+# Portfolio snapshots
+portfolio/
+portfolio_*.json
+positions_*.csv
+holdings_*.json
+
+# Performance reports
+reports/
+performance/
+backtest_results/
+*.report.pdf
+*.performance.json
+pnl_report.*
+
+# Market data cache
+market_data/
+price_cache/
+*.market.cache
+ticker_data/
+ohlcv/
+
+# State files
+state/
+state.json
+checkpoint_*.json
+*.checkpoint
+*.state
 trading_system/state/
 trading_system/checkpoints/
+
+# Strategy data
+strategy_state/
+strategy_cache/
+*.strategy.json
+
+# ═════════════════════════════════════════════════════════════════════
+# DATA FILES
+# ═════════════════════════════════════════════════════════════════════
+
+# CSV files
+data/
+*.csv
+!data/.gitkeep
+
+# Parquet
+*.parquet
+*.parq
+
+# HDF5
+*.h5
+*.hdf5
+
+# Pickle
+*.pkl
+*.pickle
+
+# JSON data
+data/*.json
+*.data.json
+
+# Excel
+*.xlsx
+*.xls
+
+# ═════════════════════════════════════════════════════════════════════
+# LOGS
+# ═════════════════════════════════════════════════════════════════════
+
+logs/
+*.log
+*.log.*
+*.log.gz
+*.log.bz2
+log/
+logging/
+
+# Application logs
+app.log
+error.log
+access.log
+debug.log
+trade.log
+
+# System logs
+syslog
+kern.log
+
+# ═════════════════════════════════════════════════════════════════════
+# IDE & EDITORS
+# ═════════════════════════════════════════════════════════════════════
+
+# VSCode
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.code-workspace
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+.vim/
+vim-session~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+
+# ═════════════════════════════════════════════════════════════════════
+# DOCKER
+# ═════════════════════════════════════════════════════════════════════
+
+docker-compose.override.yml
+.dockerenv
+*.dockerfile.local
+
+# ═════════════════════════════════════════════════════════════════════
+# CONFIGURATION FILES
+# ═════════════════════════════════════════════════════════════════════
+
+# Production configs
+config/production.yaml
+config/prod.yaml
+settings.production.yaml
+settings.prod.yaml
+
+# Local overrides
+config/local.yaml
+config.local.yaml
+settings.local.yaml
+local_settings.py
+
+# ═════════════════════════════════════════════════════════════════════
+# TEMPORARY & CACHE FILES
+# ═════════════════════════════════════════════════════════════════════
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+test_output/
+
+# Cache
+*.cache
+cache/
+.cache/
+
+# ═════════════════════════════════════════════════════════════════════
+# DEVELOPMENT & DEBUG
+# ═════════════════════════════════════════════════════════════════════
+
+# Debug dumps
+*.dump
+*.dmp
+core.*
+
+# Profiling
+*.prof
+*.profile
+.profiling/
+
+# Memory dumps
+*.hprof
+heapdump*
+
+# Screen/tmux
+.screenrc.local
+.tmux.conf.local
+
+# ═════════════════════════════════════════════════════════════════════
+# MONITORING & METRICS
+# ═════════════════════════════════════════════════════════════════════
+
+# Prometheus
+prometheus_multiproc_dir/
+*.prom
+
+# Grafana
+grafana/data/
+grafana.db
+
+# ═════════════════════════════════════════════════════════════════════
+# CI/CD
+# ═════════════════════════════════════════════════════════════════════
+
+# GitHub Actions artifacts
+.github/workflows/*.local.yml
+
+# GitLab CI
+.gitlab-ci.local.yml
+
+# Jenkins
+jenkins/
+
+# ═════════════════════════════════════════════════════════════════════
+# MISC
+# ═════════════════════════════════════════════════════════════════════
+
+# Archives
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Package files
+*.deb
+*.rpm
+
+# ═════════════════════════════════════════════════════════════════════
+# BOTV2 SPECIFIC
+# ═════════════════════════════════════════════════════════════════════
+
+# State management
+trading_system/state/
+trading_system/checkpoints/
+
+# Model files (if using ML)
+models/*.pkl
+models/*.h5
+models/*.pt
+models/*.pth
+!models/.gitkeep
+
+# Backtest outputs
+backtest_results/
+optimization_results/
+
+# Paper trading logs
+paper_trading/
+
+# Live trading logs (SENSITIVE)
+live_trading/
+production_logs/
+
+# ═════════════════════════════════════════════════════════════════════
+# END OF FILE
+# ═════════════════════════════════════════════════════════════════════
