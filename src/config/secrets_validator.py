@@ -18,7 +18,20 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 from enum import Enum
 
-logger = logging.getLogger(__name__)
+# Use professional logger
+try:
+    from utils.professional_logger import setup_professional_logger
+    logger, reporter = setup_professional_logger(
+        name=__name__,
+        log_file="logs/validation.log",
+        level=logging.INFO
+    )
+    HAS_PROFESSIONAL_LOGGER = True
+except ImportError:
+    # Fallback to standard logging
+    logger = logging.getLogger(__name__)
+    reporter = None
+    HAS_PROFESSIONAL_LOGGER = False
 
 
 class ValidationLevel(Enum):
@@ -184,9 +197,14 @@ class SecretsValidator:
         Returns:
             True if all validations pass, False otherwise
         """
-        logger.info(f"Validating secrets for environment: {self.environment}")
-        logger.info("=" * 70)
+        # Report validation start
+        if HAS_PROFESSIONAL_LOGGER and reporter:
+            reporter.report_validation_start(self.environment)
+        else:
+            logger.info(f"Validating secrets for environment: {self.environment}")
+            logger.info("=" * 70)
         
+        # Validate each secret
         for requirement in self.SECRETS:
             self._validate_secret(requirement)
         
@@ -200,20 +218,42 @@ class SecretsValidator:
         )
         
         if has_critical_issues:
-            logger.critical("\u274c SECRET VALIDATION FAILED")
-            logger.critical("Cannot start application with invalid configuration")
-            logger.critical("Please check .env file and set all required variables")
-            logger.critical("See .env.example for reference")
+            if HAS_PROFESSIONAL_LOGGER and reporter:
+                reporter.report_error_critical(
+                    error="Cannot start application with invalid configuration",
+                    details="\n".join([
+                        f"Missing required secrets: {', '.join(self.missing_required)}",
+                        f"Invalid secrets: {', '.join(self.invalid_secrets.keys())}",
+                        "\nPlease check .env file and set all required variables.",
+                        "See .env.example for reference."
+                    ])
+                )
+            else:
+                logger.critical("\u274c SECRET VALIDATION FAILED")
+                logger.critical("Cannot start application with invalid configuration")
             return False
         
         if self.missing_recommended:
-            logger.warning(
-                f"\u26a0\ufe0f  {len(self.missing_recommended)} recommended secrets missing. "
-                "Application will run but with reduced functionality."
-            )
+            if HAS_PROFESSIONAL_LOGGER and reporter:
+                logger.warning(
+                    f"\u26a0\ufe0f  {len(self.missing_recommended)} recommended secrets missing. "
+                    "Application will run but with reduced functionality."
+                )
+            else:
+                logger.warning(
+                    f"\u26a0\ufe0f  {len(self.missing_recommended)} recommended secrets missing"
+                )
         
-        logger.info("\u2705 All required secrets validated successfully")
-        logger.info("=" * 70)
+        # Report secrets summary
+        if HAS_PROFESSIONAL_LOGGER and reporter:
+            total = len(self.SECRETS)
+            validated = total - len(self.missing_required) - len(self.invalid_secrets)
+            missing = len(self.missing_required)
+            reporter.report_secrets_summary(total, validated, missing)
+        else:
+            logger.info("\u2705 All required secrets validated successfully")
+            logger.info("=" * 70)
+        
         return True
     
     def _validate_secret(self, requirement: SecretRequirement):
@@ -326,32 +366,53 @@ class SecretsValidator:
     def _report_results(self):
         """Report validation results to logger"""
         
-        if self.missing_required:
-            logger.error("")
-            logger.error(
-                f"\u274c MISSING REQUIRED SECRETS ({len(self.missing_required)}):")
-            for name in self.missing_required:
-                logger.error(f"  • {name}")
-        
-        if self.invalid_secrets:
-            logger.error("")
-            logger.error(f"\u274c INVALID SECRETS ({len(self.invalid_secrets)}):")
-            for name, reason in self.invalid_secrets.items():
-                logger.error(f"  • {name}: {reason}")
-        
-        if self.missing_recommended:
-            logger.warning("")
-            logger.warning(
-                f"\u26a0\ufe0f  MISSING RECOMMENDED SECRETS ({len(self.missing_recommended)}):")
-            for name in self.missing_recommended:
-                logger.warning(f"  • {name}")
-        
-        if self.missing_optional:
-            logger.info("")
-            logger.info(
-                f"\u2139\ufe0f  OPTIONAL SECRETS NOT SET ({len(self.missing_optional)}):")
-            for name in self.missing_optional:
-                logger.info(f"  • {name}")
+        # Prepare results for professional reporter
+        if HAS_PROFESSIONAL_LOGGER and reporter:
+            results = []
+            
+            # Add all validated secrets
+            for requirement in self.SECRETS:
+                # Skip if not applicable to environment
+                if requirement.environments and self.environment not in requirement.environments:
+                    continue
+                
+                is_valid = (
+                    requirement.name not in self.missing_required and
+                    requirement.name not in self.invalid_secrets
+                )
+                
+                # Mark missing recommended as valid (just warnings)
+                if requirement.name in self.missing_recommended:
+                    is_valid = True
+                
+                results.append((
+                    requirement.name,
+                    is_valid,
+                    requirement.description
+                ))
+            
+            reporter.report_validation_results(results, self.environment)
+        else:
+            # Fallback to standard logging
+            if self.missing_required:
+                logger.error("")
+                logger.error(
+                    f"\u274c MISSING REQUIRED SECRETS ({len(self.missing_required)}):") 
+                for name in self.missing_required:
+                    logger.error(f"  \u2022 {name}")
+            
+            if self.invalid_secrets:
+                logger.error("")
+                logger.error(f"\u274c INVALID SECRETS ({len(self.invalid_secrets)}):")
+                for name, reason in self.invalid_secrets.items():
+                    logger.error(f"  \u2022 {name}: {reason}")
+            
+            if self.missing_recommended:
+                logger.warning("")
+                logger.warning(
+                    f"\u26a0\ufe0f  MISSING RECOMMENDED SECRETS ({len(self.missing_recommended)}):") 
+                for name in self.missing_recommended:
+                    logger.warning(f"  \u2022 {name}")
     
     def fail_fast(self):
         """
@@ -360,15 +421,25 @@ class SecretsValidator:
         Call this at application startup to prevent running with invalid config
         """
         if not self.validate_all():
-            logger.critical("")
-            logger.critical("EXITING due to invalid secrets configuration")
-            logger.critical("")
-            logger.critical("To fix:")
-            logger.critical("  1. Copy .env.example to .env")
-            logger.critical("  2. Fill in all REQUIRED values")
-            logger.critical("  3. Ensure passwords are strong (min 8-12 chars)")
-            logger.critical("  4. Never use placeholder values in production")
-            logger.critical("")
+            if HAS_PROFESSIONAL_LOGGER and reporter:
+                reporter.report_error_critical(
+                    error="EXITING due to invalid secrets configuration",
+                    details="To fix:\n"
+                           "  1. Copy .env.example to .env\n"
+                           "  2. Fill in all REQUIRED values\n"
+                           "  3. Ensure passwords are strong (min 8-12 chars)\n"
+                           "  4. Never use placeholder values in production"
+                )
+            else:
+                logger.critical("")
+                logger.critical("EXITING due to invalid secrets configuration")
+                logger.critical("")
+                logger.critical("To fix:")
+                logger.critical("  1. Copy .env.example to .env")
+                logger.critical("  2. Fill in all REQUIRED values")
+                logger.critical("  3. Ensure passwords are strong (min 8-12 chars)")
+                logger.critical("  4. Never use placeholder values in production")
+                logger.critical("")
             sys.exit(1)
     
     def get_summary(self) -> Dict:
