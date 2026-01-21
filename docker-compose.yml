@@ -2,6 +2,10 @@
 # Production-Ready Multi-Container Setup
 # Services: Main App + Dashboard + PostgreSQL + Redis
 
+# IMPORTANT: Copy local.env to .env before running:
+#   cp local.env .env
+#   docker compose up -d
+
 services:
   # ============================================================================
   # Main Application Container
@@ -12,11 +16,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env  # CRITICAL: Loads all environment variables from .env file
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - DATABASE_URL=postgresql://botv2:botv2password@botv2-postgres:5432/botv2_db
-      - REDIS_URL=redis://botv2-redis:6379/0
+      # Database URL will be read from .env (POSTGRES_*)
+      # Redis URL will be read from .env (REDIS_*)
       - FLASK_ENV=production
       - LOG_LEVEL=INFO
     ports:
@@ -28,7 +34,7 @@ services:
         condition: service_healthy
     networks:
       - botv2-network
-    restart: unless-stopped
+    restart: on-failure:3  # FIXED: Stop after 3 failures (no infinite loop)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -49,11 +55,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env  # CRITICAL: Loads all environment variables from .env file
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - DATABASE_URL=postgresql://botv2:botv2password@botv2-postgres:5432/botv2_db
-      - REDIS_URL=redis://botv2-redis:6379/0
+      # All secrets (POSTGRES_*, SECRET_KEY, etc) loaded from .env
       - DASH_ENV=production
       - LOG_LEVEL=INFO
     ports:
@@ -65,9 +72,9 @@ services:
         condition: service_healthy
     networks:
       - botv2-network
-    restart: unless-stopped
+    restart: on-failure:3  # FIXED: Stop after 3 failures (no infinite loop)
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8050/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8050/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -79,18 +86,21 @@ services:
   botv2-postgres:
     container_name: botv2-postgres
     image: postgres:16-alpine
+    env_file:
+      - .env  # Reads POSTGRES_* variables
     environment:
-      - POSTGRES_USER=botv2
-      - POSTGRES_PASSWORD=botv2password
-      - POSTGRES_DB=botv2_db
+      # Override with values from .env if present
+      - POSTGRES_USER=${POSTGRES_USER:-botv2}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-botv2password}
+      - POSTGRES_DB=${POSTGRES_DATABASE:-botv2_db}
       - POSTGRES_INITDB_ARGS=-c shared_buffers=256MB -c max_connections=200
     ports:
       - "5432:5432"
     networks:
       - botv2-network
-    restart: unless-stopped
+    restart: unless-stopped  # Database should always restart
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U botv2 -d botv2_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-botv2} -d ${POSTGRES_DATABASE:-botv2_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -104,14 +114,16 @@ services:
   botv2-redis:
     container_name: botv2-redis
     image: redis:7-alpine
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:-}
+    env_file:
+      - .env  # Reads REDIS_* variables
     ports:
       - "6379:6379"
     networks:
       - botv2-network
-    restart: unless-stopped
+    restart: unless-stopped  # Cache should always restart
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
