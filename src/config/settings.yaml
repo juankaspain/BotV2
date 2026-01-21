@@ -1,9 +1,9 @@
 # BotV2 Configuration
-# All 26 Audit Improvements Implemented
+# All 26 Audit Improvements Implemented + New Features
 
 system:
   name: "BotV2"
-  version: "1.0.0"
+  version: "1.1.0"
   environment: "production"  # production, staging, development
   log_level: "INFO"
 
@@ -20,6 +20,36 @@ risk:
     level_2_drawdown: -10.0   # Reduce position size 50%
     level_3_drawdown: -15.0   # Emergency liquidation
     cooldown_minutes: 30      # Wait 30min after trigger
+  
+  # NEW: Dynamic Trailing Stops
+  trailing_stops:
+    enabled: true
+    default_type: "percentage"  # percentage, atr, chandelier, dynamic
+    activation_profit: 2.0      # Activate after 2% profit
+    trail_distance: 1.0         # Trail by 1% (for percentage type)
+    
+    # ATR-based settings
+    atr_period: 14
+    atr_multiplier: 2.0         # Stop = High - (ATR * multiplier)
+    
+    # Chandelier settings
+    chandelier_period: 22
+    chandelier_multiplier: 3.0  # Stop = Highest High - (ATR * multiplier)
+    
+    # Per-strategy override (optional)
+    strategy_overrides:
+      momentum:
+        type: "atr"
+        activation_profit: 3.0
+        atr_multiplier: 2.5
+      mean_reversion:
+        type: "percentage"
+        activation_profit: 1.5
+        trail_distance: 0.8
+      breakout:
+        type: "chandelier"
+        activation_profit: 4.0
+        chandelier_multiplier: 2.5
     
   correlation_threshold: 0.7  # Reduce if correlation > 0.7
   max_portfolio_correlation: 0.4
@@ -36,11 +66,33 @@ execution:
   commission_percent: 0.0005  # 0.05% per trade
   market_impact_percent: 0.001  # 0.1%
   
+  # NEW: Latency Simulation
+  latency:
+    enabled: true               # Enable latency simulation
+    model: "realistic"          # realistic, high, low, custom
+    mean_ms: 50                 # Mean latency in milliseconds
+    std_ms: 20                  # Standard deviation
+    min_ms: 10                  # Minimum latency
+    max_ms: 500                 # Maximum latency (timeout threshold)
+    distribution: "lognormal"   # normal, lognormal, exponential
+    
+    # Time-of-day effects (higher latency during market open/close)
+    time_effects:
+      enabled: true
+      peak_hours: [9, 10, 15, 16]  # UTC hours with higher latency
+      peak_multiplier: 1.5      # Latency multiplier during peak
+    
+    # Network quality simulation
+    packet_loss_rate: 0.001     # 0.1% packet loss
+    retry_attempts: 3
+    retry_delay_ms: 100
+  
   order_types:
     market: true
     limit: true
     stop_loss: true
     take_profit: true
+    trailing_stop: true         # NEW: Enable trailing stops
     
   simulation:
     model: "microstructure"
@@ -48,6 +100,7 @@ execution:
     include_order_book_depth: true
     include_time_of_day_effects: true
     realistic_fills: true
+    include_latency: true       # NEW: Include latency in simulation
 
 data:
   validation:
@@ -57,6 +110,23 @@ data:
     check_ohlc_consistency: true
     check_volume: true
     outlier_std_threshold: 5
+    
+    # NEW: Enhanced Timestamp Validation
+    timestamp_validation:
+      enabled: true
+      check_duplicates: true
+      check_order: true          # Ensure chronological order
+      check_future: true         # Reject future timestamps
+      max_gap_seconds: 300       # Alert if gap > 5 minutes
+      allow_backfill: false      # Reject late-arriving data
+      timezone: "UTC"            # Expected timezone
+      
+      # Gap handling
+      gap_detection:
+        enabled: true
+        critical_gap_seconds: 600  # 10 minutes = critical
+        action_on_critical: "reject"  # reject, interpolate, skip
+        max_interpolation_points: 5
     
   normalization:
     method: "zscore"  # zscore, minmax, robust
@@ -263,6 +333,7 @@ backtesting:
     realistic_commissions: true
     realistic_market_impact: true
     partial_fills: true
+    realistic_latency: true     # NEW: Include latency simulation
     
   output:
     save_trades: true
@@ -276,6 +347,54 @@ dashboard:
   port: 8050
   debug: false
   
+  # NEW: Enhanced Security
+  security:
+    enabled: true
+    authentication:
+      type: "jwt"               # basic, jwt, oauth2
+      username_env: "DASHBOARD_USERNAME"
+      password_env: "DASHBOARD_PASSWORD"
+      
+      # JWT settings
+      jwt_secret_env: "DASHBOARD_JWT_SECRET"
+      jwt_algorithm: "HS256"
+      jwt_expiry_hours: 24
+      refresh_token_enabled: true
+      refresh_token_expiry_days: 7
+      
+    # Rate limiting
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 60
+      burst_size: 10
+      
+    # HTTPS/TLS
+    https:
+      enabled: false            # Set true in production
+      cert_path: "/etc/ssl/certs/dashboard.crt"
+      key_path: "/etc/ssl/private/dashboard.key"
+      redirect_http: true       # Redirect HTTP to HTTPS
+      
+    # CORS
+    cors:
+      enabled: true
+      allowed_origins:
+        - "http://localhost:8050"
+        - "https://yourdomain.com"
+      
+    # IP Whitelisting (optional)
+    ip_whitelist:
+      enabled: false
+      allowed_ips:
+        - "127.0.0.1"
+        - "192.168.1.0/24"
+    
+    # Access logging
+    access_log:
+      enabled: true
+      log_path: "./logs/dashboard_access.log"
+      log_format: "combined"    # combined, common, custom
+      
   refresh_rate: 5  # seconds
   
   charts:
@@ -285,3 +404,4 @@ dashboard:
     - strategy_performance
     - correlation_heatmap
     - position_sizes
+    - trailing_stops          # NEW: Trailing stops visualization
