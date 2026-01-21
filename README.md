@@ -1,6 +1,7 @@
 # 🤖 BotV2 - Sistema Avanzado de Trading Algorítmico
 
 ![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
+![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
 ![License](https://img.shields.io/badge/license-Personal%20Use-green.svg)
 ![Status](https://img.shields.io/badge/status-production-success.svg)
 ![Strategies](https://img.shields.io/badge/strategies-20-orange.svg)
@@ -19,6 +20,7 @@
 - **Backtesting Realista** con simulación de microestructura de mercado
 - **Persistencia de Estado** con PostgreSQL para recuperación automática
 - **Dashboard en Tiempo Real** con Flask/Dash
+- **Despliegue Docker** listo para producción con Docker Compose
 
 ### ✅ 26 Mejoras de Auditoría Implementadas
 
@@ -64,14 +66,40 @@
 
 ## 🚀 Inicio Rápido
 
-### Prerequisitos
+### Método 1: Docker Compose (Recomendado)
 
-- **Python 3.10+**
-- **PostgreSQL 13+** (opcional, puede usar SQLite)
-- **2GB RAM mínimo**
-- **Sistema operativo**: Linux, macOS, o Windows
+**La forma más rápida y fácil para producción**
 
-### Instalación
+```bash
+# 1. Clonar repositorio
+git clone https://github.com/juankaspain/BotV2.git
+cd BotV2
+
+# 2. Configurar variables de entorno
+cp .env.example .env
+nano .env  # Editar con tus credenciales
+
+# 3. Lanzar todo el stack
+docker compose up -d
+
+# 4. Ver logs
+docker compose logs -f botv2
+
+# 5. Acceder al dashboard
+http://localhost:8050
+```
+
+**✅ Incluye automáticamente**:
+- PostgreSQL 15 (base de datos)
+- Redis (caching)
+- BotV2 (aplicación principal)
+- Dashboard web (Flask/Dash)
+- Health checks automáticos
+- Restart automático en caso de fallos
+- Volúmenes persistentes para datos
+
+### Método 2: Instalación Manual
+
 ```bash
 # 1. Clonar repositorio
 git clone https://github.com/juankaspain/BotV2.git
@@ -89,11 +117,24 @@ createdb botv2
 
 # 5. Configurar variables de entorno
 export POSTGRES_PASSWORD="tu_password"
-export POLYMARKET_API_KEY="tu_api_key"  # Si usas Polymarket
+export POLYMARKET_API_KEY="tu_api_key"
 
 # 6. Ejecutar el bot
 python src/main.py
 ```
+
+### Prerequisitos
+
+#### Para Docker
+- **Docker 20.10+** y **Docker Compose 2.0+**
+- **2GB RAM mínimo** (4GB recomendado)
+- **20GB espacio en disco SSD**
+
+#### Para Instalación Manual
+- **Python 3.10+**
+- **PostgreSQL 13+**
+- **2GB RAM mínimo**
+- **Sistema operativo**: Linux, macOS, o Windows
 
 ### Configuración Básica
 
@@ -112,7 +153,9 @@ risk:
     level_3_drawdown: -15.0  # STOP al -15%
 ```
 
-**📚 Para detalles completos de configuración, consulta [CONFIG_GUIDE.md](docs/CONFIG_GUIDE.md)**
+**📚 Para detalles completos, consulta:**
+- **[CONFIG_GUIDE.md](docs/CONFIG_GUIDE.md)** - Guía completa de configuración
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Guía completa de despliegue en producción
 
 ---
 
@@ -122,6 +165,7 @@ risk:
 
 | Documento | Descripción | Audiencia |
 |-----------|-------------|----------|
+| **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** | ⭐ **Guía completa de despliegue con Docker y manual** | **Todos** |
 | **[CONFIG_GUIDE.md](docs/CONFIG_GUIDE.md)** | Guía completa de configuración con explicaciones detalladas | Todos los usuarios |
 | **[DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md)** | Diccionario de datos, conceptos y métricas explicados | Principiantes y todos |
 | **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Arquitectura del sistema y componentes | Desarrolladores |
@@ -132,6 +176,10 @@ risk:
 
 ```
 BotV2/
+├── Dockerfile                  # Imagen Docker del bot
+├── docker-compose.yml          # Orquestación de servicios
+├── .env.example                # Plantilla de variables de entorno
+├── requirements.txt            # Dependencias Python
 ├── src/
 │   ├── main.py                 # Punto de entrada principal
 │   ├── config/
@@ -159,9 +207,14 @@ BotV2/
 │   │   └── market_microstructure.py
 │   └── dashboard/
 │       └── web_app.py          # Dashboard en tiempo real
+├── scripts/
+│   ├── init-db.sql             # Inicialización de base de datos
+│   ├── monitor.sh              # Script de monitoreo
+│   └── backup.sh               # Script de backup
 ├── tests/                      # Suite de tests
 ├── docs/                       # Documentación completa
-└── logs/                       # Archivos de log
+├── logs/                       # Archivos de log
+└── backups/                    # Backups de base de datos
 ```
 
 ---
@@ -198,11 +251,11 @@ print(f"Win Rate: {results['win_rate']:.2f}%")
 ### Dashboard
 
 ```bash
-# Iniciar dashboard
-python src/dashboard/web_app.py
-
-# Abrir en navegador
+# Con Docker
 http://localhost:8050
+
+# Manual
+python src/dashboard/web_app.py
 ```
 
 **Características del Dashboard**:
@@ -213,6 +266,31 @@ http://localhost:8050
 - Log de trades recientes
 - Estado del circuit breaker
 - Mapa de calor de correlaciones
+
+### Comandos Docker Útiles
+
+```bash
+# Ver estado de contenedores
+docker compose ps
+
+# Ver logs en tiempo real
+docker compose logs -f botv2
+
+# Detener servicios
+docker compose down
+
+# Reiniciar solo el bot
+docker compose restart botv2
+
+# Ejecutar comando dentro del contenedor
+docker compose exec botv2 python -c "print('test')"
+
+# Backup de base de datos
+docker compose exec postgres pg_dump -U botv2_user botv2 > backup.sql
+
+# Ver uso de recursos
+docker stats
+```
 
 ---
 
@@ -291,6 +369,9 @@ pytest tests/test_integration.py -v --run-integration
 
 # Reporte de cobertura
 pytest --cov=src tests/
+
+# Con Docker
+docker compose exec botv2 pytest tests/ -v
 ```
 
 ### Cobertura de Tests
@@ -325,6 +406,7 @@ export SLACK_WEBHOOK_URL="url"
 ```
 
 ### Perfiles de Configuración
+
 #### Conservador
 ```yaml
 trading:
@@ -389,44 +471,69 @@ ensemble:
 ---
 
 ## 🚀 Despliegue en Producción
-### Checklist Pre-Producción
-- [ ] Base de datos PostgreSQL configurada y funcionando
-- [ ] Variables de entorno establecidas (secretos)
-- [ ] Logging activo y rotando correctamente
-- [ ] Backups programados (cada hora)
-- [ ] Monitoreo habilitado
-- [ ] Circuit breakers probados
-- [ ] Sistema de recuperación probado
-- [ ] Backtesting exitoso con configuración actual
-- [ ] Capital inicial correcto en `settings.yaml`
-- [ ] Dashboard accesible
 
-### Inicio en Producción
+### 👉 **[Guía Completa de Despliegue](docs/DEPLOYMENT.md)**
+
+La guía completa incluye:
+
+- ✅ Despliegue con **Docker Compose** (paso a paso)
+- ✅ Despliegue **manual** con systemd
+- ✅ Configuración de **seguridad** (firewall, SSL, fail2ban)
+- ✅ **Monitoreo** y alertas
+- ✅ **Backup** y recuperación automática
+- ✅ **Troubleshooting** de problemas comunes
+- ✅ Scripts de utilidad
+- ✅ Mejores prácticas
+
+### Inicio Rápido con Docker
+
 ```bash
 # 1. Configurar entorno
-export BOTV2_ENV="production"
+cp .env.example .env
+nano .env  # Editar credenciales
 
-# 2. Iniciar bot
-python src/main.py &
+# 2. Lanzar servicios
+docker compose up -d
 
-# 3. Iniciar dashboard (opcional)
-python src/dashboard/web_app.py &
+# 3. Verificar estado
+docker compose ps
+docker compose logs -f botv2
 
-# 4. Monitorear logs
-tail -f logs/botv2_$(date +%Y%m%d).log
+# 4. Acceder al dashboard
+http://localhost:8050
 ```
+
+### Checklist Pre-Producción
+- [ ] Docker y Docker Compose instalados
+- [ ] Variables de entorno configuradas en `.env`
+- [ ] `settings.yaml` revisado y ajustado
+- [ ] API keys obtenidas y configuradas
+- [ ] Capital inicial correcto establecido
+- [ ] Backups automáticos programados
+- [ ] Monitoreo configurado
+- [ ] Circuit breakers probados
+- [ ] Backtesting exitoso
+- [ ] Firewall configurado (si aplicable)
 
 ### Monitoreo
 
 ```bash
-# Ver estado del bot
-ps aux | grep "python src/main.py"
+# Ver estado
+docker compose ps
 
-# Ver últimos trades
-psql -d botv2 -c "SELECT * FROM trades ORDER BY timestamp DESC LIMIT 10;"
+# Ver logs
+docker compose logs -f botv2
 
-# Ver métricas actuales
-psql -d botv2 -c "SELECT * FROM performance_metrics ORDER BY timestamp DESC LIMIT 1;"
+# Ver métricas de base de datos
+docker compose exec postgres psql -U botv2_user -d botv2 -c \
+  "SELECT * FROM performance_metrics ORDER BY timestamp DESC LIMIT 1;"
+
+# Ver trades recientes
+docker compose exec postgres psql -U botv2_user -d botv2 -c \
+  "SELECT * FROM trades ORDER BY timestamp DESC LIMIT 10;"
+
+# Uso de recursos
+docker stats
 ```
 
 ---
@@ -435,26 +542,43 @@ psql -d botv2 -c "SELECT * FROM performance_metrics ORDER BY timestamp DESC LIMI
 
 ### El bot no inicia
 
-1. Verificar Python version: `python --version` (debe ser 3.10+)
-2. Verificar dependencias: `pip list | grep -E "pandas|numpy|sqlalchemy"`
-3. Verificar conexión a DB: `psql -d botv2 -c "\dt"`
-4. Revisar logs: `tail -n 100 logs/botv2_*.log`
+```bash
+# Docker
+docker compose logs botv2 --tail=100
+
+# Manual
+python --version  # Verificar Python 3.10+
+pip list | grep -E "pandas|numpy|sqlalchemy"
+tail -n 100 logs/botv2_*.log
+```
+
+### Base de datos no conecta
+
+```bash
+# Docker
+docker compose exec postgres pg_isready
+
+# Manual
+psql -d botv2 -c "\dt"
+```
 
 ### No ejecuta trades
 
-1. Verificar configuración: `confidence_threshold` puede ser muy alto
+1. Verificar `confidence_threshold` en settings.yaml
 2. Verificar capital disponible
-3. Revisar circuit breaker: Puede estar activo
-4. Verificar datos de mercado: `data_validator` puede estar rechazando datos
+3. Revisar si circuit breaker está activo
+4. Verificar logs de data_validator
 
 ### Pérdidas consecutivas
 
-1. **DETENER EL BOT** inmediatamente si pérdidas > 20%
+1. **⚠️ DETENER EL BOT** si pérdidas > 20%
 2. Revisar configuración de riesgo
 3. Hacer backtesting con datos recientes
-4. Verificar que circuit breaker funciona
+4. Verificar circuit breaker funciona
 5. Reducir `max_position_size`
 6. Aumentar `confidence_threshold`
+
+**📚 Más soluciones en [DEPLOYMENT.md](docs/DEPLOYMENT.md)**
 
 ---
 
@@ -502,7 +626,8 @@ Este software es para **propósitos educativos** exclusivamente.
 
 ## 📞 Contacto y Soporte
 
-**Autor**: Juan Carlos GA
+**Autor**: Juan Carlos Garcia Arriero  
+**Empresa**: Santander Digital  
 **Rol**: Technical Lead & Software Architect  
 **Ubicación**: Madrid, Spain
 
@@ -547,8 +672,9 @@ Este software es para **propósitos educativos** exclusivamente.
 
 1. Lee [DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md) - Conceptos básicos
 2. Lee [CONFIG_GUIDE.md](docs/CONFIG_GUIDE.md) - Configuración paso a paso
-3. Ejecuta backtesting con configuración conservadora
-4. Observa el dashboard y entiende las métricas
+3. Lee [DEPLOYMENT.md](docs/DEPLOYMENT.md) - Cómo desplegar
+4. Ejecuta backtesting con configuración conservadora
+5. Observa el dashboard y entiende las métricas
 
 ### Para Intermedios
 
