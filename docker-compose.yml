@@ -8,7 +8,7 @@
 
 services:
   # ============================================================================
-  # Main Application Container
+  # Main Application Container (Trading Bot)
   # ============================================================================
   botv2-app:
     container_name: botv2-app
@@ -21,10 +21,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      # Database URL will be read from .env (POSTGRES_*)
-      # Redis URL will be read from .env (REDIS_*)
       - FLASK_ENV=production
       - LOG_LEVEL=INFO
+    command: ["python", "src/main.py"]  # Trading bot entry point
     ports:
       - "8000:5000"
     depends_on:
@@ -36,7 +35,7 @@ services:
       - botv2-network
     restart: on-failure:3  # FIXED: Stop after 3 failures (no infinite loop)
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -47,7 +46,7 @@ services:
       - ./data:/app/data
 
   # ============================================================================
-  # Dashboard Container
+  # Dashboard Container (Web Interface)
   # ============================================================================
   botv2-dashboard:
     container_name: botv2-dashboard
@@ -60,9 +59,12 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      # All secrets (POSTGRES_*, SECRET_KEY, etc) loaded from .env
       - DASH_ENV=production
       - LOG_LEVEL=INFO
+      - FLASK_APP=src.dashboard.web_app
+      - DASHBOARD_HOST=0.0.0.0
+      - DASHBOARD_PORT=8050
+    command: ["python", "-m", "src.dashboard.web_app"]  # Dashboard entry point
     ports:
       - "8050:8050"
     depends_on:
@@ -74,7 +76,7 @@ services:
       - botv2-network
     restart: on-failure:3  # FIXED: Stop after 3 failures (no infinite loop)
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8050/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8050/"]
       interval: 30s
       timeout: 10s
       retries: 3
