@@ -640,55 +640,383 @@ class ProfessionalDashboard:
             component = data.get('component', 'all')
             self._emit_update(component)
     
-    # ==================== Data Getters (unchanged) ====================
-    # [Previous implementation continues...]
+    # ==================== Data Getters ====================
     
     def _get_portfolio_overview(self) -> Dict:
         """Get portfolio overview metrics"""
+        
         if not self.portfolio_history:
             return self._empty_portfolio()
-        # [Same implementation as before]
-        return {}
+        
+        current = self.portfolio_history[-1]
+        initial = self.portfolio_history[0]
+        
+        # Calculate metrics
+        total_return = (current['equity'] / initial['equity'] - 1) * 100
+        
+        # Daily change
+        if len(self.portfolio_history) > 1:
+            prev = self.portfolio_history[-2]
+            daily_change = current['equity'] - prev['equity']
+            daily_change_pct = (daily_change / prev['equity']) * 100
+        else:
+            daily_change = 0
+            daily_change_pct = 0
+        
+        # Win rate
+        winning_trades = sum(1 for t in self.trades_history if t.get('pnl', 0) > 0)
+        win_rate = (winning_trades / len(self.trades_history) * 100) if self.trades_history else 0
+        
+        # Sharpe ratio
+        sharpe = self.risk_metrics.get('sharpe_ratio', 0)
+        
+        # Max drawdown
+        max_dd = self.risk_metrics.get('max_drawdown', 0)
+        
+        return {
+            'equity': current['equity'],
+            'cash': current.get('cash', 0),
+            'positions_count': len(current.get('positions', {})),
+            'total_return': total_return,
+            'daily_change': daily_change,
+            'daily_change_pct': daily_change_pct,
+            'win_rate': win_rate,
+            'total_trades': len(self.trades_history),
+            'sharpe_ratio': sharpe,
+            'max_drawdown': max_dd,
+            'timestamp': current.get('timestamp', datetime.now()).isoformat()
+        }
     
     def _get_equity_data(self) -> Dict:
-        """Get equity curve data"""
-        return {'timestamps': [], 'equity': []}
+        """Get equity curve data with technical indicators"""
+        
+        if not self.portfolio_history:
+            return {'timestamps': [], 'equity': [], 'sma_20': [], 'sma_50': []}
+        
+        df = pd.DataFrame(self.portfolio_history)
+        
+        # Calculate SMAs
+        df['sma_20'] = df['equity'].rolling(window=min(20, len(df))).mean()
+        df['sma_50'] = df['equity'].rolling(window=min(50, len(df))).mean()
+        
+        return {
+            'timestamps': [t.isoformat() if isinstance(t, datetime) else t 
+                          for t in df['timestamp'].tolist()],
+            'equity': df['equity'].tolist(),
+            'sma_20': df['sma_20'].fillna(0).tolist(),
+            'sma_50': df['sma_50'].fillna(0).tolist(),
+            'drawdown': self._calculate_drawdown(df['equity']).tolist()
+        }
     
-    def _get_trades_data(self, limit: int) -> Dict:
-        """Get trades data"""
-        return {'trades': []}
+    def _get_trades_data(self, limit: int = 50) -> Dict:
+        """Get recent trades with analytics"""
+        
+        recent_trades = self.trades_history[-limit:]
+        
+        trades_list = []
+        for trade in recent_trades:
+            trades_list.append({
+                'timestamp': trade.get('timestamp', datetime.now()).isoformat(),
+                'strategy': trade.get('strategy', 'Unknown'),
+                'symbol': trade.get('symbol', 'N/A'),
+                'action': trade.get('action', 'N/A'),
+                'size': trade.get('size', 0),
+                'entry_price': trade.get('entry_price', 0),
+                'pnl': trade.get('pnl', 0),
+                'pnl_pct': trade.get('pnl_pct', 0),
+                'confidence': trade.get('confidence', 0)
+            })
+        
+        return {
+            'trades': trades_list,
+            'summary': self._get_trades_summary()
+        }
     
     def _get_strategies_data(self) -> Dict:
-        """Get strategies data"""
-        return {'strategies': []}
+        """Get strategy performance metrics"""
+        
+        strategies = []
+        
+        for name, perf in self.strategy_performance.items():
+            strategies.append({
+                'name': name,
+                'total_return': perf.get('total_return', 0) * 100,
+                'sharpe_ratio': perf.get('sharpe_ratio', 0),
+                'win_rate': perf.get('win_rate', 0) * 100,
+                'total_trades': perf.get('total_trades', 0),
+                'avg_win': perf.get('avg_win', 0),
+                'avg_loss': perf.get('avg_loss', 0),
+                'profit_factor': perf.get('profit_factor', 0),
+                'weight': perf.get('weight', 0),
+                'status': perf.get('status', 'active')
+            })
+        
+        # Sort by return
+        strategies.sort(key=lambda x: x['total_return'], reverse=True)
+        
+        return {'strategies': strategies}
     
     def _get_risk_analytics(self) -> Dict:
-        """Get risk analytics"""
-        return {}
+        """Get comprehensive risk metrics"""
+        
+        if not self.portfolio_history:
+            return self._empty_risk_metrics()
+        
+        df = pd.DataFrame(self.portfolio_history)
+        returns = df['equity'].pct_change().dropna()
+        
+        # Calculate VaR and CVaR
+        var_95 = np.percentile(returns, 5) * 100 if len(returns) > 0 else 0
+        cvar_95 = returns[returns <= np.percentile(returns, 5)].mean() * 100 if len(returns) > 0 else 0
+        
+        # Volatility
+        volatility = returns.std() * np.sqrt(252) * 100 if len(returns) > 1 else 0
+        
+        # Sortino ratio
+        downside_returns = returns[returns < 0]
+        downside_std = downside_returns.std() * np.sqrt(252) if len(downside_returns) > 1 else 0.0001
+        sortino = (returns.mean() * 252 / downside_std) if downside_std > 0 else 0
+        
+        # Calmar ratio
+        max_dd = self._calculate_max_drawdown(df['equity'])
+        calmar = (returns.mean() * 252 / abs(max_dd)) if max_dd != 0 else 0
+        
+        return {
+            'sharpe_ratio': self.risk_metrics.get('sharpe_ratio', 0),
+            'sortino_ratio': sortino,
+            'calmar_ratio': calmar,
+            'max_drawdown': max_dd * 100,
+            'current_drawdown': self._calculate_current_drawdown() * 100,
+            'volatility': volatility,
+            'var_95': var_95,
+            'cvar_95': cvar_95,
+            'beta': self.risk_metrics.get('beta', 1.0),
+            'alpha': self.risk_metrics.get('alpha', 0),
+            'information_ratio': self.risk_metrics.get('information_ratio', 0)
+        }
     
     def _get_correlation_matrix(self) -> Dict:
-        """Get correlation matrix"""
-        return {'strategies': [], 'matrix': []}
+        """Get strategy correlation matrix"""
+        
+        if not self.strategy_performance:
+            return {'strategies': [], 'matrix': []}
+        
+        strategies = list(self.strategy_performance.keys())
+        
+        # In real implementation, calculate from returns
+        # For now, generate mock data
+        n = len(strategies)
+        correlation = np.random.rand(n, n)
+        correlation = (correlation + correlation.T) / 2  # Make symmetric
+        np.fill_diagonal(correlation, 1.0)  # Diagonal is 1
+        
+        return {
+            'strategies': strategies,
+            'matrix': correlation.tolist()
+        }
     
     def _get_performance_attribution(self) -> Dict:
-        """Get performance attribution"""
-        return {'attribution': []}
+        """Get performance attribution by strategy"""
+        
+        attribution = []
+        
+        total_pnl = sum(s.get('total_pnl', 0) for s in self.strategy_performance.values())
+        
+        for name, perf in self.strategy_performance.items():
+            strategy_pnl = perf.get('total_pnl', 0)
+            contribution = (strategy_pnl / total_pnl * 100) if total_pnl != 0 else 0
+            
+            attribution.append({
+                'strategy': name,
+                'pnl': strategy_pnl,
+                'contribution_pct': contribution
+            })
+        
+        # Sort by contribution
+        attribution.sort(key=lambda x: abs(x['contribution_pct']), reverse=True)
+        
+        return {'attribution': attribution}
+    
+    # ==================== Helper Methods ====================
+    
+    def _calculate_drawdown(self, equity_series) -> pd.Series:
+        """Calculate drawdown series"""
+        cummax = equity_series.expanding().max()
+        drawdown = (equity_series - cummax) / cummax
+        return drawdown
+    
+    def _calculate_max_drawdown(self, equity_series) -> float:
+        """Calculate maximum drawdown"""
+        drawdown = self._calculate_drawdown(equity_series)
+        return drawdown.min()
+    
+    def _calculate_current_drawdown(self) -> float:
+        """Calculate current drawdown"""
+        if not self.portfolio_history:
+            return 0.0
+        
+        df = pd.DataFrame(self.portfolio_history)
+        current_equity = df['equity'].iloc[-1]
+        peak = df['equity'].max()
+        
+        return (current_equity - peak) / peak if peak > 0 else 0.0
+    
+    def _get_trades_summary(self) -> Dict:
+        """Get trades summary statistics"""
+        
+        if not self.trades_history:
+            return {
+                'total_trades': 0,
+                'winning_trades': 0,
+                'losing_trades': 0,
+                'win_rate': 0,
+                'avg_win': 0,
+                'avg_loss': 0,
+                'profit_factor': 0,
+                'total_pnl': 0
+            }
+        
+        winning = [t for t in self.trades_history if t.get('pnl', 0) > 0]
+        losing = [t for t in self.trades_history if t.get('pnl', 0) < 0]
+        
+        total_wins = sum(t.get('pnl', 0) for t in winning)
+        total_losses = abs(sum(t.get('pnl', 0) for t in losing))
+        
+        return {
+            'total_trades': len(self.trades_history),
+            'winning_trades': len(winning),
+            'losing_trades': len(losing),
+            'win_rate': len(winning) / len(self.trades_history) * 100,
+            'avg_win': total_wins / len(winning) if winning else 0,
+            'avg_loss': total_losses / len(losing) if losing else 0,
+            'profit_factor': total_wins / total_losses if total_losses > 0 else 0,
+            'total_pnl': sum(t.get('pnl', 0) for t in self.trades_history)
+        }
     
     def _empty_portfolio(self) -> Dict:
-        """Empty portfolio"""
-        return {'equity': 0}
+        """Return empty portfolio structure"""
+        return {
+            'equity': 0,
+            'cash': 0,
+            'positions_count': 0,
+            'total_return': 0,
+            'daily_change': 0,
+            'daily_change_pct': 0,
+            'win_rate': 0,
+            'total_trades': 0,
+            'sharpe_ratio': 0,
+            'max_drawdown': 0,
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def _empty_risk_metrics(self) -> Dict:
+        """Return empty risk metrics"""
+        return {
+            'sharpe_ratio': 0,
+            'sortino_ratio': 0,
+            'calmar_ratio': 0,
+            'max_drawdown': 0,
+            'current_drawdown': 0,
+            'volatility': 0,
+            'var_95': 0,
+            'cvar_95': 0,
+            'beta': 1.0,
+            'alpha': 0,
+            'information_ratio': 0
+        }
     
     def _get_uptime(self) -> str:
-        """Get uptime"""
+        """Get system uptime"""
         return "Running"
     
     def _export_report(self, format_type: str):
-        """Export report"""
-        return jsonify({'status': 'not_implemented'})
+        """Export performance report"""
+        return jsonify({'status': 'not_implemented', 'format': format_type})
     
-    def _emit_update(self, component: str):
-        """Emit WebSocket update"""
-        pass
+    def _emit_update(self, component: str = 'all'):
+        """Emit WebSocket update to clients"""
+        
+        updates = {}
+        
+        if component in ['all', 'overview']:
+            updates['overview'] = self._get_portfolio_overview()
+        
+        if component in ['all', 'equity']:
+            updates['equity'] = self._get_equity_data()
+        
+        if component in ['all', 'strategies']:
+            updates['strategies'] = self._get_strategies_data()
+        
+        if component in ['all', 'risk']:
+            updates['risk'] = self._get_risk_analytics()
+        
+        self.socketio.emit('update', updates)
+    
+    # ==================== Public API ====================
+    
+    def update_data(self, portfolio: Dict, trades: List, strategies: Dict, risk: Dict):
+        """
+        Update dashboard data from trading system
+        
+        Args:
+            portfolio: Current portfolio state
+            trades: Recent trades list
+            strategies: Strategy performance dict
+            risk: Risk metrics dict
+        """
+        
+        # Add to history
+        self.portfolio_history.append({
+            'timestamp': datetime.now(),
+            'equity': portfolio.get('equity', 0),
+            'cash': portfolio.get('cash', 0),
+            'positions': portfolio.get('positions', {})
+        })
+        
+        # Keep last 10000 points
+        if len(self.portfolio_history) > 10000:
+            self.portfolio_history = self.portfolio_history[-10000:]
+        
+        self.trades_history = trades
+        self.strategy_performance = strategies
+        self.risk_metrics = risk
+        
+        # Update cache
+        self.cache['last_update'] = datetime.now().isoformat()
+        
+        # Emit WebSocket update
+        self._emit_update('all')
+        
+        logger.debug("DATA: Dashboard data updated via WebSocket")
+    
+    def add_alert(self, level: str, message: str, category: str = 'general'):
+        """
+        Add alert to dashboard
+        
+        Args:
+            level: Alert level (info, warning, danger)
+            message: Alert message
+            category: Alert category
+        """
+        
+        alert = {
+            'id': len(self.alerts),
+            'timestamp': datetime.now().isoformat(),
+            'level': level,
+            'message': message,
+            'category': category
+        }
+        
+        self.alerts.append(alert)
+        
+        # Keep last 100 alerts
+        if len(self.alerts) > 100:
+            self.alerts = self.alerts[-100:]
+        
+        # Emit alert via WebSocket
+        self.socketio.emit('alert', alert)
+        
+        logger.info(f"ALERT: [{level.upper()}] {message}")
     
     def run(self):
         """Start dashboard server"""
