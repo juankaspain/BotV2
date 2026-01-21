@@ -4,11 +4,13 @@ Abstract base class for all trading strategies
 """
 
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from datetime import datetime
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 from ensemble.ensemble_voting import TradeSignal
 
@@ -45,7 +47,7 @@ class BaseStrategy(ABC):
         self.last_signal: Optional[TradeSignal] = None
         self.is_active = True
         
-        logger.info(f"Strategy {self.name} initialized")
+        logger.debug(f"✓ Strategy {self.name} initialized")
     
     @abstractmethod
     async def generate_signal(self, market_data: pd.DataFrame) -> Optional[TradeSignal]:
@@ -165,20 +167,100 @@ class BaseStrategy(ABC):
         self.returns_history.clear()
         self.signals_generated = 0
         self.signals_executed = 0
-        logger.info(f"Strategy {self.name} performance reset")
+        logger.info(f"✓ Strategy {self.name} performance reset")
     
     def activate(self):
         """Activate strategy"""
         self.is_active = True
-        logger.info(f"Strategy {self.name} activated")
+        logger.info(f"✓ Strategy {self.name} activated")
     
     def deactivate(self):
         """Deactivate strategy"""
         self.is_active = False
-        logger.info(f"Strategy {self.name} deactivated")
+        logger.info(f"✓ Strategy {self.name} deactivated")
     
     def __str__(self):
         return f"Strategy({self.name})"
     
     def __repr__(self):
         return self.__str__()
+
+
+def load_all_strategies(config) -> Dict[str, BaseStrategy]:
+    """
+    Load all strategy implementations from strategies directory
+    
+    This function:
+    1. Discovers all strategy files in the strategies directory
+    2. Imports strategy implementations
+    3. Instantiates each strategy with config
+    4. Returns dict of all active strategies
+    
+    Args:
+        config: Configuration manager
+        
+    Returns:
+        Dict mapping strategy name -> strategy instance
+    """
+    
+    strategies = {}
+    strategies_dir = Path(__file__).parent
+    
+    logger.info("Loading trading strategies...")
+    
+    # List of built-in strategies to load
+    built_in_strategies = {
+        'momentum': 'MomentumStrategy',
+        'mean_reversion': 'MeanReversionStrategy',
+        'volatility': 'VolatilityStrategy',
+        'trend_following': 'TrendFollowingStrategy',
+    }
+    
+    for strategy_module, strategy_class_name in built_in_strategies.items():
+        try:
+            strategy_file = strategies_dir / f"{strategy_module}.py"
+            
+            # Check if strategy file exists
+            if not strategy_file.exists():
+                logger.warning(f"⚠️ Strategy file not found: {strategy_module}.py")
+                continue
+            
+            # Dynamic import
+            module_name = f"strategies.{strategy_module}"
+            spec = __import__(module_name, fromlist=[strategy_class_name])
+            strategy_class = getattr(spec, strategy_class_name, None)
+            
+            if strategy_class is None:
+                logger.warning(f"⚠️ Strategy class {strategy_class_name} not found in {strategy_module}")
+                continue
+            
+            # Instantiate strategy
+            strategy_instance = strategy_class(config)
+            strategies[strategy_instance.name] = strategy_instance
+            
+            logger.info(f"✓ Loaded strategy: {strategy_instance.name}")
+        
+        except ImportError as e:
+            logger.warning(f"⚠️ Could not import {strategy_module}: {e}")
+            continue
+        except Exception as e:
+            logger.error(f"❌ Error loading strategy {strategy_module}: {e}")
+            continue
+    
+    if not strategies:
+        logger.warning(
+            "⚠️ No strategies loaded. Creating dummy strategy for testing..."
+        )
+        
+        # Create a dummy strategy for development/testing
+        class DummyStrategy(BaseStrategy):
+            """Dummy strategy for testing"""
+            async def generate_signal(self, market_data: pd.DataFrame):
+                return None
+        
+        dummy = DummyStrategy(config, "dummy_strategy")
+        strategies["dummy_strategy"] = dummy
+        logger.info("✓ Loaded dummy strategy (development only)")
+    
+    logger.info(f"✓ Total strategies loaded: {len(strategies)}")
+    return strategies
