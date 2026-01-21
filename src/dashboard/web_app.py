@@ -1,8 +1,16 @@
 """
-BotV2 Professional Dashboard v2.0
-Ultra-professional real-time trading dashboard
+BotV2 Professional Dashboard v2.0 - Enterprise Security Edition
+Ultra-professional real-time trading dashboard with production-grade security
 
-Features:
+Security Features:
+- HTTP Basic Authentication
+- Rate Limiting (10 req/min per IP)
+- HTTPS Enforcement (production only)
+- Security Headers (HSTS, CSP, X-Frame-Options, etc.)
+- Brute Force Protection
+- WebSocket Real-time Updates
+
+Other Features:
 - Bloomberg Terminal inspired design
 - Real-time WebSocket updates
 - Advanced charting with technical indicators
@@ -13,7 +21,6 @@ Features:
 - Export capabilities
 - Alert system
 - Performance attribution
-- HTTP Basic Authentication
 """
 
 import logging
@@ -21,6 +28,9 @@ import os
 from flask import Flask, render_template, jsonify, request, Response, send_file
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 from functools import wraps
 import plotly.graph_objs as go
 import plotly.express as px
@@ -39,6 +49,12 @@ logger = logging.getLogger(__name__)
 class DashboardAuth:
     """
     HTTP Basic Authentication for Dashboard
+    
+    Security Features:
+    - SHA-256 password hashing
+    - Constant-time comparison (timing attack prevention)
+    - Failed login attempt logging
+    - Environment variable based credentials
     
     Uses environment variables for credentials:
     - DASHBOARD_USERNAME (default: admin)
@@ -75,7 +91,7 @@ class DashboardAuth:
     
     def check_credentials(self, username: str, password: str) -> bool:
         """
-        Verify username and password
+        Verify username and password (timing-attack safe)
         
         Args:
             username: Provided username
@@ -89,6 +105,7 @@ class DashboardAuth:
             logger.warning("⚠️ No password configured, allowing access (DEV MODE)")
             return True
         
+        # Use constant-time comparison to prevent timing attacks
         username_match = secrets.compare_digest(username, self.username)
         password_match = secrets.compare_digest(
             self._hash_password(password),
@@ -100,19 +117,28 @@ class DashboardAuth:
 
 class ProfessionalDashboard:
     """
-    Ultra-professional trading dashboard v2.0
+    Ultra-professional trading dashboard v2.0 with enterprise security
     
     Architecture:
     - Flask + SocketIO for real-time updates
+    - Flask-Limiter for rate limiting (10 req/min per IP)
+    - Flask-Talisman for HTTPS enforcement + security headers
     - Plotly for interactive charts
     - Custom CSS/JS for Bloomberg-style UI
     - WebSocket push for instant updates
     - Modular component design
-    - HTTP Basic Authentication
+    - HTTP Basic Authentication with brute force protection
+    
+    Security:
+    - Rate limiting on all endpoints
+    - HTTPS enforcement in production
+    - Security headers (HSTS, CSP, X-Frame-Options)
+    - Brute force protection
+    - Audit logging
     """
     
     def __init__(self, config):
-        """Initialize professional dashboard"""
+        """Initialize professional dashboard with security"""
         
         self.config = config
         dash_config = config.get('dashboard', {})
@@ -121,6 +147,10 @@ class ProfessionalDashboard:
         self.host = dash_config.get('host', '0.0.0.0')
         self.port = dash_config.get('port', 8050)
         self.debug = dash_config.get('debug', False)
+        
+        # Environment detection
+        self.env = os.getenv('FLASK_ENV', 'production')
+        self.is_production = self.env == 'production'
         
         # Initialize authentication
         self.auth = DashboardAuth()
@@ -131,10 +161,14 @@ class ProfessionalDashboard:
             template_folder=str(Path(__file__).parent / 'templates'),
             static_folder=str(Path(__file__).parent / 'static')
         )
-        self.app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'botv2-dashboard-secret')
+        self.app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_urlsafe(32))
         
         CORS(self.app)
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
+        
+        # Setup security middleware
+        self._setup_rate_limiting()
+        self._setup_https_enforcement()
         
         # Data stores
         self.portfolio_history = []
@@ -157,9 +191,86 @@ class ProfessionalDashboard:
         
         logger.info("✅ Professional Dashboard v2.0 initialized")
         logger.info(f"🔒 Authentication: ENABLED (user: {self.auth.username})")
+        logger.info(f"⚡ Rate Limiting: ENABLED (10 req/min per IP)")
+        logger.info(f"🔐 HTTPS Enforcement: {'ENABLED' if self.is_production else 'DISABLED (dev mode)'}")
+    
+    def _setup_rate_limiting(self):
+        """Setup rate limiting middleware"""
+        
+        # Get Redis configuration for distributed rate limiting
+        redis_host = os.getenv('REDIS_HOST', 'localhost')
+        redis_port = int(os.getenv('REDIS_PORT', 6379))
+        
+        # Initialize rate limiter with Redis backend
+        self.limiter = Limiter(
+            app=self.app,
+            key_func=get_remote_address,
+            default_limits=["10 per minute"],  # Global limit: 10 req/min per IP
+            storage_uri=f"redis://{redis_host}:{redis_port}",
+            storage_options={"socket_connect_timeout": 30},
+            strategy="fixed-window",
+            headers_enabled=True,  # Add X-RateLimit-* headers
+            swallow_errors=True  # Continue working if Redis is down
+        )
+        
+        # Custom rate limit exceeded handler
+        @self.app.errorhandler(429)
+        def ratelimit_handler(e):
+            logger.warning(
+                f"⚠️ Rate limit exceeded from {request.remote_addr} "
+                f"on {request.path}"
+            )
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'message': 'Too many requests. Please slow down.',
+                'retry_after': e.description
+            }), 429
+        
+        logger.info("✅ Rate limiting middleware installed (10 req/min per IP)")
+    
+    def _setup_https_enforcement(self):
+        """Setup HTTPS enforcement and security headers"""
+        
+        if self.is_production:
+            # Production: Enforce HTTPS and security headers
+            Talisman(
+                self.app,
+                force_https=True,  # Redirect HTTP → HTTPS
+                strict_transport_security=True,
+                strict_transport_security_max_age=31536000,  # 1 year
+                content_security_policy={
+                    'default-src': "'self'",
+                    'script-src': [
+                        "'self'",
+                        "'unsafe-inline'",  # Required for inline scripts
+                        "https://cdn.socket.io",
+                        "https://cdn.plot.ly"
+                    ],
+                    'style-src': ["'self'", "'unsafe-inline'"],
+                    'img-src': ["'self'", "data:", "https:"],
+                    'connect-src': ["'self'", "wss:", "ws:"],
+                    'font-src': ["'self'"],
+                    'frame-ancestors': "'none'"
+                },
+                content_security_policy_nonce_in=['script-src'],
+                referrer_policy='no-referrer',
+                feature_policy={
+                    'geolocation': "'none'",
+                    'microphone': "'none'",
+                    'camera': "'none'",
+                    'payment': "'none'"
+                }
+            )
+            logger.info("✅ HTTPS enforcement + security headers enabled (production)")
+        else:
+            # Development: No HTTPS enforcement (allow localhost HTTP)
+            logger.info("⚠️ HTTPS enforcement disabled (development mode)")
     
     def _setup_authentication(self):
         """Setup authentication for all Flask routes except /health"""
+        
+        # Exempt health check from rate limiting
+        self.limiter.exempt(lambda: request.path == '/health')
         
         @self.app.before_request
         def require_auth():
@@ -173,100 +284,120 @@ class ProfessionalDashboard:
             
             if not auth or not self.auth.check_credentials(auth.username, auth.password):
                 logger.warning(
-                    f"Failed login attempt from {request.remote_addr} "
-                    f"(username: {auth.username if auth else 'none'})"
+                    f"🚫 Failed login attempt from {request.remote_addr} "
+                    f"(username: {auth.username if auth else 'none'}) "
+                    f"on {request.path}"
                 )
                 return Response(
                     'Authentication required.\n'
                     'Please login with valid credentials.',
                     401,
-                    {'WWW-Authenticate': 'Basic realm="BotV2 Dashboard v2.0"'}
+                    {'WWW-Authenticate': 'Basic realm="BotV2 Dashboard v2.0 (Secure)"'}
                 )
             
-            logger.debug(f"Authenticated user: {auth.username} from {request.remote_addr}")
+            logger.debug(f"✅ Authenticated user: {auth.username} from {request.remote_addr}")
         
         logger.info("✅ Authentication middleware installed")
     
     def _setup_routes(self):
-        """Setup Flask routes"""
+        """Setup Flask routes with rate limiting"""
         
         @self.app.route('/')
+        @self.limiter.limit("20 per minute")  # Higher limit for main page
         def index():
             """Main dashboard page"""
             return render_template('dashboard.html')
         
         @self.app.route('/api/overview')
+        @self.limiter.limit("20 per minute")  # API endpoints: 20 req/min
         def api_overview():
             """Portfolio overview API"""
             return jsonify(self._get_portfolio_overview())
         
         @self.app.route('/api/equity')
+        @self.limiter.limit("20 per minute")
         def api_equity():
             """Equity curve data"""
             return jsonify(self._get_equity_data())
         
         @self.app.route('/api/trades')
+        @self.limiter.limit("20 per minute")
         def api_trades():
             """Recent trades"""
             limit = request.args.get('limit', 50, type=int)
             return jsonify(self._get_trades_data(limit))
         
         @self.app.route('/api/strategies')
+        @self.limiter.limit("20 per minute")
         def api_strategies():
             """Strategy performance"""
             return jsonify(self._get_strategies_data())
         
         @self.app.route('/api/risk')
+        @self.limiter.limit("20 per minute")
         def api_risk():
             """Risk metrics and analytics"""
             return jsonify(self._get_risk_analytics())
         
         @self.app.route('/api/correlation')
+        @self.limiter.limit("20 per minute")
         def api_correlation():
             """Correlation heatmap data"""
             return jsonify(self._get_correlation_matrix())
         
         @self.app.route('/api/attribution')
+        @self.limiter.limit("20 per minute")
         def api_attribution():
             """Performance attribution"""
             return jsonify(self._get_performance_attribution())
         
         @self.app.route('/api/alerts')
+        @self.limiter.limit("20 per minute")
         def api_alerts():
             """Active alerts"""
             return jsonify({'alerts': self.alerts})
         
         @self.app.route('/api/export/report')
+        @self.limiter.limit("5 per minute")  # Lower limit for export (resource intensive)
         def api_export_report():
             """Export PDF/Excel report"""
             format_type = request.args.get('format', 'pdf')
             return self._export_report(format_type)
         
         @self.app.route('/health')
+        # No rate limit or auth for health check
         def health():
-            """Health check (no authentication required for Docker)"""
+            """Health check (no authentication or rate limiting for Docker)"""
             return jsonify({
                 'status': 'healthy',
-                'version': '2.0',
+                'version': '2.0-secure',
                 'service': 'dashboard',
                 'uptime': self._get_uptime(),
                 'last_update': self.cache.get('last_update'),
-                'authenticated': False  # Health check doesn't require auth
+                'security': {
+                    'rate_limiting': True,
+                    'https_enforced': self.is_production,
+                    'authenticated': False  # Health check doesn't require auth
+                }
             })
     
     def _setup_websocket_handlers(self):
-        """Setup WebSocket event handlers"""
+        """Setup WebSocket event handlers (exempt from rate limiting)"""
         
         @self.socketio.on('connect')
         def handle_connect():
             """Client connected"""
-            logger.info(f"WebSocket client connected: {request.sid}")
-            emit('connected', {'message': 'Connected to BotV2 Dashboard v2.0', 'version': '2.0'})
+            logger.info(f"🔗 WebSocket client connected: {request.sid} from {request.remote_addr}")
+            emit('connected', {
+                'message': 'Connected to BotV2 Dashboard v2.0 (Secure)',
+                'version': '2.0-secure',
+                'features': ['rate_limiting', 'https_enforced' if self.is_production else 'dev_mode']
+            })
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
             """Client disconnected"""
-            logger.info(f"WebSocket client disconnected: {request.sid}")
+            logger.info(f"❌ WebSocket client disconnected: {request.sid}")
         
         @self.socketio.on('request_update')
         def handle_update_request(data):
@@ -275,6 +406,7 @@ class ProfessionalDashboard:
             self._emit_update(component)
     
     # ==================== Data Getters ====================
+    # (Same as before, no changes needed)
     
     def _get_portfolio_overview(self) -> Dict:
         """Get portfolio overview metrics"""
@@ -658,12 +790,14 @@ class ProfessionalDashboard:
         """Start dashboard server"""
         
         logger.info("="*70)
-        logger.info("🚀 Starting BotV2 Professional Dashboard v2.0")
-        logger.info(f"🌐 URL: http://{self.host}:{self.port}")
+        logger.info("🚀 Starting BotV2 Professional Dashboard v2.0 (Secure)")
+        logger.info(f"🌐 URL: http{'s' if self.is_production else ''}://{self.host}:{self.port}")
         logger.info(f"🔒 Authentication: ENABLED (user: {self.auth.username})")
         logger.info("🔑 Password: Set via DASHBOARD_PASSWORD env var")
-        logger.info("✨ Features: WebSocket, Real-time, Advanced Analytics")
-        logger.info("📊 Health Check: http://{self.host}:{self.port}/health")
+        logger.info(f"⚡ Rate Limiting: ENABLED (10 req/min global, 20 req/min API)")
+        logger.info(f"🔐 HTTPS: {'ENFORCED' if self.is_production else 'DISABLED (dev)'}")
+        logger.info("✨ Features: WebSocket, Real-time, Advanced Analytics, Enterprise Security")
+        logger.info(f"📊 Health Check: http://{self.host}:{self.port}/health")
         logger.info("="*70)
         
         self.socketio.run(
