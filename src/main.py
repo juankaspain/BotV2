@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
 BotV2 - Main Trading System
-Complete Production System with 26 Audit Improvements
+Complete Production System with 26 Audit Improvements + Phase 1 Enhancements
 """
 
 import asyncio
 import logging
 import sys
+import signal
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
-import signal
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -22,25 +22,28 @@ from core.liquidation_detector import LiquidationDetector
 from core.execution_engine import ExecutionEngine
 from data.data_validator import DataValidator
 from data.normalization_pipeline import NormalizationPipeline
+from data.exchange_connector import ExchangeConnector
 from ensemble.adaptive_allocation import AdaptiveAllocationEngine
 from ensemble.correlation_manager import CorrelationManager
 from ensemble.ensemble_voting import EnsembleVoting
 from strategies.base_strategy import load_all_strategies
 from backtesting.realistic_simulator import RealisticSimulator
-from utils.logger import setup_logger
+from utils.secrets_manager import get_secrets_manager
+from utils.sensitive_formatter import setup_sanitized_logger
 
-# Setup logging
-logger = setup_logger(__name__)
+# Setup sanitized logging
+logger = setup_sanitized_logger(__name__)
 
 
 class BotV2:
     """
     BotV2 Main Trading System
     
-    Implements all 26 audit improvements:
+    Implements all 26 audit improvements + Phase 1 critical fixes:
     - Round 1: Data validation, Risk management, State recovery
     - Round 2: Adaptive allocation, Correlation management, Ensemble voting
     - Round 3: Realistic execution, Liquidation detection, Market microstructure
+    - Phase 1: Exchange integration, Secrets management, Sanitized logging
     """
     
     def __init__(self, config_path: Optional[str] = None):
@@ -49,6 +52,10 @@ class BotV2:
         logger.info("=" * 70)
         logger.info("🚀 Initializing BotV2 Trading System...")
         logger.info("=" * 70)
+        
+        # Validate secrets first (will exit if required secrets missing)
+        secrets_manager = get_secrets_manager()
+        secrets_manager.validate_or_exit()
         
         # Load configuration
         self.config = ConfigManager(config_path)
@@ -61,6 +68,7 @@ class BotV2:
         self.is_running = False
         self.iteration = 0
         self.start_time = None
+        self.shutdown_requested = False
         
         # Performance tracking
         self.portfolio = {
@@ -70,6 +78,9 @@ class BotV2:
         }
         self.trade_history = []
         self.performance_metrics = {}
+        
+        # Setup signal handlers for graceful shutdown
+        self._setup_signal_handlers()
         
         logger.info("✅ BotV2 initialization complete")
     
@@ -116,6 +127,10 @@ class BotV2:
         self.execution_engine = ExecutionEngine(self.config)
         self.simulator = RealisticSimulator(self.config)
         
+        # Phase 1: Exchange Integration
+        logger.info("Initializing Phase 1: Exchange connectors...")
+        self.exchange_connector = ExchangeConnector(self.config)
+        
         # Load strategies
         logger.info("Loading strategies...")
         self.strategies = load_all_strategies(self.config)
@@ -125,12 +140,51 @@ class BotV2:
         self.market_data = {}
         self.recent_liquidations = []
     
+    def _setup_signal_handlers(self):
+        """Setup signal handlers for graceful shutdown"""
+        def signal_handler(signum, frame):
+            signal_name = signal.Signals(signum).name
+            logger.info(f"\n⚠️ Received {signal_name}, initiating graceful shutdown...")
+            self.shutdown_requested = True
+        
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+    
     async def fetch_market_data(self):
-        """Fetch current market data from exchanges"""
-        # TODO: Implement real exchange API calls
-        # For now, return placeholder
-        logger.debug("Fetching market data...")
-        return None
+        """
+        Fetch current market data from exchanges
+        
+        Returns:
+            Dictionary of market data or None if error
+        """
+        try:
+            logger.debug("Fetching market data from exchanges...")
+            market_data = await self.exchange_connector.fetch_market_data()
+            
+            if not market_data:
+                logger.warning("No market data returned from exchanges")
+                return None
+            
+            # Convert to format expected by strategies
+            processed_data = {}
+            for symbol, data in market_data.items():
+                processed_data[symbol] = {
+                    'timestamp': data.timestamp,
+                    'open': data.open,
+                    'high': data.high,
+                    'low': data.low,
+                    'close': data.close,
+                    'volume': data.volume,
+                    'bid': data.bid,
+                    'ask': data.ask,
+                    'exchange': data.exchange
+                }
+            
+            return processed_data
+        
+        except Exception as e:
+            logger.error(f"Error fetching market data: {e}")
+            return None
     
     async def main_loop(self):
         """
@@ -146,7 +200,9 @@ class BotV2:
         7. Ensemble Voting
         8. Position Sizing
         9. Execute Trade
-        10. Persist State
+        10. Update Portfolio
+        11. Persist State
+        12. Performance Reporting
         """
         
         self.is_running = True
@@ -155,7 +211,7 @@ class BotV2:
         logger.info("🎯 Starting main trading loop...")
         logger.info("=" * 70)
         
-        while self.is_running:
+        while self.is_running and not self.shutdown_requested:
             self.iteration += 1
             loop_start = datetime.now()
             
@@ -298,4 +354,229 @@ class BotV2:
                 )
                 
                 # Correlation-aware adjustment
-                correlation_factor = self.correlation_manager.get_correlation_fac
+                correlation_factor = self.correlation_manager.get_correlation_factor(portfolio_corr)
+                adjusted_size = base_size * correlation_factor
+                
+                # Circuit breaker size multiplier
+                cb_multiplier = self.circuit_breaker.get_size_multiplier()
+                final_size = adjusted_size * cb_multiplier
+                
+                # Apply hard limits
+                final_size = self.risk_manager.apply_limits(final_size)
+                
+                logger.info(
+                    f"Position sizing: Kelly={base_size:.4f} → "
+                    f"Corr-adj={adjusted_size:.4f} → "
+                    f"CB-adj={final_size:.4f}"
+                )
+                
+                # ===== PHASE 11: EXECUTE TRADE =====
+                logger.debug(f"[{self.iteration}] Phase 11: Executing trade")
+                
+                if final_size > 0:
+                    trade_result = await self.execution_engine.execute_trade(
+                        symbol=final_signal.symbol,
+                        action=final_signal.action,
+                        size=final_size,
+                        portfolio=self.portfolio
+                    )
+                    
+                    if trade_result.get('success'):
+                        # Update portfolio
+                        self._update_portfolio(trade_result)
+                        
+                        # Record trade
+                        self.trade_history.append(trade_result)
+                        
+                        logger.info(
+                            f"✅ Trade executed: {final_signal.action} {final_size:.4f} "
+                            f"{final_signal.symbol} @ {trade_result.get('price', 0):.2f}"
+                        )
+                    else:
+                        logger.warning(f"⚠️ Trade execution failed: {trade_result.get('error')}")
+                else:
+                    logger.info("Position size too small, skipping trade")
+                
+                # ===== PHASE 12: PERSIST STATE & REPORT =====
+                logger.debug(f"[{self.iteration}] Phase 12: Persisting state")
+                
+                # Save state checkpoint
+                await self.state_manager.save_checkpoint({
+                    'iteration': self.iteration,
+                    'timestamp': datetime.now().isoformat(),
+                    'portfolio': self.portfolio,
+                    'trade_history': self.trade_history[-10:],  # Last 10 trades
+                    'performance_metrics': self.performance_metrics
+                })
+                
+                # Update performance metrics
+                self._update_performance_metrics()
+                
+                # Report every 10 iterations
+                if self.iteration % 10 == 0:
+                    self._log_performance_summary()
+                
+                # Calculate loop duration
+                loop_duration = (datetime.now() - loop_start).total_seconds()
+                logger.debug(f"Loop iteration completed in {loop_duration:.2f}s")
+                
+                # Sleep before next iteration
+                await asyncio.sleep(self.config.trading.trading_interval)
+            
+            except Exception as e:
+                logger.error(f"Error in main loop iteration {self.iteration}: {e}", exc_info=True)
+                await asyncio.sleep(self.config.trading.trading_interval)
+        
+        # Cleanup on exit
+        await self._cleanup()
+    
+    def _update_portfolio(self, trade_result: Dict):
+        """Update portfolio with trade result"""
+        symbol = trade_result['symbol']
+        action = trade_result['action']
+        size = trade_result['size']
+        price = trade_result['price']
+        
+        if action == 'BUY':
+            # Add to position
+            if symbol in self.portfolio['positions']:
+                # Average up
+                current_size = self.portfolio['positions'][symbol]['size']
+                current_price = self.portfolio['positions'][symbol]['avg_price']
+                
+                new_size = current_size + size
+                new_avg_price = (current_size * current_price + size * price) / new_size
+                
+                self.portfolio['positions'][symbol] = {
+                    'size': new_size,
+                    'avg_price': new_avg_price,
+                    'last_update': datetime.now()
+                }
+            else:
+                # New position
+                self.portfolio['positions'][symbol] = {
+                    'size': size,
+                    'avg_price': price,
+                    'last_update': datetime.now()
+                }
+            
+            # Decrease cash
+            self.portfolio['cash'] -= size * price
+        
+        elif action == 'SELL':
+            # Reduce or close position
+            if symbol in self.portfolio['positions']:
+                current_size = self.portfolio['positions'][symbol]['size']
+                
+                if size >= current_size:
+                    # Close position
+                    realized_pnl = (price - self.portfolio['positions'][symbol]['avg_price']) * current_size
+                    del self.portfolio['positions'][symbol]
+                    
+                    # Increase cash
+                    self.portfolio['cash'] += current_size * price
+                    
+                    logger.info(f"Position closed. Realized P&L: €{realized_pnl:.2f}")
+                else:
+                    # Reduce position
+                    self.portfolio['positions'][symbol]['size'] -= size
+                    self.portfolio['cash'] += size * price
+        
+        # Update equity
+        self.portfolio['equity'] = self._calculate_equity()
+    
+    def _calculate_equity(self) -> float:
+        """Calculate current portfolio equity"""
+        equity = self.portfolio['cash']
+        
+        # Add value of open positions (using latest market prices)
+        for symbol, position in self.portfolio['positions'].items():
+            # Get latest price from market data
+            latest_price = self.market_data.get(symbol, {}).get('close', position['avg_price'])
+            equity += position['size'] * latest_price
+        
+        return equity
+    
+    def _update_performance_metrics(self):
+        """Update performance metrics"""
+        if not self.trade_history:
+            return
+        
+        # Calculate basic metrics
+        total_trades = len(self.trade_history)
+        winning_trades = sum(1 for t in self.trade_history if t.get('pnl', 0) > 0)
+        
+        self.performance_metrics = {
+            'total_trades': total_trades,
+            'win_rate': winning_trades / total_trades if total_trades > 0 else 0,
+            'current_equity': self.portfolio['equity'],
+            'total_return': (self.portfolio['equity'] - self.config.trading.initial_capital) / self.config.trading.initial_capital,
+            'daily_pnl': self.risk_manager.current_metrics.daily_pnl if self.risk_manager.current_metrics else 0,
+            'max_drawdown': self.risk_manager.current_metrics.max_drawdown if self.risk_manager.current_metrics else 0,
+        }
+    
+    def _log_performance_summary(self):
+        """Log performance summary"""
+        logger.info("\n" + "=" * 70)
+        logger.info("📊 PERFORMANCE SUMMARY")
+        logger.info("=" * 70)
+        logger.info(f"Iteration: {self.iteration}")
+        logger.info(f"Equity: €{self.portfolio['equity']:.2f}")
+        logger.info(f"Cash: €{self.portfolio['cash']:.2f}")
+        logger.info(f"Open Positions: {len(self.portfolio['positions'])}")
+        logger.info(f"Total Trades: {self.performance_metrics.get('total_trades', 0)}")
+        logger.info(f"Win Rate: {self.performance_metrics.get('win_rate', 0):.2%}")
+        logger.info(f"Total Return: {self.performance_metrics.get('total_return', 0):.2%}")
+        logger.info(f"Max Drawdown: {self.performance_metrics.get('max_drawdown', 0):.2%}")
+        logger.info("=" * 70 + "\n")
+    
+    async def _cleanup(self):
+        """Cleanup resources before shutdown"""
+        logger.info("\n🛡️ Performing cleanup...")
+        
+        try:
+            # Close exchange connections
+            await self.exchange_connector.close()
+            logger.info("✓ Exchange connections closed")
+            
+            # Final state save
+            await self.state_manager.save_checkpoint({
+                'iteration': self.iteration,
+                'timestamp': datetime.now().isoformat(),
+                'portfolio': self.portfolio,
+                'trade_history': self.trade_history,
+                'performance_metrics': self.performance_metrics,
+                'shutdown': True
+            })
+            logger.info("✓ Final state saved")
+            
+            # Clear secrets cache
+            get_secrets_manager().clear_cache()
+            logger.info("✓ Secrets cache cleared")
+            
+            logger.info("✅ Cleanup complete")
+        
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+
+
+def main():
+    """Main entry point"""
+    try:
+        # Create bot instance
+        bot = BotV2()
+        
+        # Run main loop
+        asyncio.run(bot.main_loop())
+    
+    except KeyboardInterrupt:
+        logger.info("\n⚠️ Keyboard interrupt received")
+    except Exception as e:
+        logger.critical(f"❌ Fatal error: {e}", exc_info=True)
+        sys.exit(1)
+    
+    logger.info("👋 BotV2 shutdown complete")
+
+
+if __name__ == "__main__":
+    main()
