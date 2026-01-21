@@ -18,16 +18,27 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # ===== CRITICAL: VALIDATE SECRETS BEFORE ANY OTHER IMPORTS =====
 # This ensures the application fails fast if required configuration is missing
-from config.secrets_validator import validate_secrets
+from config.secrets_validator import validate_secrets, HAS_PROFESSIONAL_LOGGER
 
 # Get environment from env var or default to development
 CURRENT_ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 
 # Validate all required secrets (will exit if validation fails)
-logger_early = logging.getLogger(__name__)
-logger_early.info(f"Validating secrets for environment: {CURRENT_ENVIRONMENT}")
-validate_secrets(environment=CURRENT_ENVIRONMENT, strict=True)
-logger_early.info("✅ Secret validation passed, proceeding with initialization")
+# Only do this ONCE at module initialization
+_SECRETS_VALIDATED = False
+
+def _validate_secrets_once():
+    """Validate secrets only once to avoid duplicate logs"""
+    global _SECRETS_VALIDATED
+    
+    if _SECRETS_VALIDATED:
+        return
+    
+    validate_secrets(environment=CURRENT_ENVIRONMENT, strict=True)
+    _SECRETS_VALIDATED = True
+
+# Call validation immediately
+_validate_secrets_once()
 
 # ===== NOW SAFE TO IMPORT OTHER COMPONENTS =====
 from config.config_manager import ConfigManager
@@ -70,7 +81,7 @@ class BotV2:
         logger.info(f"Environment: {CURRENT_ENVIRONMENT}")
         logger.info("=" * 70)
         
-        # Double-check secrets validation (already done at module level)
+        # Get secrets manager for verification (no duplicate validation)
         secrets_manager = get_secrets_manager()
         validation_summary = secrets_manager.get_validation_summary()
         logger.info(f"✓ Secrets validated: {validation_summary.get('total_validated', 0)} variables")
