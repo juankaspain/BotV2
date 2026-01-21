@@ -1,4 +1,4 @@
-# BotV2 Production Dockerfile - Optimized
+# BotV2 Production Dockerfile - Optimized for Alpine
 # Multi-stage build for minimal image size and fast builds
 # Fixed for Python 3.11 + Alpine Linux compatibility
 
@@ -24,25 +24,26 @@ RUN apk add --no-cache --virtual .build-deps \
     cargo \
     rust \
     git \
-    && echo "Build dependencies installed"
+    && echo "[BUILD] Build dependencies installed"
 
 # Upgrade pip, setuptools, wheel to latest versions
-RUN pip install --upgrade --no-cache-dir pip setuptools wheel
+RUN pip install --upgrade --no-cache-dir pip setuptools wheel 2>&1 | grep -E "(Collecting|Successfully)"
 
 # Copy requirements
 COPY requirements.txt .
 
-# Install Python dependencies with verbose output for debugging
+# Install Python dependencies
 # --no-cache-dir: Don't cache pip packages (saves space)
 # --user: Install to /root/.local (not system)
-# Using --prefer-binary to skip compiling when possible
-RUN pip install --user --no-cache-dir --prefer-binary \
+# --prefer-binary: Use wheels instead of compiling (faster)
+RUN echo "[BUILD] Installing Python dependencies..." && \
+    pip install --user --no-cache-dir --prefer-binary \
     --progress-bar on \
-    -r requirements.txt 2>&1 | tail -50 \
-    && echo "✅ Python dependencies installed successfully"
+    -r requirements.txt 2>&1 | tail -20 && \
+    echo "[BUILD] ✅ Python dependencies installed successfully"
 
-# Verify installations
-RUN python -c "import numpy, pandas, flask, dash; print('✅ All core packages imported successfully')"
+# Note: We skip verification in builder to avoid issues with numpy compilation
+# Verification will happen in runtime stage where libraries are properly loaded
 
 # ============================================================================
 # Stage 2: Runtime - Minimal production image
@@ -61,17 +62,17 @@ RUN apk add --no-cache \
     curl \
     ca-certificates \
     tini \
-    && echo "Runtime dependencies installed"
+    && echo "[RUNTIME] Runtime dependencies installed"
 
-# Create non-root user for security (required for multi-user systems)
+# Create non-root user for security
 RUN addgroup -g 1000 botv2 && \
     adduser -u 1000 -G botv2 -s /sbin/nologin -D botv2 && \
-    echo "User 'botv2' created"
+    echo "[RUNTIME] User 'botv2' created"
 
 # Create necessary directories with correct permissions
 RUN mkdir -p /app/{logs,backups,data,config} && \
     chown -R botv2:botv2 /app && \
-    echo "Directories created"
+    echo "[RUNTIME] Directories created"
 
 # Copy Python packages from builder stage
 COPY --from=builder --chown=botv2:botv2 /root/.local /home/botv2/.local
@@ -89,8 +90,14 @@ ENV PATH=/home/botv2/.local/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
-# Verify Python and packages are accessible
-RUN python -c "import sys; print(f'Python {sys.version}'); import flask, dash; print('✅ Packages loaded successfully')"
+# Verify core packages are accessible
+RUN echo "[RUNTIME] Verifying Python packages..." && \
+    python -c "import sys; print(f'Python {sys.version}')" && \
+    python -c "import flask; print('✅ Flask loaded')" && \
+    python -c "import dash; print('✅ Dash loaded')" && \
+    python -c "import pandas; print('✅ Pandas loaded')" && \
+    python -c "import numpy; print('✅ NumPy loaded')" && \
+    echo "[RUNTIME] ✅ All core packages verified successfully"
 
 # Switch to non-root user
 USER botv2
@@ -100,7 +107,7 @@ ENTRYPOINT ["/sbin/tini", "--"]
 
 # Health check - verifies the container is running properly
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import sys; print('Health check passed'); sys.exit(0)" || exit 1
+    CMD python -c "import flask, dash, pandas, numpy; print('Health check passed'); exit(0)" || exit 1
 
 # Default command
 CMD ["python", "src/main.py"]
@@ -113,5 +120,5 @@ CMD ["python", "src/main.py"]
 # Compose: docker-compose up -d
 #
 # Image size: ~800MB (vs 2GB+ without optimization)
-# Build time: ~3-5 minutes (depends on network)
+# Build time: ~3-5 minutes (first build), ~30s (cached)
 # ============================================================================
