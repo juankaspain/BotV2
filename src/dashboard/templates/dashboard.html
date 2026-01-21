@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotV2 Professional Dashboard</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    
+    <!-- Libraries -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+</head>
+<body class="dark-theme">
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span class="logo">🤖</span>
+            <h1>BotV2 <span class="version">v2.0</span></h1>
+        </div>
+        
+        <div class="navbar-controls">
+            <div class="status-indicator" id="connection-status">
+                <span class="status-dot connecting"></span>
+                <span class="status-text">Conectando...</span>
+            </div>
+            
+            <button class="btn btn-icon" id="theme-toggle" title="Cambiar tema">
+                <span id="theme-icon">☾</span>
+            </button>
+            
+            <button class="btn btn-icon" id="export-btn" title="Exportar reporte">
+                <span>💾</span>
+            </button>
+            
+            <button class="btn btn-icon" id="fullscreen-btn" title="Pantalla completa">
+                <span>⛶</span>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Alerts Bar -->
+        <div class="alerts-bar" id="alerts-bar"></div>
+        
+        <!-- Overview Cards -->
+        <div class="overview-grid">
+            <div class="metric-card">
+                <div class="metric-label">Equity Total</div>
+                <div class="metric-value" id="equity-value">€0.00</div>
+                <div class="metric-change" id="equity-change">+0.00%</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">P&L Total</div>
+                <div class="metric-value" id="pnl-value">€0.00</div>
+                <div class="metric-change" id="pnl-change">+0.00%</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Win Rate</div>
+                <div class="metric-value" id="winrate-value">0%</div>
+                <div class="metric-detail" id="trades-count">0 trades</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Sharpe Ratio</div>
+                <div class="metric-value" id="sharpe-value">0.00</div>
+                <div class="metric-detail" id="sharpe-rating">-</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Max Drawdown</div>
+                <div class="metric-value" id="drawdown-value">0%</div>
+                <div class="metric-detail" id="current-dd">Actual: 0%</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">Volatilidad</div>
+                <div class="metric-value" id="volatility-value">0%</div>
+                <div class="metric-detail" id="vol-rating">-</div>
+            </div>
+        </div>
+        
+        <!-- Main Charts Row -->
+        <div class="charts-row">
+            <!-- Equity Curve -->
+            <div class="chart-container large">
+                <div class="chart-header">
+                    <h2>Curva de Equity</h2>
+                    <div class="chart-controls">
+                        <button class="btn-small" data-period="1D">1D</button>
+                        <button class="btn-small active" data-period="1W">1W</button>
+                        <button class="btn-small" data-period="1M">1M</button>
+                        <button class="btn-small" data-period="ALL">TODO</button>
+                    </div>
+                </div>
+                <div id="equity-chart" class="chart"></div>
+            </div>
+        </div>
+        
+        <!-- Secondary Charts Row -->
+        <div class="charts-row">
+            <!-- Daily Returns -->
+            <div class="chart-container medium">
+                <div class="chart-header">
+                    <h2>Retornos Diarios</h2>
+                </div>
+                <div id="returns-chart" class="chart"></div>
+            </div>
+            
+            <!-- Drawdown Chart -->
+            <div class="chart-container medium">
+                <div class="chart-header">
+                    <h2>Drawdown</h2>
+                </div>
+                <div id="drawdown-chart" class="chart"></div>
+            </div>
+        </div>
+        
+        <!-- Strategy Performance -->
+        <div class="charts-row">
+            <div class="chart-container large">
+                <div class="chart-header">
+                    <h2>Rendimiento por Estrategia</h2>
+                    <div class="chart-controls">
+                        <select id="strategy-metric" class="select-small">
+                            <option value="return">Retorno</option>
+                            <option value="sharpe">Sharpe</option>
+                            <option value="winrate">Win Rate</option>
+                            <option value="trades">Trades</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="strategies-chart" class="chart"></div>
+            </div>
+        </div>
+        
+        <!-- Analytics Row -->
+        <div class="charts-row">
+            <!-- Correlation Heatmap -->
+            <div class="chart-container medium">
+                <div class="chart-header">
+                    <h2>Mapa de Correlaciones</h2>
+                </div>
+                <div id="correlation-heatmap" class="chart"></div>
+            </div>
+            
+            <!-- Performance Attribution -->
+            <div class="chart-container medium">
+                <div class="chart-header">
+                    <h2>Atribución de Performance</h2>
+                </div>
+                <div id="attribution-chart" class="chart"></div>
+            </div>
+        </div>
+        
+        <!-- Risk Metrics -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Métricas de Riesgo</h2>
+            </div>
+            <div class="risk-grid" id="risk-metrics">
+                <!-- Risk metrics will be populated by JS -->
+            </div>
+        </div>
+        
+        <!-- Recent Trades Table -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Trades Recientes</h2>
+                <div class="section-controls">
+                    <button class="btn-small" id="refresh-trades">Actualizar</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="trades-table" id="trades-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Estrategia</th>
+                            <th>Símbolo</th>
+                            <th>Acción</th>
+                            <th>Tamaño</th>
+                            <th>Precio</th>
+                            <th>P&L</th>
+                            <th>P&L %</th>
+                            <th>Confianza</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trades-tbody">
+                        <!-- Trades will be populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <span>© 2026 BotV2 - Professional Trading System</span>
+                <span id="last-update">Last update: Never</span>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
