@@ -126,4 +126,125 @@ class AdaptiveAllocationEngine:
         
         # Log top strategies
         top_3 = sorted(weights.items(), key=lambda x: x[1], reverse=True)[:3]
-        logger.info(f"✓ Weight
+        logger.info(f"✓ Weight allocation updated - Top 3: {dict(top_3)}")
+        
+        return weights
+    
+    def _sharpe_to_weights(self, sharpe_dict: Dict[str, float]) -> Dict[str, float]:
+        """
+        Convert Sharpe ratios to portfolio weights using normalized exponential
+        
+        Args:
+            sharpe_dict: Dict mapping strategy names to Sharpe ratios
+        
+        Returns:
+            Dict mapping strategy names to weights (normalized to sum to 1.0)
+        """
+        
+        if not sharpe_dict:
+            return {}
+        
+        # Exponential weighting for non-linear emphasis
+        exp_weights = {}
+        total_weight = 0
+        
+        for strategy_name, sharpe in sharpe_dict.items():
+            # Use e^sharpe to emphasize higher Sharpe ratios
+            exp_weight = np.exp(sharpe / 3.0)  # Divide by 3 to moderate exponential
+            exp_weights[strategy_name] = exp_weight
+            total_weight += exp_weight
+        
+        # Normalize and apply constraints
+        normalized_weights = {}
+        
+        for strategy_name, exp_weight in exp_weights.items():
+            # Normalize to sum to 1
+            weight = exp_weight / total_weight
+            
+            # Apply min/max constraints
+            weight = max(self.min_weight, min(self.max_weight, weight))
+            
+            normalized_weights[strategy_name] = weight
+        
+        # Renormalize after constraints to ensure sum to 1.0
+        total = sum(normalized_weights.values())
+        if total > 0:
+            normalized_weights = {k: v / total for k, v in normalized_weights.items()}
+        
+        return normalized_weights
+    
+    def _calculate_sharpe(self, returns: list, risk_free_rate: float = 0.02) -> float:
+        """
+        Calculate Sharpe ratio from returns
+        
+        Args:
+            returns: List of period returns
+            risk_free_rate: Annual risk-free rate (default 2%)
+        
+        Returns:
+            Sharpe ratio
+        """
+        
+        if len(returns) < 2:
+            return 1.0  # Neutral weight if insufficient data
+        
+        returns_array = np.array(returns)
+        
+        # Calculate annualized metrics
+        annual_return = np.mean(returns_array) * 252  # Assuming daily returns
+        annual_std = np.std(returns_array) * np.sqrt(252)
+        
+        # Avoid division by zero
+        if annual_std == 0:
+            return 0.0
+        
+        sharpe = (annual_return - risk_free_rate) / annual_std
+        
+        return max(0.1, sharpe)  # Floor at 0.1
+    
+    def should_rebalance(self) -> bool:
+        """
+        Check if portfolio should be rebalanced based on frequency setting
+        
+        Returns:
+            True if rebalancing is due, False otherwise
+        """
+        
+        if self.last_rebalance is None:
+            return True
+        
+        time_since_rebalance = datetime.now() - self.last_rebalance
+        
+        if self.rebalance_freq == "hourly":
+            return time_since_rebalance.total_seconds() > 3600
+        elif self.rebalance_freq == "daily":
+            return time_since_rebalance.total_seconds() > 86400
+        elif self.rebalance_freq == "weekly":
+            return time_since_rebalance.total_seconds() > 604800
+        
+        return False
+    
+    def get_weight_history(self, limit: int = 50) -> list:
+        """
+        Get recent weight history
+        
+        Args:
+            limit: Maximum number of historical entries to return
+        
+        Returns:
+            List of weight history entries
+        """
+        
+        return self.weight_history[-limit:]
+    
+    def reset(self):
+        """
+        Reset the allocation engine state
+        """
+        
+        self.current_weights = {}
+        self.sharpe_history = {}
+        self.weight_history = []
+        self.last_rebalance = None
+        
+        logger.info("✓ Adaptive Allocation Engine reset")
