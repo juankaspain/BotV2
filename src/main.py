@@ -8,6 +8,7 @@ import asyncio
 import logging
 import sys
 import signal
+import os
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -15,6 +16,20 @@ from typing import Dict, List, Optional
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+# ===== CRITICAL: VALIDATE SECRETS BEFORE ANY OTHER IMPORTS =====
+# This ensures the application fails fast if required configuration is missing
+from config.secrets_validator import validate_secrets
+
+# Get environment from env var or default to development
+CURRENT_ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+
+# Validate all required secrets (will exit if validation fails)
+logger_early = logging.getLogger(__name__)
+logger_early.info(f"Validating secrets for environment: {CURRENT_ENVIRONMENT}")
+validate_secrets(environment=CURRENT_ENVIRONMENT, strict=True)
+logger_early.info("✅ Secret validation passed, proceeding with initialization")
+
+# ===== NOW SAFE TO IMPORT OTHER COMPONENTS =====
 from config.config_manager import ConfigManager
 from core.risk_manager import RiskManager, CircuitBreaker
 from core.state_manager import StateManager
@@ -44,6 +59,7 @@ class BotV2:
     - Round 2: Adaptive allocation, Correlation management, Ensemble voting
     - Round 3: Realistic execution, Liquidation detection, Market microstructure
     - Phase 1: Exchange integration, Secrets management, Sanitized logging
+    - Security: Secrets validation, Fail-fast on missing config
     """
     
     def __init__(self, config_path: Optional[str] = None):
@@ -51,15 +67,24 @@ class BotV2:
         
         logger.info("=" * 70)
         logger.info("🚀 Initializing BotV2 Trading System...")
+        logger.info(f"Environment: {CURRENT_ENVIRONMENT}")
         logger.info("=" * 70)
         
-        # Validate secrets first (will exit if required secrets missing)
+        # Double-check secrets validation (already done at module level)
         secrets_manager = get_secrets_manager()
-        secrets_manager.validate_or_exit()
+        validation_summary = secrets_manager.get_validation_summary()
+        logger.info(f"✓ Secrets validated: {validation_summary.get('total_validated', 0)} variables")
         
         # Load configuration
         self.config = ConfigManager(config_path)
         logger.info(f"✓ Config loaded: {self.config.system['name']} v{self.config.system['version']}")
+        
+        # Log trading mode
+        trading_mode = os.getenv('TRADING_MODE', 'paper')
+        if trading_mode == 'live':
+            logger.warning("⚠️ LIVE TRADING MODE - Real funds at risk!")
+        else:
+            logger.info(f"✓ Trading mode: {trading_mode.upper()}")
         
         # Initialize components
         self._init_components()
@@ -83,6 +108,8 @@ class BotV2:
         self._setup_signal_handlers()
         
         logger.info("✅ BotV2 initialization complete")
+        logger.info(f"Initial capital: €{self.config.trading.initial_capital:,.2f}")
+        logger.info("=" * 70)
     
     def _init_components(self):
         """Initialize all system components"""
@@ -561,8 +588,23 @@ class BotV2:
 
 
 def main():
-    """Main entry point"""
+    """
+    Main entry point
+    
+    Flow:
+    1. Validate secrets (already done at module import)
+    2. Create BotV2 instance
+    3. Run main trading loop
+    4. Handle shutdown gracefully
+    """
     try:
+        logger.info("")
+        logger.info("╔═══════════════════════════════════════════════════════════════════╗")
+        logger.info("║                      BotV2 Trading System                         ║")
+        logger.info("║                    Production Ready v4.1                          ║")
+        logger.info("╚═══════════════════════════════════════════════════════════════════╝")
+        logger.info("")
+        
         # Create bot instance
         bot = BotV2()
         
@@ -576,6 +618,7 @@ def main():
         sys.exit(1)
     
     logger.info("👋 BotV2 shutdown complete")
+    logger.info("")
 
 
 if __name__ == "__main__":
