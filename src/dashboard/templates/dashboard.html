@@ -1,1000 +1,1283 @@
-<!-- Due to file size limits, I'll provide the key additions to be integrated -->
-<!-- This is a PARTIAL UPDATE showing the new interactive features -->
-<!-- Full file would be dashboard.html (Phase 2 Part 1) + these additions -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- [Previous HEAD content from Phase 2 Part 1] -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BotV2 Professional Trading Dashboard - Real-time monitoring and analytics">
+    <title>BotV2 Dashboard - Professional Trading Platform</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
     <style>
-        /* [All Previous CSS from Phase 2 Part 1] */
+        /* ============================================
+           VARIABLES & BASE STYLES
+           ============================================ */
+        :root {
+            /* Colors - Bloomberg Dark Theme */
+            --primary: #00d4aa;
+            --primary-dark: #00b890;
+            --secondary: #0066ff;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            
+            /* Background Colors */
+            --bg-primary: #0a0e27;
+            --bg-secondary: #1a1f3a;
+            --bg-tertiary: #252b48;
+            --bg-card: rgba(26, 31, 58, 0.95);
+            --bg-hover: rgba(255, 255, 255, 0.05);
+            
+            /* Text Colors */
+            --text-primary: #e0e6ed;
+            --text-secondary: #8b949e;
+            --text-tertiary: #6b7280;
+            --text-success: #10b981;
+            --text-danger: #ef4444;
+            
+            /* Border & Shadows */
+            --border-color: rgba(79, 209, 197, 0.2);
+            --border-color-subtle: rgba(255, 255, 255, 0.1);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 3rem;
+            
+            /* Border Radius */
+            --radius-sm: 0.25rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --radius-full: 9999px;
+            
+            /* Typography */
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            
+            /* Layout */
+            --topbar-height: 64px;
+            --sidebar-width: 280px;
+            
+            /* Transitions */
+            --transition-fast: all 0.15s ease;
+            --transition-base: all 0.3s ease;
+            --transition-slow: all 0.5s ease;
+        }
+        
+        /* Reset & Base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #0f1629 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
         
         /* ============================================
-           PHASE 2 PART 2: MODAL SYSTEM
+           LAYOUT STRUCTURE
            ============================================ */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(10, 14, 39, 0.95);
+        .dashboard-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        /* Topbar */
+        .topbar {
+            height: var(--topbar-height);
+            background: var(--bg-card);
             backdrop-filter: blur(10px);
-            z-index: 10000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease;
-        }
-        .modal-overlay.active { display: flex; }
-        
-        .modal-container {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            max-width: 900px;
-            width: 90%;
-            max-height: 90vh;
-            overflow: hidden;
-            box-shadow: var(--shadow-xl);
-            animation: slideUp 0.3s ease;
-        }
-        
-        @keyframes slideUp {
-            from { transform: translateY(50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        .modal-header {
-            padding: var(--spacing-lg);
             border-bottom: 1px solid var(--border-color);
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            background: var(--bg-tertiary);
+            justify-content: space-between;
+            padding: 0 var(--spacing-xl);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-lg);
         }
         
-        .modal-title {
-            font-family: var(--font-display);
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
             font-size: 1.5rem;
             font-weight: 700;
-            color: var(--text-primary);
+            color: var(--primary);
+            text-decoration: none;
         }
         
-        .modal-close {
-            width: 36px;
-            height: 36px;
+        .status-indicator {
+            width: 8px;
+            height: 8px;
             border-radius: var(--radius-full);
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            cursor: pointer;
+            background: var(--success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .topbar-center {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            transition: var(--transition-fast);
-        }
-        .modal-close:hover { background: var(--danger); color: white; border-color: var(--danger); }
-        
-        .modal-body {
-            padding: var(--spacing-xl);
-            overflow-y: auto;
-            max-height: calc(90vh - 140px);
+            gap: var(--spacing-lg);
         }
         
-        .modal-footer {
-            padding: var(--spacing-lg);
-            border-top: 1px solid var(--border-color);
+        .topbar-stat {
             display: flex;
-            justify-content: flex-end;
-            gap: var(--spacing-md);
-            background: var(--bg-tertiary);
-        }
-        
-        .modal-button {
-            padding: var(--spacing-sm) var(--spacing-lg);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            background: var(--bg-card);
-            color: var(--text-primary);
-            cursor: pointer;
-            font-weight: 600;
-            transition: var(--transition-fast);
-        }
-        .modal-button.primary { background: var(--primary); border-color: var(--primary); color: white; }
-        .modal-button:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-        
-        /* ============================================
-           FILTER CONTROLS
-           ============================================ */
-        .chart-filters {
-            display: flex;
-            gap: var(--spacing-sm);
-            margin-bottom: var(--spacing-md);
-            flex-wrap: wrap;
+            flex-direction: column;
             align-items: center;
         }
         
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-xs);
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: var(--spacing-xs) var(--spacing-sm);
-        }
-        
-        .filter-label {
+        .topbar-stat-label {
             font-size: 0.75rem;
             color: var(--text-tertiary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
         
-        .filter-value {
-            padding: 4px 8px;
-            background: var(--bg-tertiary);
-            border-radius: var(--radius-sm);
-            font-size: 0.875rem;
+        .topbar-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
             color: var(--text-primary);
-            cursor: pointer;
-            transition: var(--transition-fast);
         }
-        .filter-value:hover { background: var(--primary); color: white; }
         
-        .filter-clear {
-            background: transparent;
-            border: none;
-            color: var(--text-tertiary);
-            cursor: pointer;
-            padding: 4px;
-            transition: var(--transition-fast);
+        .topbar-stat-value.positive { color: var(--success); }
+        .topbar-stat-value.negative { color: var(--danger); }
+        
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
         }
-        .filter-clear:hover { color: var(--danger); }
         
-        /* ============================================
-           BRUSH SELECTION
-           ============================================ */
-        .brush-controls {
-            position: fixed;
-            bottom: 100px;
-            right: var(--spacing-xl);
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: var(--spacing-md);
-            box-shadow: var(--shadow-xl);
-            display: none;
-            z-index: 1000;
-        }
-        .brush-controls.active { display: block; }
-        
-        .brush-info {
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: var(--radius-full);
             font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-sm);
-        }
-        
-        .brush-range {
-            font-family: var(--font-mono);
-            color: var(--primary);
             font-weight: 600;
         }
         
-        .brush-actions {
-            display: flex;
-            gap: var(--spacing-sm);
-            margin-top: var(--spacing-md);
-        }
-        
-        .brush-btn {
-            padding: var(--spacing-xs) var(--spacing-md);
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            color: var(--text-primary);
-            cursor: pointer;
+        .btn {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 700;
             font-size: 0.875rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
             transition: var(--transition-fast);
         }
-        .brush-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: var(--spacing-xl);
+            max-width: 1920px;
+            margin: 0 auto;
+            width: 100%;
+        }
         
         /* ============================================
-           COMPARISON MODE
+           GRID LAYOUT
            ============================================ */
-        .comparison-toggle {
-            position: fixed;
-            top: calc(var(--topbar-height) + var(--spacing-lg));
-            right: var(--spacing-xl);
-            background: var(--bg-secondary);
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .grid-col-4 { grid-column: span 4; }
+        .grid-col-6 { grid-column: span 6; }
+        .grid-col-8 { grid-column: span 8; }
+        .grid-col-12 { grid-column: span 12; }
+        
+        /* ============================================
+           CARDS
+           ============================================ */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
             border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-md);
+            transition: var(--transition-fast);
+        }
+        
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--border-color-subtle);
+        }
+        
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+        
+        .card-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            margin-top: var(--spacing-xs);
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-md);
+            background: transparent;
+            border: 1px solid var(--border-color-subtle);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-fast);
+        }
+        
+        .icon-btn:hover {
+            background: var(--primary);
+            color: var(--bg-primary);
+            border-color: var(--primary);
+        }
+        
+        /* ============================================
+           METRICS
+           ============================================ */
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+        }
+        
+        .metric-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color-subtle);
             border-radius: var(--radius-md);
             padding: var(--spacing-md);
-            box-shadow: var(--shadow-lg);
-            z-index: 999;
-            display: none;
-        }
-        .comparison-toggle.active { display: block; }
-        
-        .comparison-selector {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-sm);
-        }
-        
-        .strategy-checkbox {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-sm);
-            background: var(--bg-card);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
             transition: var(--transition-fast);
         }
-        .strategy-checkbox:hover { background: var(--bg-hover); }
-        .strategy-checkbox input { cursor: pointer; }
         
-        /* ============================================
-           ANNOTATIONS
-           ============================================ */
-        .annotation-marker {
-            width: 24px;
-            height: 24px;
-            border-radius: var(--radius-full);
-            background: var(--warning);
-            border: 2px solid white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .metric-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .metric-label {
             font-size: 0.75rem;
-            cursor: pointer;
-            transition: var(--transition-fast);
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--spacing-xs);
         }
-        .annotation-marker:hover { transform: scale(1.2); box-shadow: var(--shadow-md); }
-        .annotation-marker.trade { background: var(--success); }
-        .annotation-marker.signal { background: var(--info); }
-        .annotation-marker.news { background: var(--danger); }
         
-        .annotation-tooltip {
-            position: absolute;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            padding: var(--spacing-sm);
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+        
+        .metric-value.success { color: var(--success); }
+        .metric-value.danger { color: var(--danger); }
+        .metric-value.warning { color: var(--warning); }
+        
+        .metric-change {
             font-size: 0.875rem;
-            box-shadow: var(--shadow-lg);
-            z-index: 10000;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity var(--transition-fast);
-        }
-        .annotation-marker:hover + .annotation-tooltip { opacity: 1; }
-        
-        /* ============================================
-           SPARKLINES
-           ============================================ */
-        .sparkline-container {
-            width: 80px;
-            height: 24px;
-            display: inline-block;
-            cursor: pointer;
-        }
-        .sparkline-container:hover { filter: brightness(1.2); }
-        
-        /* ============================================
-           TRADE SIGNALS
-           ============================================ */
-        .trade-signal {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border-radius: var(--radius-full);
+            margin-top: var(--spacing-xs);
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 0.875rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: var(--transition-fast);
-            border: 2px solid white;
+            gap: var(--spacing-xs);
         }
-        .trade-signal.buy { background: var(--success); color: white; }
-        .trade-signal.sell { background: var(--danger); color: white; }
-        .trade-signal:hover { transform: scale(1.3); box-shadow: 0 0 10px currentColor; }
+        
+        .metric-change.positive { color: var(--success); }
+        .metric-change.negative { color: var(--danger); }
         
         /* ============================================
-           DATA GRID ENHANCEMENTS
+           CHARTS
            ============================================ */
-        .data-grid {
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            position: relative;
+        }
+        
+        .chart-container.large {
+            height: 500px;
+        }
+        
+        .chart-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--bg-tertiary);
+            border-top-color: var(--primary);
+            border-radius: var(--radius-full);
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto var(--spacing-md);
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* ============================================
+           TABLES
+           ============================================ */
+        .table-container {
             overflow-x: auto;
             overflow-y: auto;
-            max-height: 600px;
+            max-height: 500px;
+            border-radius: var(--radius-md);
         }
         
-        .data-grid table {
+        table {
+            width: 100%;
             border-collapse: separate;
             border-spacing: 0;
         }
         
-        .data-grid th {
+        thead {
             position: sticky;
             top: 0;
             background: var(--bg-tertiary);
             z-index: 10;
         }
         
-        .data-grid tr:hover {
-            background: var(--bg-hover);
-            cursor: pointer;
+        th {
+            padding: var(--spacing-md);
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--border-color);
         }
         
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .modal-container { width: 95%; max-height: 95vh; }
-            .modal-body { padding: var(--spacing-md); }
-            .chart-filters { flex-direction: column; width: 100%; }
-            .filter-group { width: 100%; }
-            .comparison-toggle { position: static; margin: var(--spacing-md); }
-            .brush-controls { bottom: 80px; right: var(--spacing-sm); }
+        td {
+            padding: var(--spacing-md);
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color-subtle);
         }
+        
+        tbody tr {
+            transition: var(--transition-fast);
+        }
+        
+        tbody tr:hover {
+            background: var(--bg-hover);
+        }
+        
+        .table-badge {
+            display: inline-block;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+        
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+        
+        .badge-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
+            border: 1px solid var(--info);
+        }
+        
+        /* ============================================
+           ALERTS
+           ============================================ */
+        .alert-container {
+            position: fixed;
+            top: calc(var(--topbar-height) + var(--spacing-lg));
+            right: var(--spacing-lg);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+            max-width: 400px;
+        }
+        
+        .alert {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left-width: 4px;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-xl);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .alert.success { border-left-color: var(--success); }
+        .alert.danger { border-left-color: var(--danger); }
+        .alert.warning { border-left-color: var(--warning); }
+        .alert.info { border-left-color: var(--info); }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .alert-title {
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+        
+        .alert-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.25rem;
+            line-height: 1;
+            padding: 0;
+        }
+        
+        .alert-message {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 1200px) {
+            .grid-col-4 { grid-column: span 6; }
+            .grid-col-8 { grid-column: span 12; }
+        }
+        
+        @media (max-width: 768px) {
+            .topbar {
+                padding: 0 var(--spacing-md);
+            }
+            
+            .topbar-center {
+                display: none;
+            }
+            
+            .main-content {
+                padding: var(--spacing-md);
+            }
+            
+            .dashboard-grid {
+                gap: var(--spacing-md);
+            }
+            
+            .grid-col-4,
+            .grid-col-6,
+            .grid-col-8,
+            .grid-col-12 {
+                grid-column: span 12;
+            }
+            
+            .metric-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+        }
+        
+        /* ============================================
+           UTILITIES
+           ============================================ */
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        .text-warning { color: var(--warning); }
+        .text-info { color: var(--info); }
+        .text-muted { color: var(--text-tertiary); }
+        
+        .font-mono { font-family: var(--font-mono); }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <!-- [Previous BODY content from Phase 2 Part 1] -->
-    
-    <!-- PHASE 2 PART 2: NEW ELEMENTS -->
-    
-    <!-- Modal System -->
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-container">
-            <div class="modal-header">
-                <div class="modal-title" id="modalTitle">Details</div>
-                <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="dashboard-container">
+        <!-- Topbar -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <a href="/" class="logo">
+                    <span>🤖</span>
+                    <span>BotV2</span>
+                </a>
+                <div class="status-indicator"></div>
             </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Dynamic content loaded here -->
+            
+            <div class="topbar-center">
+                <div class="topbar-stat">
+                    <div class="topbar-stat-label">Equity</div>
+                    <div class="topbar-stat-value" id="topbarEquity">€0.00</div>
+                </div>
+                <div class="topbar-stat">
+                    <div class="topbar-stat-label">Daily P&L</div>
+                    <div class="topbar-stat-value" id="topbarPnL">€0.00</div>
+                </div>
+                <div class="topbar-stat">
+                    <div class="topbar-stat-label">Win Rate</div>
+                    <div class="topbar-stat-value" id="topbarWinRate">0%</div>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button class="modal-button" onclick="closeModal()">Close</button>
-                <button class="modal-button primary" onclick="exportModalData()">📥 Export</button>
+            
+            <div class="topbar-right">
+                <div class="user-badge">
+                    <span>👤</span>
+                    <span>{{ user }}</span>
+                </div>
+                <button class="btn btn-secondary" onclick="refreshDashboard()">🔄 Refresh</button>
+                <a href="/logout" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Overview KPIs -->
+            <div class="dashboard-grid">
+                <div class="grid-col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">📊 Portfolio Overview</div>
+                                <div class="card-subtitle">Real-time performance metrics</div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="icon-btn" title="Export" onclick="exportData()">📥</button>
+                                <button class="icon-btn" title="Refresh" onclick="refreshOverview()">🔄</button>
+                            </div>
+                        </div>
+                        <div class="metric-grid" id="metricsGrid">
+                            <div class="metric-card">
+                                <div class="metric-label">Total Equity</div>
+                                <div class="metric-value" id="metricEquity">€0.00</div>
+                                <div class="metric-change positive" id="metricEquityChange">+0.00%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Total Return</div>
+                                <div class="metric-value" id="metricReturn">0.00%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Sharpe Ratio</div>
+                                <div class="metric-value" id="metricSharpe">0.00</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Max Drawdown</div>
+                                <div class="metric-value danger" id="metricDrawdown">0.00%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Win Rate</div>
+                                <div class="metric-value" id="metricWinRate">0.00%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Total Trades</div>
+                                <div class="metric-value" id="metricTrades">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Row 1 -->
+            <div class="dashboard-grid">
+                <div class="grid-col-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">📈 Equity Curve</div>
+                            <div class="card-actions">
+                                <button class="icon-btn" title="Fullscreen" onclick="toggleFullscreen('equityChart')">⛶</button>
+                            </div>
+                        </div>
+                        <div class="chart-container large">
+                            <div class="chart-loading" id="equityLoading">
+                                <div class="spinner"></div>
+                                <div>Loading chart...</div>
+                            </div>
+                            <div id="equityChart"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid-col-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">📊 Strategies Performance</div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-loading" id="strategiesLoading">
+                                <div class="spinner"></div>
+                                <div>Loading strategies...</div>
+                            </div>
+                            <div id="strategiesChart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Row 2 -->
+            <div class="dashboard-grid">
+                <div class="grid-col-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">⚠️ Risk Metrics</div>
+                        </div>
+                        <div class="metric-grid">
+                            <div class="metric-card">
+                                <div class="metric-label">Volatility</div>
+                                <div class="metric-value" id="riskVolatility">0.00%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">VaR (95%)</div>
+                                <div class="metric-value danger" id="riskVaR">0.00%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Sortino Ratio</div>
+                                <div class="metric-value" id="riskSortino">0.00</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Calmar Ratio</div>
+                                <div class="metric-value" id="riskCalmar">0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid-col-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">📉 Drawdown Chart</div>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-loading" id="drawdownLoading">
+                                <div class="spinner"></div>
+                                <div>Loading drawdown...</div>
+                            </div>
+                            <div id="drawdownChart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Trades -->
+            <div class="dashboard-grid">
+                <div class="grid-col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">💼 Recent Trades</div>
+                                <div class="card-subtitle">Last 50 executed trades</div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="icon-btn" title="Export CSV" onclick="exportTrades()">📄</button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table id="tradesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Strategy</th>
+                                        <th>Symbol</th>
+                                        <th>Action</th>
+                                        <th>Size</th>
+                                        <th>Entry Price</th>
+                                        <th>P&L</th>
+                                        <th>P&L %</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tradesTableBody">
+                                    <tr>
+                                        <td colspan="8" style="text-align: center; color: var(--text-tertiary);">
+                                            No trades yet. Waiting for data...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
-    <!-- Brush Selection Controls -->
-    <div class="brush-controls" id="brushControls">
-        <div class="brush-info">
-            <strong>Selected Range:</strong><br>
-            <span class="brush-range" id="brushRange">-</span>
-        </div>
-        <div class="brush-actions">
-            <button class="brush-btn" onclick="applyBrushSelection()">✓ Apply</button>
-            <button class="brush-btn" onclick="clearBrushSelection()">✕ Clear</button>
-        </div>
-    </div>
+    <!-- Alert Container -->
+    <div class="alert-container" id="alertContainer"></div>
     
-    <!-- Comparison Mode Toggle -->
-    <div class="comparison-toggle" id="comparisonToggle">
-        <div style="margin-bottom: var(--spacing-md); font-weight: 600;">Compare Strategies</div>
-        <div class="comparison-selector" id="comparisonSelector">
-            <!-- Strategy checkboxes loaded dynamically -->
-        </div>
-        <div style="margin-top: var(--spacing-md); display: flex; gap: var(--spacing-sm);">
-            <button class="brush-btn" onclick="applyComparison()">✓ Compare</button>
-            <button class="brush-btn" onclick="clearComparison()">✕ Clear</button>
-        </div>
-    </div>
-    
+    <!-- JavaScript -->
     <script>
-        // [All Previous JavaScript from Phase 2 Part 1]
-        
         // ============================================
-        // PHASE 2 PART 2: MODAL SYSTEM
+        // GLOBAL STATE
         // ============================================
-        
-        let currentModalData = null;
-        
-        function openModal(type, data) {
-            currentModalData = data;
-            const modal = document.getElementById('modalOverlay');
-            const title = document.getElementById('modalTitle');
-            const body = document.getElementById('modalBody');
-            
-            // Set title based on type
-            const titles = {
-                'trade': '📊 Trade Details',
-                'strategy': '📈 Strategy Performance',
-                'risk': '⚠️ Risk Analysis',
-                'chart': '📉 Chart Data'
-            };
-            title.textContent = titles[type] || 'Details';
-            
-            // Generate modal content based on type
-            body.innerHTML = generateModalContent(type, data);
-            
-            // Show modal
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            
-            // Add ESC key listener
-            document.addEventListener('keydown', handleModalKeydown);
-        }
-        
-        function closeModal() {
-            const modal = document.getElementById('modalOverlay');
-            modal.classList.remove('active');
-            document.body.style.overflow = '';
-            currentModalData = null;
-            document.removeEventListener('keydown', handleModalKeydown);
-        }
-        
-        function handleModalKeydown(e) {
-            if (e.key === 'Escape') closeModal();
-        }
-        
-        function generateModalContent(type, data) {
-            switch(type) {
-                case 'trade':
-                    return `
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                            <div class="metric-card">
-                                <div class="metric-label">Symbol</div>
-                                <div class="metric-value" style="font-size: 1.5rem;">${data.symbol}</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Strategy</div>
-                                <div class="metric-value" style="font-size: 1.5rem;">${data.strategy}</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Entry Price</div>
-                                <div class="metric-value" style="font-size: 1.5rem;">€${data.entry}</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Exit Price</div>
-                                <div class="metric-value" style="font-size: 1.5rem;">€${data.exit}</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">P&L</div>
-                                <div class="metric-value ${data.pnl >= 0 ? 'text-success' : 'text-danger'}" style="font-size: 1.5rem;">€${data.pnl.toFixed(2)}</div>
-                            </div>
-                            <div class="metric-card">
-                                <div class="metric-label">Duration</div>
-                                <div class="metric-value" style="font-size: 1.5rem;">${data.duration}</div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 1.5rem;">
-                            <h3 style="margin-bottom: 0.5rem;">Price Chart</h3>
-                            <div id="modalChart" style="height: 300px;"></div>
-                        </div>
-                    `;
-                
-                case 'strategy':
-                    return `
-                        <div class="metrics-grid">
-                            <div class="metric-card"><div class="metric-label">Total Return</div><div class="metric-value">${data.return}%</div></div>
-                            <div class="metric-card"><div class="metric-label">Sharpe Ratio</div><div class="metric-value">${data.sharpe}</div></div>
-                            <div class="metric-card"><div class="metric-label">Win Rate</div><div class="metric-value">${data.winRate}%</div></div>
-                            <div class="metric-card"><div class="metric-label">Trades</div><div class="metric-value">${data.trades}</div></div>
-                        </div>
-                        <div style="margin-top: 1.5rem;">
-                            <h3>Performance Over Time</h3>
-                            <div id="modalChart" style="height: 350px;"></div>
-                        </div>
-                    `;
-                
-                default:
-                    return '<p>No data available</p>';
+        const AppState = {
+            connected: false,
+            socket: null,
+            data: {
+                overview: {},
+                equity: {},
+                trades: [],
+                strategies: {},
+                risk: {}
             }
-        }
-        
-        function exportModalData() {
-            if (!currentModalData) return;
-            const dataStr = JSON.stringify(currentModalData, null, 2);
-            const blob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `modal_data_${Date.now()}.json`;
-            a.click();
-            showToast('Modal data exported', 'success');
-        }
+        };
         
         // ============================================
-        // ADVANCED FILTERS
+        // WEBSOCKET CONNECTION
         // ============================================
-        
-        const chartFilters = {};
-        
-        function applyChartFilter(chartId, filterType, value) {
-            if (!chartFilters[chartId]) chartFilters[chartId] = {};
-            chartFilters[chartId][filterType] = value;
+        function initWebSocket() {
+            console.log('🔌 Connecting to WebSocket...');
             
-            // Show filter pill
-            showFilterPill(chartId, filterType, value);
+            AppState.socket = io({
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 10
+            });
             
-            // Refresh chart with filters
-            refreshChartWithFilters(chartId);
+            AppState.socket.on('connect', () => {
+                console.log('✅ WebSocket connected');
+                AppState.connected = true;
+                showAlert('Connected', 'Real-time updates active', 'success');
+                requestAllData();
+            });
             
-            showToast(`Filter applied to ${chartId}`, 'info');
-        }
-        
-        function showFilterPill(chartId, filterType, value) {
-            const container = document.querySelector(`#${chartId}`).closest('.chart-container');
-            let filtersDiv = container.querySelector('.chart-filters');
+            AppState.socket.on('disconnect', () => {
+                console.log('❌ WebSocket disconnected');
+                AppState.connected = false;
+                showAlert('Disconnected', 'Reconnecting...', 'warning');
+            });
             
-            if (!filtersDiv) {
-                filtersDiv = document.createElement('div');
-                filtersDiv.className = 'chart-filters';
-                container.querySelector('.chart-header').after(filtersDiv);
-            }
+            AppState.socket.on('update', (data) => {
+                console.log('📥 Received update:', data);
+                handleUpdate(data);
+            });
             
-            const pill = document.createElement('div');
-            pill.className = 'filter-group';
-            pill.innerHTML = `
-                <span class="filter-label">${filterType}:</span>
-                <span class="filter-value">${value}</span>
-                <button class="filter-clear" onclick="removeFilter('${chartId}', '${filterType}')" title="Remove filter">✕</button>
-            `;
-            filtersDiv.appendChild(pill);
-        }
-        
-        function removeFilter(chartId, filterType) {
-            if (chartFilters[chartId]) {
-                delete chartFilters[chartId][filterType];
-            }
-            refreshChartWithFilters(chartId);
-            
-            // Remove pill from UI
-            const container = document.querySelector(`#${chartId}`).closest('.chart-container');
-            const filtersDiv = container.querySelector('.chart-filters');
-            if (filtersDiv) {
-                Array.from(filtersDiv.children).forEach(pill => {
-                    if (pill.textContent.includes(filterType)) pill.remove();
-                });
-            }
-        }
-        
-        function refreshChartWithFilters(chartId) {
-            const filters = chartFilters[chartId] || {};
-            // Apply filters and redraw chart
-            console.log(`Refreshing ${chartId} with filters:`, filters);
-            // Implementation depends on backend API
-        }
-        
-        // ============================================
-        // BRUSH SELECTION
-        // ============================================
-        
-        let brushSelection = { start: null, end: null };
-        
-        function initBrushSelection(chartId) {
-            const chart = document.getElementById(chartId);
-            if (!chart) return;
-            
-            // Add brush mode to Plotly config
-            chart.on('plotly_selected', (eventData) => {
-                if (!eventData || !eventData.range) return;
-                
-                brushSelection.start = eventData.range.x[0];
-                brushSelection.end = eventData.range.x[1];
-                
-                showBrushControls();
+            AppState.socket.on('alert', (alert) => {
+                showAlert(alert.level.toUpperCase(), alert.message, alert.level);
             });
         }
         
-        function showBrushControls() {
-            const controls = document.getElementById('brushControls');
-            const rangeDisplay = document.getElementById('brushRange');
-            
-            if (brushSelection.start && brushSelection.end) {
-                const start = new Date(brushSelection.start).toLocaleDateString();
-                const end = new Date(brushSelection.end).toLocaleDateString();
-                rangeDisplay.textContent = `${start} - ${end}`;
-                controls.classList.add('active');
+        function requestAllData() {
+            if (!AppState.socket || !AppState.connected) return;
+            AppState.socket.emit('request_update', { component: 'all' });
+        }
+        
+        function handleUpdate(data) {
+            if (data.overview) {
+                AppState.data.overview = data.overview;
+                updateOverview(data.overview);
             }
-        }
-        
-        function applyBrushSelection() {
-            if (!brushSelection.start || !brushSelection.end) return;
-            
-            // Sync all time-series charts to this range
-            syncChartRanges(brushSelection.start, brushSelection.end);
-            
-            showToast('Time range applied to all charts', 'success');
-        }
-        
-        function clearBrushSelection() {
-            brushSelection = { start: null, end: null };
-            document.getElementById('brushControls').classList.remove('active');
-            
-            // Reset all charts to full range
-            resetChartRanges();
-            
-            showToast('Selection cleared', 'info');
-        }
-        
-        function syncChartRanges(start, end) {
-            const timeSeriesCharts = ['equityChart', 'returnsChart', 'drawdownChart', 'candlestickChart'];
-            
-            timeSeriesCharts.forEach(chartId => {
-                const chart = document.getElementById(chartId);
-                if (chart && chart.layout) {
-                    Plotly.relayout(chartId, {
-                        'xaxis.range': [start, end]
-                    });
-                }
-            });
-        }
-        
-        function resetChartRanges() {
-            const timeSeriesCharts = ['equityChart', 'returnsChart', 'drawdownChart', 'candlestickChart'];
-            
-            timeSeriesCharts.forEach(chartId => {
-                const chart = document.getElementById(chartId);
-                if (chart && chart.layout) {
-                    Plotly.relayout(chartId, {
-                        'xaxis.autorange': true
-                    });
-                }
-            });
-        }
-        
-        // ============================================
-        // COMPARISON MODE
-        // ============================================
-        
-        let comparisonMode = false;
-        let selectedStrategies = [];
-        
-        function toggleComparisonMode() {
-            comparisonMode = !comparisonMode;
-            const toggle = document.getElementById('comparisonToggle');
-            
-            if (comparisonMode) {
-                toggle.classList.add('active');
-                loadStrategySelector();
-            } else {
-                toggle.classList.remove('active');
-                clearComparison();
+            if (data.equity) {
+                AppState.data.equity = data.equity;
+                updateEquityChart(data.equity);
+                updateDrawdownChart(data.equity);
             }
-        }
-        
-        function loadStrategySelector() {
-            const selector = document.getElementById('comparisonSelector');
-            const strategies = AppState.data.strategies?.strategies || [];
-            
-            selector.innerHTML = strategies.map(s => `
-                <label class="strategy-checkbox">
-                    <input type="checkbox" value="${s.name}" onchange="toggleStrategy('${s.name}')">
-                    <span>${s.name}</span>
-                </label>
-            `).join('');
-        }
-        
-        function toggleStrategy(name) {
-            const index = selectedStrategies.indexOf(name);
-            if (index > -1) {
-                selectedStrategies.splice(index, 1);
-            } else {
-                selectedStrategies.push(name);
+            if (data.strategies) {
+                AppState.data.strategies = data.strategies;
+                updateStrategiesChart(data.strategies);
             }
-        }
-        
-        function applyComparison() {
-            if (selectedStrategies.length < 2) {
-                showToast('Please select at least 2 strategies', 'warning');
-                return;
-            }
-            
-            overlayStrategies(selectedStrategies);
-            showToast(`Comparing ${selectedStrategies.length} strategies`, 'success');
-        }
-        
-        function overlayStrategies(strategies) {
-            // Create overlay chart with multiple traces
-            const traces = strategies.map((name, index) => {
-                const strategy = AppState.data.strategies.strategies.find(s => s.name === name);
-                const colors = ['#0066ff', '#00d4aa', '#f59e0b', '#ef4444', '#8b5cf6'];
-                
-                return {
-                    x: strategy.timestamps || [],
-                    y: strategy.equity || [],
-                    type: 'scatter',
-                    mode: 'lines',
-                    name: name,
-                    line: { color: colors[index % colors.length], width: 2 }
-                };
-            });
-            
-            const isDark = AppState.theme === 'dark' || AppState.theme === 'bloomberg';
-            const layout = {
-                title: 'Strategy Comparison',
-                paper_bgcolor: 'transparent',
-                plot_bgcolor: 'transparent',
-                font: { color: isDark ? '#e0e0e0' : '#0f172a' },
-                xaxis: { gridcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
-                yaxis: { gridcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', title: 'Equity (€)' },
-                showlegend: true,
-                legend: { x: 0, y: 1 }
-            };
-            
-            // Replace strategiesDetailChart with comparison
-            Plotly.newPlot('strategiesDetailChart', traces, layout, { responsive: true });
-        }
-        
-        function clearComparison() {
-            selectedStrategies = [];
-            comparisonMode = false;
-            document.getElementById('comparisonToggle').classList.remove('active');
-            
-            // Restore original strategies chart
-            if (AppState.data.strategies) {
-                updateStrategiesChart(AppState.data.strategies);
+            if (data.risk) {
+                AppState.data.risk = data.risk;
+                updateRiskMetrics(data.risk);
             }
         }
         
         // ============================================
-        // ENHANCED CSV EXPORT
+        // API CALLS
         // ============================================
+        async function fetchData(endpoint) {
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Error fetching ${endpoint}:`, error);
+                showAlert('Error', `Failed to fetch data from ${endpoint}`, 'danger');
+                return null;
+            }
+        }
         
-        function exportToCSV(tableId, filename) {
-            const table = document.querySelector(`#${tableId} table`);
-            if (!table) {
-                showToast('Table not found', 'danger');
-                return;
+        async function loadAllData() {
+            console.log('📊 Loading initial data...');
+            
+            const [overview, equity, trades, strategies, risk] = await Promise.all([
+                fetchData('/api/overview'),
+                fetchData('/api/equity'),
+                fetchData('/api/trades'),
+                fetchData('/api/strategies'),
+                fetchData('/api/risk')
+            ]);
+            
+            if (overview) {
+                AppState.data.overview = overview;
+                updateOverview(overview);
             }
             
-            let csv = [];
-            const rows = table.querySelectorAll('tr');
+            if (equity) {
+                AppState.data.equity = equity;
+                updateEquityChart(equity);
+                updateDrawdownChart(equity);
+            }
             
-            rows.forEach(row => {
-                const cols = row.querySelectorAll('th, td');
-                const rowData = Array.from(cols).map(col => {
-                    // Clean text and handle special characters
-                    let text = col.textContent.trim();
-                    // Escape quotes
-                    text = text.replace(/"/g, '""');
-                    // Wrap in quotes if contains comma
-                    if (text.includes(',')) text = `"${text}"`;
-                    return text;
-                });
-                csv.push(rowData.join(','));
-            });
+            if (trades) {
+                AppState.data.trades = trades.trades || [];
+                updateTradesTable(trades.trades || []);
+            }
             
-            // Add metadata header
-            const metadata = [
-                `"Exported from BotV2 Dashboard"`,
-                `"Date: ${new Date().toISOString()}"`,
-                `"Version: 3.2.0"`,
-                '""' // Empty row
-            ];
+            if (strategies) {
+                AppState.data.strategies = strategies;
+                updateStrategiesChart(strategies);
+            }
             
-            const fullCSV = [...metadata, ...csv].join('\n');
+            if (risk) {
+                AppState.data.risk = risk;
+                updateRiskMetrics(risk);
+            }
             
-            // Download
-            const blob = new Blob([fullCSV], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${filename || 'export'}_${Date.now()}.csv`;
-            a.click();
-            
-            showToast('CSV exported successfully', 'success');
+            console.log('✅ Initial data loaded');
         }
         
         // ============================================
-        // ANNOTATIONS
+        // UPDATE FUNCTIONS
         // ============================================
-        
-        const annotations = JSON.parse(localStorage.getItem('chartAnnotations')) || {};
-        
-        function addAnnotation(chartId, date, text, type = 'custom') {
-            if (!annotations[chartId]) annotations[chartId] = [];
+        function updateOverview(data) {
+            // Update topbar
+            document.getElementById('topbarEquity').textContent = formatCurrency(data.equity);
+            document.getElementById('topbarPnL').textContent = formatCurrency(data.daily_change);
+            document.getElementById('topbarPnL').className = 'topbar-stat-value ' + (data.daily_change >= 0 ? 'positive' : 'negative');
+            document.getElementById('topbarWinRate').textContent = formatPercent(data.win_rate);
             
-            const annotation = {
-                id: Date.now(),
-                date: date,
-                text: text,
-                type: type,
-                timestamp: new Date().toISOString()
-            };
+            // Update metrics grid
+            document.getElementById('metricEquity').textContent = formatCurrency(data.equity);
+            document.getElementById('metricEquityChange').textContent = formatPercent(data.daily_change_pct, true);
+            document.getElementById('metricEquityChange').className = 'metric-change ' + (data.daily_change_pct >= 0 ? 'positive' : 'negative');
             
-            annotations[chartId].push(annotation);
-            localStorage.setItem('chartAnnotations', JSON.stringify(annotations));
+            document.getElementById('metricReturn').textContent = formatPercent(data.total_return);
+            document.getElementById('metricReturn').className = 'metric-value ' + (data.total_return >= 0 ? 'success' : 'danger');
             
-            // Redraw chart with annotation
-            renderAnnotations(chartId);
-            
-            showToast('Annotation added', 'success');
+            document.getElementById('metricSharpe').textContent = data.sharpe_ratio.toFixed(2);
+            document.getElementById('metricDrawdown').textContent = formatPercent(Math.abs(data.max_drawdown));
+            document.getElementById('metricWinRate').textContent = formatPercent(data.win_rate);
+            document.getElementById('metricTrades').textContent = data.total_trades;
         }
         
-        function renderAnnotations(chartId) {
-            const chart = document.getElementById(chartId);
-            if (!chart || !annotations[chartId]) return;
-            
-            const shapes = annotations[chartId].map(ann => ({
-                type: 'line',
-                x0: ann.date,
-                x1: ann.date,
-                y0: 0,
-                y1: 1,
-                yref: 'paper',
-                line: {
-                    color: getAnnotationColor(ann.type),
-                    width: 2,
-                    dash: 'dash'
-                }
-            }));
-            
-            const annotationLabels = annotations[chartId].map(ann => ({
-                x: ann.date,
-                y: 1,
-                yref: 'paper',
-                text: ann.text,
-                showarrow: true,
-                arrowhead: 2,
-                ax: 0,
-                ay: -30,
-                bgcolor: getAnnotationColor(ann.type),
-                bordercolor: 'white',
-                borderwidth: 1
-            }));
-            
-            Plotly.relayout(chartId, {
-                shapes: shapes,
-                annotations: annotationLabels
-            });
-        }
-        
-        function getAnnotationColor(type) {
-            const colors = {
-                'trade': '#10b981',
-                'signal': '#3b82f6',
-                'news': '#ef4444',
-                'custom': '#f59e0b'
-            };
-            return colors[type] || colors.custom;
-        }
-        
-        // ============================================
-        // SPARKLINES
-        // ============================================
-        
-        function createSparkline(data, containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
+        function updateEquityChart(data) {
+            const loading = document.getElementById('equityLoading');
+            if (loading) loading.style.display = 'none';
             
             const trace = {
-                y: data,
+                x: data.timestamps || [],
+                y: data.equity || [],
                 type: 'scatter',
                 mode: 'lines',
-                line: { color: data[data.length - 1] >= data[0] ? '#10b981' : '#ef4444', width: 1.5 },
+                name: 'Equity',
+                line: {
+                    color: '#00d4aa',
+                    width: 2
+                },
                 fill: 'tozeroy',
-                fillcolor: data[data.length - 1] >= data[0] ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                hoverinfo: 'y'
+                fillcolor: 'rgba(0, 212, 170, 0.1)'
             };
             
             const layout = {
-                width: 80,
-                height: 24,
-                margin: { l: 0, r: 0, t: 0, b: 0 },
                 paper_bgcolor: 'transparent',
                 plot_bgcolor: 'transparent',
-                xaxis: { visible: false },
-                yaxis: { visible: false },
+                font: { color: '#e0e6ed', family: 'var(--font-sans)' },
+                margin: { l: 60, r: 40, t: 20, b: 60 },
+                xaxis: {
+                    gridcolor: 'rgba(255,255,255,0.05)',
+                    showgrid: true,
+                    zeroline: false
+                },
+                yaxis: {
+                    gridcolor: 'rgba(255,255,255,0.05)',
+                    showgrid: true,
+                    zeroline: false,
+                    title: 'Equity (€)'
+                },
+                hovermode: 'x unified'
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                displaylogo: false,
+                modeBarButtonsToRemove: ['lasso2d', 'select2d']
+            };
+            
+            Plotly.newPlot('equityChart', [trace], layout, config);
+        }
+        
+        function updateDrawdownChart(data) {
+            const loading = document.getElementById('drawdownLoading');
+            if (loading) loading.style.display = 'none';
+            
+            const trace = {
+                x: data.timestamps || [],
+                y: data.drawdown || [],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Drawdown',
+                line: {
+                    color: '#ef4444',
+                    width: 2
+                },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(239, 68, 68, 0.1)'
+            };
+            
+            const layout = {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#e0e6ed', family: 'var(--font-sans)' },
+                margin: { l: 60, r: 40, t: 20, b: 60 },
+                xaxis: {
+                    gridcolor: 'rgba(255,255,255,0.05)',
+                    showgrid: true,
+                    zeroline: false
+                },
+                yaxis: {
+                    gridcolor: 'rgba(255,255,255,0.05)',
+                    showgrid: true,
+                    zeroline: false,
+                    title: 'Drawdown (%)'
+                },
+                hovermode: 'x unified'
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: false
+            };
+            
+            Plotly.newPlot('drawdownChart', [trace], layout, config);
+        }
+        
+        function updateStrategiesChart(data) {
+            const loading = document.getElementById('strategiesLoading');
+            if (loading) loading.style.display = 'none';
+            
+            const strategies = data.strategies || [];
+            
+            const trace = {
+                x: strategies.map(s => s.name),
+                y: strategies.map(s => s.total_return),
+                type: 'bar',
+                marker: {
+                    color: strategies.map(s => s.total_return >= 0 ? '#10b981' : '#ef4444')
+                }
+            };
+            
+            const layout = {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#e0e6ed', family: 'var(--font-sans)' },
+                margin: { l: 60, r: 40, t: 20, b: 80 },
+                xaxis: {
+                    gridcolor: 'rgba(255,255,255,0.05)',
+                    tickangle: -45
+                },
+                yaxis: {
+                    gridcolor: 'rgba(255,255,255,0.05)',
+                    title: 'Return (%)'
+                },
                 showlegend: false
             };
             
-            Plotly.newPlot(containerId, [trace], layout, { displayModeBar: false, staticPlot: false });
+            const config = {
+                responsive: true,
+                displayModeBar: false
+            };
+            
+            Plotly.newPlot('strategiesChart', [trace], layout, config);
+        }
+        
+        function updateRiskMetrics(data) {
+            document.getElementById('riskVolatility').textContent = formatPercent(data.volatility || 0);
+            document.getElementById('riskVaR').textContent = formatPercent(Math.abs(data.var_95 || 0));
+            document.getElementById('riskSortino').textContent = (data.sortino_ratio || 0).toFixed(2);
+            document.getElementById('riskCalmar').textContent = (data.calmar_ratio || 0).toFixed(2);
+        }
+        
+        function updateTradesTable(trades) {
+            const tbody = document.getElementById('tradesTableBody');
+            
+            if (!trades || trades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-tertiary);">No trades available</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = trades.map(trade => `
+                <tr>
+                    <td class="font-mono">${formatDate(trade.timestamp)}</td>
+                    <td>${trade.strategy}</td>
+                    <td class="font-mono">${trade.symbol}</td>
+                    <td>
+                        <span class="table-badge ${trade.action === 'BUY' ? 'badge-success' : 'badge-danger'}">
+                            ${trade.action}
+                        </span>
+                    </td>
+                    <td class="font-mono">${trade.size.toFixed(2)}</td>
+                    <td class="font-mono">€${trade.entry_price.toFixed(2)}</td>
+                    <td class="font-mono ${trade.pnl >= 0 ? 'text-success' : 'text-danger'}">
+                        €${trade.pnl.toFixed(2)}
+                    </td>
+                    <td class="font-mono ${trade.pnl_pct >= 0 ? 'text-success' : 'text-danger'}">
+                        ${formatPercent(trade.pnl_pct, true)}
+                    </td>
+                </tr>
+            `).join('');
         }
         
         // ============================================
-        // TRADE SIGNALS
+        // UTILITY FUNCTIONS
         // ============================================
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-ES', {
+                style: 'currency',
+                currency: 'EUR',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value || 0);
+        }
         
-        function addTradeSignals(chartId, signals) {
-            const chart = document.getElementById(chartId);
-            if (!chart) return;
+        function formatPercent(value, withSign = false) {
+            const formatted = (value || 0).toFixed(2) + '%';
+            if (withSign && value > 0) return '+' + formatted;
+            return formatted;
+        }
+        
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        function showAlert(title, message, level = 'info') {
+            const container = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
             
-            const buySignals = {
-                x: signals.filter(s => s.type === 'buy').map(s => s.date),
-                y: signals.filter(s => s.type === 'buy').map(s => s.price),
-                mode: 'markers',
-                type: 'scatter',
-                name: 'Buy Signal',
-                marker: {
-                    color: '#10b981',
-                    size: 12,
-                    symbol: 'triangle-up',
-                    line: { color: 'white', width: 2 }
-                },
-                text: signals.filter(s => s.type === 'buy').map(s => `Buy: €${s.price}`),
-                hoverinfo: 'text'
-            };
+            const alert = document.createElement('div');
+            alert.id = alertId;
+            alert.className = `alert ${level}`;
+            alert.innerHTML = `
+                <div class="alert-header">
+                    <div class="alert-title">${title}</div>
+                    <button class="alert-close" onclick="closeAlert('${alertId}')">&times;</button>
+                </div>
+                <div class="alert-message">${message}</div>
+            `;
             
-            const sellSignals = {
-                x: signals.filter(s => s.type === 'sell').map(s => s.date),
-                y: signals.filter(s => s.type === 'sell').map(s => s.price),
-                mode: 'markers',
-                type: 'scatter',
-                name: 'Sell Signal',
-                marker: {
-                    color: '#ef4444',
-                    size: 12,
-                    symbol: 'triangle-down',
-                    line: { color: 'white', width: 2 }
-                },
-                text: signals.filter(s => s.type === 'sell').map(s => `Sell: €${s.price}`),
-                hoverinfo: 'text'
-            };
+            container.appendChild(alert);
             
-            Plotly.addTraces(chartId, [buySignals, sellSignals]);
+            // Auto-remove after 5 seconds
+            setTimeout(() => closeAlert(alertId), 5000);
+        }
+        
+        function closeAlert(alertId) {
+            const alert = document.getElementById(alertId);
+            if (alert) {
+                alert.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => alert.remove(), 300);
+            }
+        }
+        
+        // ============================================
+        // USER ACTIONS
+        // ============================================
+        function refreshDashboard() {
+            showAlert('Refreshing', 'Loading latest data...', 'info');
+            loadAllData();
+        }
+        
+        function refreshOverview() {
+            fetchData('/api/overview').then(data => {
+                if (data) updateOverview(data);
+            });
+        }
+        
+        function exportData() {
+            showAlert('Export', 'Export functionality coming soon', 'info');
+        }
+        
+        function exportTrades() {
+            const csv = generateTradesCSV(AppState.data.trades);
+            downloadCSV(csv, 'trades.csv');
+            showAlert('Success', 'Trades exported to CSV', 'success');
+        }
+        
+        function generateTradesCSV(trades) {
+            const headers = ['Timestamp', 'Strategy', 'Symbol', 'Action', 'Size', 'Entry Price', 'P&L', 'P&L %'];
+            const rows = trades.map(t => [
+                t.timestamp,
+                t.strategy,
+                t.symbol,
+                t.action,
+                t.size,
+                t.entry_price,
+                t.pnl,
+                t.pnl_pct
+            ]);
+            
+            return [headers, ...rows].map(row => row.join(',')).join('\n');
+        }
+        
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function toggleFullscreen(chartId) {
+            const element = document.getElementById(chartId).parentElement;
+            if (!document.fullscreenElement) {
+                element.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
         }
         
         // ============================================
         // INITIALIZATION
         // ============================================
-        
-        // Add to existing DOMContentLoaded
         document.addEventListener('DOMContentLoaded', () => {
-            // ... existing init code ...
+            console.log('🚀 BotV2 Dashboard v3.0 initializing...');
             
-            // Initialize Phase 2 Part 2 features
-            initPhase2Part2();
-        });
-        
-        function initPhase2Part2() {
-            // Enable brush selection on equity chart
-            setTimeout(() => {
-                initBrushSelection('equityChart');
-            }, 1000);
+            // Load initial data
+            loadAllData();
             
-            // Load saved annotations
-            Object.keys(annotations).forEach(chartId => {
-                renderAnnotations(chartId);
-            });
+            // Initialize WebSocket
+            initWebSocket();
             
-            // Add click listeners to charts for modal
-            ['equityChart', 'strategiesChart', 'heatmapChart'].forEach(chartId => {
-                const chart = document.getElementById(chartId);
-                if (chart) {
-                    chart.on('plotly_click', (data) => {
-                        const point = data.points[0];
-                        openModal('chart', {
-                            x: point.x,
-                            y: point.y,
-                            chartId: chartId
-                        });
-                    });
+            // Auto-refresh every 30 seconds (fallback if WebSocket fails)
+            setInterval(() => {
+                if (!AppState.connected) {
+                    console.log('⚠️ WebSocket disconnected, using polling fallback');
+                    loadAllData();
                 }
-            });
+            }, 30000);
             
-            // Add comparison mode button to topbar
-            const compareBtn = document.createElement('button');
-            compareBtn.className = 'action-btn';
-            compareBtn.innerHTML = '<span>📊</span><span class="action-text">Compare</span>';
-            compareBtn.onclick = toggleComparisonMode;
-            document.querySelector('.topbar-actions').prepend(compareBtn);
-            
-            console.log('✅ Phase 2 Part 2 features initialized');
-        }
-        
-        // Export functions to window for HTML onclick handlers
-        window.openModal = openModal;
-        window.closeModal = closeModal;
-        window.exportModalData = exportModalData;
-        window.applyChartFilter = applyChartFilter;
-        window.removeFilter = removeFilter;
-        window.applyBrushSelection = applyBrushSelection;
-        window.clearBrushSelection = clearBrushSelection;
-        window.toggleComparisonMode = toggleComparisonMode;
-        window.toggleStrategy = toggleStrategy;
-        window.applyComparison = applyComparison;
-        window.clearComparison = clearComparison;
-        window.exportToCSV = exportToCSV;
-        window.addAnnotation = addAnnotation;
-        window.createSparkline = createSparkline;
-        window.addTradeSignals = addTradeSignals;
+            console.log('✅ Dashboard initialized');
+        });
     </script>
 </body>
 </html>
