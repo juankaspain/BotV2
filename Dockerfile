@@ -2,11 +2,12 @@
 # Multi-stage build optimized for Alpine Linux
 # Python 3.11 + all wheels pre-built
 # VERIFIED: Tested and working without compilation errors
+# OPTIMIZED: Cleaned __pycache__, fixed casing, minimal output
 
 # ============================================================================
 # Stage 1: Builder - Compile all dependencies
 # ============================================================================
-FROM python:3.11-alpine as builder
+FROM python:3.11-alpine AS builder
 
 LABEL stage=builder description="Builder stage - installs all Python packages"
 
@@ -49,16 +50,20 @@ RUN echo "[BUILD] Installing Python dependencies..." && \
     --prefer-binary \
     --only-binary=:all: \
     -r requirements.txt && \
-    echo "[BUILD] ✅ All dependencies installed successfully" && \
-    pip list | head -20
+    echo "[BUILD] ✅ All dependencies installed successfully"
+
+# Cleanup __pycache__ to reduce image size
+RUN find /usr/local -type f -name '*.pyc' -delete && \
+    find /usr/local -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true && \
+    echo "[BUILD] Cache cleaned"
 
 # Verify core packages exist in builder
 RUN echo "[BUILD] Verifying installations..." && \
     python -c "import pip; print(f'pip: {pip.__version__}')" && \
-    python -c "import flask; print(f'✅ Flask {__import__(\"flask\").__version__}')" && \
-    python -c "import dash; print(f'✅ Dash available')" && \
-    python -c "import pandas; print(f'✅ Pandas available')" && \
-    python -c "import numpy; print(f'✅ NumPy available')" && \
+    python -c "import flask; print('✅ Flask')" && \
+    python -c "import dash; print('✅ Dash')" && \
+    python -c "import pandas; print('✅ Pandas')" && \
+    python -c "import numpy; print('✅ NumPy')" && \
     echo "[BUILD] ✅ All core packages verified"
 
 # ============================================================================
@@ -111,11 +116,11 @@ ENV PYTHONUNBUFFERED=1 \
 # Final verification in runtime stage
 RUN echo "[RUNTIME] Final verification..." && \
     python --version && \
-    python -c "import flask; print('✅ Flask loaded in runtime')" && \
-    python -c "import dash; print('✅ Dash loaded in runtime')" && \
-    python -c "import pandas; print('✅ Pandas loaded in runtime')" && \
-    python -c "import numpy; print('✅ NumPy loaded in runtime')" && \
-    python -c "import psycopg2; print('✅ psycopg2 loaded in runtime')" && \
+    python -c "import flask; print('✅ Flask')" && \
+    python -c "import dash; print('✅ Dash')" && \
+    python -c "import pandas; print('✅ Pandas')" && \
+    python -c "import numpy; print('✅ NumPy')" && \
+    python -c "import psycopg2; print('✅ psycopg2')" && \
     echo "[RUNTIME] ✅ All verifications passed"
 
 # Switch to non-root user
