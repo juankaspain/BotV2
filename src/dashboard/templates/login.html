@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotV2 Dashboard - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e0e6ed;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(79, 209, 197, 0.3);
+            border-radius: 50%;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+
+        .login-container {
+            background: rgba(26, 31, 58, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(79, 209, 197, 0.2);
+            border-radius: 20px;
+            padding: 48px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(79, 209, 197, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            animation: slideIn 0.5s ease-out;
+            position: relative;
+            z-index: 10;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Logo Section */
+        .logo-section {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            position: relative;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
+        }
+
+        .logo svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 10px rgba(79, 209, 197, 0.5));
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #4fd1c5;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #8b949e;
+            font-weight: 500;
+        }
+
+        /* Form Styles */
+        .login-form {
+            margin-top: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #c9d1d9;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4fd1c5;
+            opacity: 0.6;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 14px 16px 14px 48px;
+            background: rgba(10, 14, 39, 0.8);
+            border: 1px solid rgba(79, 209, 197, 0.2);
+            border-radius: 10px;
+            color: #e0e6ed;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: #4fd1c5;
+            background: rgba(10, 14, 39, 0.95);
+            box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.1);
+        }
+
+        input::placeholder {
+            color: #6e7681;
+        }
+
+        /* Error Message */
+        .error-message {
+            display: none;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #ff6b6b;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* Button */
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+            color: #0a0e27;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login:before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-login:hover:before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 209, 197, 0.4);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-login span {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(10, 14, 39, 0.3);
+            border-top-color: #0a0e27;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        .spinner.show {
+            display: block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Security Notice */
+        .security-notice {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(79, 209, 197, 0.1);
+            text-align: center;
+        }
+
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(79, 209, 197, 0.1);
+            border: 1px solid rgba(79, 209, 197, 0.2);
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #4fd1c5;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .security-info {
+            font-size: 12px;
+            color: #6e7681;
+            line-height: 1.6;
+        }
+
+        .security-info strong {
+            color: #4fd1c5;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 12px;
+            color: #6e7681;
+        }
+
+        .footer a {
+            color: #4fd1c5;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: #5fe1d5;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .login-container {
+                padding: 32px 24px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+            }
+        }
+
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Particles Background -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Login Container -->
+    <div class="login-container">
+        <!-- Logo Section -->
+        <div class="logo-section">
+            <div class="logo">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Bot Head -->
+                    <rect x="20" y="30" width="60" height="50" rx="10" fill="#4fd1c5" opacity="0.2"/>
+                    <rect x="20" y="30" width="60" height="50" rx="10" fill="none" stroke="#4fd1c5" stroke-width="2"/>
+                    
+                    <!-- Eyes -->
+                    <circle cx="35" cy="50" r="6" fill="#4fd1c5"/>
+                    <circle cx="65" cy="50" r="6" fill="#4fd1c5"/>
+                    
+                    <!-- Antenna -->
+                    <line x1="50" y1="30" x2="50" y2="15" stroke="#4fd1c5" stroke-width="2"/>
+                    <circle cx="50" cy="15" r="4" fill="#4fd1c5"/>
+                    
+                    <!-- Mouth -->
+                    <path d="M 35 65 Q 50 72 65 65" fill="none" stroke="#4fd1c5" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h1>BotV2 Dashboard</h1>
+            <p class="subtitle">Professional Trading Platform v2.0</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage" role="alert">
+            <strong>⚠️ Authentication Failed</strong><br>
+            Invalid username or password. Please try again.
+        </div>
+
+        <!-- Login Form -->
+        <form class="login-form" id="loginForm" method="POST" action="/login">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">👤</span>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        placeholder="Enter your username"
+                        required
+                        autocomplete="username"
+                        autofocus
+                    >
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Enter your password"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login" id="loginBtn">
+                <span id="btnText">Sign In</span>
+                <div class="spinner" id="spinner"></div>
+            </button>
+        </form>
+
+        <!-- Security Notice -->
+        <div class="security-notice">
+            <div class="security-badge">
+                <span>🔒</span>
+                <span>Enterprise Security</span>
+            </div>
+            <div class="security-info">
+                <strong>Protected by:</strong><br>
+                Rate Limiting • Brute Force Protection • Audit Logging<br>
+                Maximum 10 login attempts per minute
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            BotV2 Dashboard v2.0 (Secure) • © 2026<br>
+            <a href="https://github.com/juankaspain/BotV2" target="_blank">Documentation</a>
+        </div>
+    </div>
+
+    <script>
+        // Generate animated particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const particleCount = 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Form submission handler
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            const errorMessage = document.getElementById('errorMessage');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Hide error message
+            errorMessage.classList.remove('show');
+
+            // Show loading state
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            spinner.classList.add('show');
+
+            // Submit form via fetch
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Success - redirect to dashboard
+                    window.location.href = '/';
+                } else if (response.status === 401) {
+                    // Invalid credentials
+                    throw new Error('Invalid credentials');
+                } else if (response.status === 429) {
+                    // Rate limit exceeded
+                    throw new Error('Too many attempts. Please wait a moment.');
+                } else {
+                    throw new Error('Login failed. Please try again.');
+                }
+            })
+            .catch(error => {
+                // Show error message
+                errorMessage.textContent = '⚠️ ' + error.message;
+                errorMessage.classList.add('show');
+
+                // Reset button
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.classList.remove('show');
+
+                // Clear password field
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+            });
+        });
+
+        // Remember username (localStorage)
+        const savedUsername = localStorage.getItem('botv2_username');
+        if (savedUsername) {
+            document.getElementById('username').value = savedUsername;
+            document.getElementById('password').focus();
+        }
+
+        document.getElementById('username').addEventListener('change', function() {
+            localStorage.setItem('botv2_username', this.value);
+        });
+
+        // Check for error parameter in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error') === 'invalid') {
+            document.getElementById('errorMessage').classList.add('show');
+        }
+
+        // Initialize particles
+        createParticles();
+
+        // Auto-hide error after 5 seconds
+        setInterval(() => {
+            const errorMsg = document.getElementById('errorMessage');
+            if (errorMsg.classList.contains('show')) {
+                setTimeout(() => {
+                    errorMsg.classList.remove('show');
+                }, 5000);
+            }
+        }, 100);
+    </script>
+</body>
+</html>
