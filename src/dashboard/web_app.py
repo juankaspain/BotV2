@@ -282,10 +282,18 @@ class ProfessionalDashboard:
         
         @self.app.before_request
         def require_auth():
-            """Require authentication for all requests except /health"""
+            """
+            Require authentication for all requests except /health
+            
+            Returns professional error page on failed login instead of blank page
+            """
             
             # Skip auth for health check (Docker healthcheck)
             if request.path == '/health':
+                return
+            
+            # Skip auth check for login error page itself (avoid infinite loop)
+            if request.path == '/login_error':
                 return
             
             auth = request.authorization
@@ -296,12 +304,15 @@ class ProfessionalDashboard:
                     f"(username: {auth.username if auth else 'none'}) "
                     f"on {request.path}"
                 )
-                return Response(
-                    'Authentication required.\n'
-                    'Please login with valid credentials.',
-                    401,
-                    {'WWW-Authenticate': 'Basic realm="BotV2 Dashboard v2.0 (Secure)"'}
+                
+                # Return professional error page instead of text response
+                response = Response(
+                    render_template('login_error.html'),
+                    status=401,
+                    headers={'WWW-Authenticate': 'Basic realm="BotV2 Dashboard v2.0 (Secure)"'}
                 )
+                response.headers['Content-Type'] = 'text/html; charset=utf-8'
+                return response
             
             logger.debug(f"✅ Authenticated user: {auth.username} from {request.remote_addr}")
         
