@@ -3,214 +3,370 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BotV2 Professional Dashboard</title>
+    <title>BotV2 Trading Dashboard</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
     
     <!-- Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/professional.css') }}">
     
     <!-- Libraries -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 </head>
-<body class="dark-theme">
-    <!-- Navigation -->
+<body class="dark-theme" x-data="dashboardState()">
+    <!-- Navigation Bar -->
     <nav class="navbar">
-        <div class="navbar-brand">
-            <span class="logo">🤖</span>
-            <h1>BotV2 <span class="version">v2.0</span></h1>
+        <div class="navbar-left">
+            <div class="navbar-brand">
+                <div class="brand-icon">🤖</div>
+                <div class="brand-text">
+                    <h1>BotV2</h1>
+                    <span class="brand-tagline">Professional Trading System</span>
+                </div>
+            </div>
         </div>
         
-        <div class="navbar-controls">
-            <div class="status-indicator" id="connection-status">
-                <span class="status-dot connecting"></span>
-                <span class="status-text">Conectando...</span>
+        <div class="navbar-center">
+            <div class="status-badge" :class="statusClass">
+                <span class="status-dot"></span>
+                <span class="status-text" x-text="connectionStatus">Conectando...</span>
             </div>
-            
-            <button class="btn btn-icon" id="theme-toggle" title="Cambiar tema">
-                <span id="theme-icon">☾</span>
-            </button>
-            
-            <button class="btn btn-icon" id="export-btn" title="Exportar reporte">
-                <span>💾</span>
-            </button>
-            
-            <button class="btn btn-icon" id="fullscreen-btn" title="Pantalla completa">
-                <span>⛶</span>
-            </button>
+        </div>
+        
+        <div class="navbar-right">
+            <div class="navbar-actions">
+                <button class="nav-btn" @click="toggleRealtime" title="Real-time updates">
+                    <span x-show="realtimeActive">🔴</span>
+                    <span x-show="!realtimeActive">⚪</span>
+                </button>
+                
+                <button class="nav-btn" @click="toggleTheme" title="Toggle theme">
+                    <span x-show="darkMode">🌙</span>
+                    <span x-show="!darkMode">☀️</span>
+                </button>
+                
+                <button class="nav-btn" @click="exportReport" title="Export report">
+                    💾
+                </button>
+                
+                <button class="nav-btn" @click="toggleFullscreen" title="Fullscreen">
+                    ⛶
+                </button>
+                
+                <div class="divider"></div>
+                
+                <div class="time-display" x-text="currentTime">00:00:00</div>
+            </div>
         </div>
     </nav>
     
     <!-- Main Container -->
-    <div class="container">
-        <!-- Alerts Bar -->
-        <div class="alerts-bar" id="alerts-bar"></div>
+    <div class="main-container">
+        <!-- Alerts -->
+        <div class="alerts-container" id="alerts-container"></div>
         
-        <!-- Overview Cards -->
-        <div class="overview-grid">
-            <div class="metric-card">
-                <div class="metric-label">Equity Total</div>
-                <div class="metric-value" id="equity-value">€0.00</div>
-                <div class="metric-change" id="equity-change">+0.00%</div>
+        <!-- KPI Cards Section -->
+        <section class="kpi-section">
+            <div class="section-header">
+                <h2>Key Performance Indicators</h2>
+                <div class="header-actions">
+                    <button class="btn-small" @click="refreshKPIs">Refresh</button>
+                </div>
             </div>
             
-            <div class="metric-card">
-                <div class="metric-label">P&L Total</div>
-                <div class="metric-value" id="pnl-value">€0.00</div>
-                <div class="metric-change" id="pnl-change">+0.00%</div>
-            </div>
-            
-            <div class="metric-card">
-                <div class="metric-label">Win Rate</div>
-                <div class="metric-value" id="winrate-value">0%</div>
-                <div class="metric-detail" id="trades-count">0 trades</div>
-            </div>
-            
-            <div class="metric-card">
-                <div class="metric-label">Sharpe Ratio</div>
-                <div class="metric-value" id="sharpe-value">0.00</div>
-                <div class="metric-detail" id="sharpe-rating">-</div>
-            </div>
-            
-            <div class="metric-card">
-                <div class="metric-label">Max Drawdown</div>
-                <div class="metric-value" id="drawdown-value">0%</div>
-                <div class="metric-detail" id="current-dd">Actual: 0%</div>
-            </div>
-            
-            <div class="metric-card">
-                <div class="metric-label">Volatilidad</div>
-                <div class="metric-value" id="volatility-value">0%</div>
-                <div class="metric-detail" id="vol-rating">-</div>
-            </div>
-        </div>
-        
-        <!-- Main Charts Row -->
-        <div class="charts-row">
-            <!-- Equity Curve -->
-            <div class="chart-container large">
-                <div class="chart-header">
-                    <h2>Curva de Equity</h2>
-                    <div class="chart-controls">
-                        <button class="btn-small" data-period="1D">1D</button>
-                        <button class="btn-small active" data-period="1W">1W</button>
-                        <button class="btn-small" data-period="1M">1M</button>
-                        <button class="btn-small" data-period="ALL">TODO</button>
+            <div class="kpi-grid">
+                <!-- Portfolio Value -->
+                <div class="kpi-card primary">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Portfolio Value</span>
+                        <span class="kpi-icon">💰</span>
+                    </div>
+                    <div class="kpi-value" id="portfolio-value">€0.00</div>
+                    <div class="kpi-trend" id="portfolio-trend">+0.00%</div>
+                    <div class="kpi-bar">
+                        <div class="kpi-fill" style="width: 50%"></div>
                     </div>
                 </div>
-                <div id="equity-chart" class="chart"></div>
-            </div>
-        </div>
-        
-        <!-- Secondary Charts Row -->
-        <div class="charts-row">
-            <!-- Daily Returns -->
-            <div class="chart-container medium">
-                <div class="chart-header">
-                    <h2>Retornos Diarios</h2>
+                
+                <!-- Total P&L -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Total P&L</span>
+                        <span class="kpi-icon">📈</span>
+                    </div>
+                    <div class="kpi-value" id="pnl-value">€0.00</div>
+                    <div class="kpi-trend positive" id="pnl-change">+0.00%</div>
+                    <div class="kpi-detail">Last 30 days</div>
                 </div>
-                <div id="returns-chart" class="chart"></div>
-            </div>
-            
-            <!-- Drawdown Chart -->
-            <div class="chart-container medium">
-                <div class="chart-header">
-                    <h2>Drawdown</h2>
-                </div>
-                <div id="drawdown-chart" class="chart"></div>
-            </div>
-        </div>
-        
-        <!-- Strategy Performance -->
-        <div class="charts-row">
-            <div class="chart-container large">
-                <div class="chart-header">
-                    <h2>Rendimiento por Estrategia</h2>
-                    <div class="chart-controls">
-                        <select id="strategy-metric" class="select-small">
-                            <option value="return">Retorno</option>
-                            <option value="sharpe">Sharpe</option>
-                            <option value="winrate">Win Rate</option>
-                            <option value="trades">Trades</option>
-                        </select>
+                
+                <!-- Win Rate -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Win Rate</span>
+                        <span class="kpi-icon">🎯</span>
+                    </div>
+                    <div class="kpi-value" id="winrate-value">0.0%</div>
+                    <div class="kpi-detail" id="trades-count">0 trades executed</div>
+                    <div class="kpi-bar">
+                        <div class="kpi-fill positive" style="width: 65%"></div>
                     </div>
                 </div>
-                <div id="strategies-chart" class="chart"></div>
-            </div>
-        </div>
-        
-        <!-- Analytics Row -->
-        <div class="charts-row">
-            <!-- Correlation Heatmap -->
-            <div class="chart-container medium">
-                <div class="chart-header">
-                    <h2>Mapa de Correlaciones</h2>
+                
+                <!-- Sharpe Ratio -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Sharpe Ratio</span>
+                        <span class="kpi-icon">📊</span>
+                    </div>
+                    <div class="kpi-value" id="sharpe-value">0.00</div>
+                    <div class="kpi-rating" id="sharpe-rating">N/A</div>
+                    <div class="kpi-detail">Risk-adjusted return</div>
                 </div>
-                <div id="correlation-heatmap" class="chart"></div>
+                
+                <!-- Max Drawdown -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Max Drawdown</span>
+                        <span class="kpi-icon">📉</span>
+                    </div>
+                    <div class="kpi-value" id="drawdown-value">0.0%</div>
+                    <div class="kpi-detail" id="current-dd">Current: 0.0%</div>
+                    <div class="kpi-bar">
+                        <div class="kpi-fill warning" style="width: 35%"></div>
+                    </div>
+                </div>
+                
+                <!-- Volatility -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Volatility</span>
+                        <span class="kpi-icon">📐</span>
+                    </div>
+                    <div class="kpi-value" id="volatility-value">0.0%</div>
+                    <div class="kpi-rating" id="vol-rating">N/A</div>
+                    <div class="kpi-detail">Daily volatility (std)</div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Charts Section -->
+        <section class="charts-section">
+            <div class="section-header">
+                <h2>Performance Analytics</h2>
+                <div class="header-actions">
+                    <select class="select-period" id="period-select" @change="changePeriod($event)">
+                        <option value="1D">1 Day</option>
+                        <option value="1W" selected>1 Week</option>
+                        <option value="1M">1 Month</option>
+                        <option value="3M">3 Months</option>
+                        <option value="1Y">1 Year</option>
+                        <option value="ALL">All Time</option>
+                    </select>
+                </div>
             </div>
             
-            <!-- Performance Attribution -->
-            <div class="chart-container medium">
-                <div class="chart-header">
-                    <h2>Atribución de Performance</h2>
+            <!-- Main Equity Chart -->
+            <div class="chart-container full-width">
+                <div class="chart-header-bar">
+                    <h3>Equity Curve</h3>
+                    <div class="chart-stats">
+                        <span class="stat-item" id="chart-stat-return">Return: 0%</span>
+                        <span class="stat-item" id="chart-stat-dd">Max DD: 0%</span>
+                        <span class="stat-item" id="chart-stat-trades">Trades: 0</span>
+                    </div>
                 </div>
-                <div id="attribution-chart" class="chart"></div>
-            </div>
-        </div>
-        
-        <!-- Risk Metrics -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Métricas de Riesgo</h2>
-            </div>
-            <div class="risk-grid" id="risk-metrics">
-                <!-- Risk metrics will be populated by JS -->
-            </div>
-        </div>
-        
-        <!-- Recent Trades Table -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Trades Recientes</h2>
-                <div class="section-controls">
-                    <button class="btn-small" id="refresh-trades">Actualizar</button>
+                <div id="equity-chart" class="plotly-chart"></div>
+                <div class="chart-footer">
+                    <span class="chart-source">Real-time data from connected exchanges</span>
                 </div>
             </div>
-            <div class="table-container">
+            
+            <!-- Secondary Charts Grid -->
+            <div class="charts-grid">
+                <!-- Daily Returns -->
+                <div class="chart-container">
+                    <div class="chart-header-bar">
+                        <h3>Daily Returns</h3>
+                    </div>
+                    <div id="returns-chart" class="plotly-chart small"></div>
+                </div>
+                
+                <!-- Drawdown History -->
+                <div class="chart-container">
+                    <div class="chart-header-bar">
+                        <h3>Drawdown Analysis</h3>
+                    </div>
+                    <div id="drawdown-chart" class="plotly-chart small"></div>
+                </div>
+                
+                <!-- Return Distribution -->
+                <div class="chart-container">
+                    <div class="chart-header-bar">
+                        <h3>Return Distribution</h3>
+                    </div>
+                    <div id="distribution-chart" class="plotly-chart small"></div>
+                </div>
+                
+                <!-- Monthly Returns -->
+                <div class="chart-container">
+                    <div class="chart-header-bar">
+                        <h3>Monthly Returns</h3>
+                    </div>
+                    <div id="monthly-chart" class="plotly-chart small"></div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Strategy Performance Section -->
+        <section class="strategies-section">
+            <div class="section-header">
+                <h2>Strategy Performance</h2>
+                <div class="header-actions">
+                    <select class="select-metric" id="metric-select" @change="changeMetric($event)">
+                        <option value="return">Returns</option>
+                        <option value="sharpe">Sharpe Ratio</option>
+                        <option value="winrate">Win Rate</option>
+                        <option value="trades">Trade Count</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="chart-container full-width">
+                <div id="strategies-chart" class="plotly-chart"></div>
+            </div>
+            
+            <!-- Strategy Cards -->
+            <div class="strategy-cards-grid" id="strategy-cards-container">
+                <!-- Strategy cards will be populated dynamically -->
+            </div>
+        </section>
+        
+        <!-- Risk & Analytics Section -->
+        <section class="risk-section">
+            <div class="section-header">
+                <h2>Risk Analysis & Correlations</h2>
+            </div>
+            
+            <div class="risk-grid">
+                <!-- Risk Metrics -->
+                <div class="chart-container">
+                    <div class="chart-header-bar">
+                        <h3>Risk Metrics</h3>
+                    </div>
+                    <div class="risk-metrics-list" id="risk-metrics-list">
+                        <!-- Risk metrics will be populated dynamically -->
+                    </div>
+                </div>
+                
+                <!-- Correlation Heatmap -->
+                <div class="chart-container">
+                    <div class="chart-header-bar">
+                        <h3>Correlation Matrix</h3>
+                    </div>
+                    <div id="correlation-heatmap" class="plotly-chart small"></div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Recent Trades Section -->
+        <section class="trades-section">
+            <div class="section-header">
+                <h2>Recent Trades</h2>
+                <div class="header-actions">
+                    <input type="text" class="search-input" placeholder="Search trades..." id="trades-search">
+                    <button class="btn-small" @click="refreshTrades">Refresh</button>
+                </div>
+            </div>
+            
+            <div class="table-wrapper">
                 <table class="trades-table" id="trades-table">
                     <thead>
                         <tr>
-                            <th>Timestamp</th>
-                            <th>Estrategia</th>
-                            <th>Símbolo</th>
-                            <th>Acción</th>
-                            <th>Tamaño</th>
-                            <th>Precio</th>
+                            <th>Time</th>
+                            <th>Strategy</th>
+                            <th>Symbol</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Price</th>
                             <th>P&L</th>
                             <th>P&L %</th>
-                            <th>Confianza</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody id="trades-tbody">
-                        <!-- Trades will be populated by JS -->
+                        <tr class="no-data">
+                            <td colspan="9">No trades yet</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
         
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-content">
-                <span>© 2026 BotV2 - Professional Trading System</span>
-                <span id="last-update">Last update: Never</span>
+        <!-- System Status Section -->
+        <section class="system-section">
+            <div class="section-header">
+                <h2>System Status</h2>
             </div>
-        </footer>
+            
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="status-icon connected">✓</div>
+                    <div class="status-info">
+                        <div class="status-name">Binance Connection</div>
+                        <div class="status-value" id="binance-status">Connected</div>
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="status-icon connected">✓</div>
+                    <div class="status-info">
+                        <div class="status-name">Kraken Connection</div>
+                        <div class="status-value" id="kraken-status">Connected</div>
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="status-icon connected">✓</div>
+                    <div class="status-info">
+                        <div class="status-name">Data Feed</div>
+                        <div class="status-value" id="datafeed-status">Active</div>
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="status-icon connected">✓</div>
+                    <div class="status-info">
+                        <div class="status-name">Order Optimizer</div>
+                        <div class="status-value" id="optimizer-status">Active</div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
+    
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-left">
+            <span>© 2026 BotV2 Trading System</span>
+        </div>
+        <div class="footer-center">
+            <span id="last-update">Last update: --:--:--</span>
+        </div>
+        <div class="footer-right">
+            <span id="data-latency">Latency: 0ms</span>
+        </div>
+    </footer>
     
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/professional.js') }}"></script>
 </body>
 </html>
