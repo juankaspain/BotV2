@@ -63,11 +63,13 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - DASH_ENV=production
+      - FLASK_ENV=development  # CORRECTED: development mode (HTTP only)
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - FLASK_APP=src.dashboard.web_app
       - DASHBOARD_HOST=0.0.0.0
       - DASHBOARD_PORT=8050
+      - REDIS_HOST=botv2-redis  # CORRECTED: Use Docker service name
+      - REDIS_PORT=6379
     command: ["python", "-m", "src.dashboard.web_app"]  # Dashboard HTTP server
     ports:
       - "8050:8050"  # Dashboard web interface
@@ -80,7 +82,7 @@ services:
       - botv2-network
     restart: on-failure:3  # Stop after 3 failures (no infinite loop)
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8050/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8050/health"]  # CORRECTED: /health endpoint (no auth)
       interval: 30s
       timeout: 10s
       retries: 3
