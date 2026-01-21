@@ -534,8 +534,8 @@ class ProfessionalDashboard:
         @self.limiter.limit("20 per minute")
         @self.login_required
         def index():
-            """Main dashboard page (USING SIMPLE VERSION FOR DEBUG)"""
-            return render_template('dashboard_simple.html', user=session.get('user'))
+            """Main dashboard page"""
+            return render_template('dashboard.html', user=session.get('user'))
         
         @self.app.route('/api/overview')
         @self.limiter.limit("20 per minute")
