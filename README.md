@@ -502,8 +502,7 @@ Este software es para **propósitos educativos** exclusivamente.
 
 ## 📞 Contacto y Soporte
 
-**Autor**: Juan Carlos Garcia Arriero  
-**Empresa**: Santander Digital  
+**Autor**: Juan Carlos GA
 **Rol**: Technical Lead & Software Architect  
 **Ubicación**: Madrid, Spain
 
