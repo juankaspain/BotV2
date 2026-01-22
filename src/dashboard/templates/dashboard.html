@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BotV2 Dashboard v3.2 - Professional Trading Platform</title>
+    <title>BotV2 Dashboard v3.3 - Professional Trading Platform</title>
     
     <!-- External Libraries -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -270,6 +270,15 @@
             padding: 30px;
         }
 
+        /* Hide all sections by default */
+        .section-content {
+            display: none;
+        }
+
+        .section-content.active {
+            display: block;
+        }
+
         /* ==================== KPI METRICS ==================== */
         .kpi-grid {
             display: grid;
@@ -327,6 +336,44 @@
 
         .kpi-change.negative {
             color: var(--accent-red);
+        }
+
+        /* ==================== TABLES ==================== */
+        .data-table {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover {
+            background: var(--bg-tertiary);
         }
 
         /* ==================== CHARTS GRID ==================== */
@@ -514,27 +561,27 @@
             </div>
             
             <nav class="sidebar-menu">
-                <div class="menu-item active" onclick="showSection('dashboard')">
+                <div class="menu-item active" data-section="dashboard">
                     <span class="menu-icon">📊</span>
                     <span>Dashboard</span>
                 </div>
-                <div class="menu-item" onclick="showSection('portfolio')">
+                <div class="menu-item" data-section="portfolio">
                     <span class="menu-icon">💰</span>
                     <span>Portfolio</span>
                 </div>
-                <div class="menu-item" onclick="showSection('strategies')">
+                <div class="menu-item" data-section="strategies">
                     <span class="menu-icon">🎯</span>
                     <span>Strategies</span>
                 </div>
-                <div class="menu-item" onclick="showSection('risk')">
+                <div class="menu-item" data-section="risk">
                     <span class="menu-icon">⚠️</span>
                     <span>Risk</span>
                 </div>
-                <div class="menu-item" onclick="showSection('trades')">
+                <div class="menu-item" data-section="trades">
                     <span class="menu-icon">📈</span>
                     <span>Trades</span>
                 </div>
-                <div class="menu-item" onclick="showSection('settings')">
+                <div class="menu-item" data-section="settings">
                     <span class="menu-icon">⚙️</span>
                     <span>Settings</span>
                 </div>
@@ -546,7 +593,7 @@
             <!-- Topbar -->
             <header class="topbar">
                 <div class="topbar-left">
-                    <h1>📊 Dashboard</h1>
+                    <h1 id="page-title">📊 Dashboard</h1>
                 </div>
                 <div class="topbar-right">
                     <!-- Theme Switcher -->
@@ -564,162 +611,19 @@
                     
                     <!-- User Menu -->
                     <div class="user-menu">
-                        <button class="user-btn">
-                            <span>👤</span>
-                            <span>{{ user }}</span>
-                        </button>
+                        <a href="/logout" style="text-decoration: none;">
+                            <button class="user-btn">
+                                <span>👤</span>
+                                <span>{{ user }}</span>
+                            </button>
+                        </a>
                     </div>
                 </div>
             </header>
 
-            <!-- Dashboard Content -->
-            <div class="dashboard-content">
-                <!-- Time Filters -->
-                <div class="time-filters">
-                    <button class="time-filter-btn" onclick="setTimeFilter('24h')">24H</button>
-                    <button class="time-filter-btn" onclick="setTimeFilter('7d')">7D</button>
-                    <button class="time-filter-btn active" onclick="setTimeFilter('30d')">30D</button>
-                    <button class="time-filter-btn" onclick="setTimeFilter('90d')">90D</button>
-                    <button class="time-filter-btn" onclick="setTimeFilter('ytd')">YTD</button>
-                    <button class="time-filter-btn" onclick="setTimeFilter('all')">All</button>
-                </div>
-
-                <!-- KPI Metrics -->
-                <div class="kpi-grid">
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div class="kpi-title">💰 Portfolio Value</div>
-                            <div class="kpi-icon">💎</div>
-                        </div>
-                        <div class="kpi-value" id="kpi-portfolio">€3,175.50</div>
-                        <div class="kpi-change positive" id="kpi-portfolio-change">
-                            <span>↑</span>
-                            <span>+2.5% today</span>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div class="kpi-title">📊 Total P&L</div>
-                            <div class="kpi-icon">💹</div>
-                        </div>
-                        <div class="kpi-value" id="kpi-pnl">€175.50</div>
-                        <div class="kpi-change positive" id="kpi-pnl-change">
-                            <span>↑</span>
-                            <span>+5.85%</span>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div class="kpi-title">🎯 Win Rate</div>
-                            <div class="kpi-icon">🏆</div>
-                        </div>
-                        <div class="kpi-value" id="kpi-winrate">68.5%</div>
-                        <div class="kpi-change" id="kpi-trades">
-                            <span>125 trades</span>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <div class="kpi-header">
-                            <div class="kpi-title">⚡ Sharpe Ratio</div>
-                            <div class="kpi-icon">📈</div>
-                        </div>
-                        <div class="kpi-value" id="kpi-sharpe">2.34</div>
-                        <div class="kpi-change" id="kpi-drawdown">
-                            <span>DD: -8.2%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Charts Grid -->
-                <div class="charts-grid">
-                    <!-- Equity Curve Chart -->
-                    <div class="chart-card full-width">
-                        <div class="chart-header">
-                            <div class="chart-title">📊 Equity Curve</div>
-                            <div class="chart-actions">
-                                <button class="chart-btn" onclick="refreshChart('equity')">🔄</button>
-                                <button class="chart-btn" onclick="exportChart('equity')">📥</button>
-                                <button class="chart-btn" onclick="fullscreenChart('equity')">⛶</button>
-                            </div>
-                        </div>
-                        <div id="equity-chart" class="chart-container"></div>
-                    </div>
-
-                    <!-- P&L Waterfall Chart -->
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">💧 P&L Waterfall</div>
-                            <div class="chart-actions">
-                                <button class="chart-btn" onclick="refreshChart('pnl')">🔄</button>
-                                <button class="chart-btn" onclick="exportChart('pnl')">📥</button>
-                            </div>
-                        </div>
-                        <div id="pnl-chart" class="chart-container"></div>
-                    </div>
-
-                    <!-- Correlation Heatmap -->
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">🔥 Correlation Matrix</div>
-                            <div class="chart-actions">
-                                <button class="chart-btn" onclick="refreshChart('correlation')">🔄</button>
-                                <button class="chart-btn" onclick="exportChart('correlation')">📥</button>
-                            </div>
-                        </div>
-                        <div id="correlation-chart" class="chart-container"></div>
-                    </div>
-
-                    <!-- Asset Treemap -->
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">🌳 Asset Allocation</div>
-                            <div class="chart-actions">
-                                <button class="chart-btn" onclick="refreshChart('treemap')">🔄</button>
-                                <button class="chart-btn" onclick="exportChart('treemap')">📥</button>
-                            </div>
-                        </div>
-                        <div id="treemap-chart" class="chart-container"></div>
-                    </div>
-
-                    <!-- Drawdown Chart -->
-                    <div class="chart-card full-width">
-                        <div class="chart-header">
-                            <div class="chart-title">📉 Underwater Drawdown</div>
-                            <div class="chart-actions">
-                                <button class="chart-btn" onclick="refreshChart('drawdown')">🔄</button>
-                                <button class="chart-btn" onclick="exportChart('drawdown')">📥</button>
-                            </div>
-                        </div>
-                        <div id="drawdown-chart" class="chart-container"></div>
-                    </div>
-
-                    <!-- Strategy Performance -->
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">🎯 Strategy Returns</div>
-                            <div class="chart-actions">
-                                <button class="chart-btn" onclick="refreshChart('strategies')">🔄</button>
-                                <button class="chart-btn" onclick="exportChart('strategies')">📥</button>
-                            </div>
-                        </div>
-                        <div id="strategies-chart" class="chart-container"></div>
-                    </div>
-
-                    <!-- Risk Metrics -->
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">⚠️ Risk Metrics</div>
-                            <div class="chart-actions">
-                                <button class="chart-btn" onclick="refreshChart('risk')">🔄</button>
-                                <button class="chart-btn" onclick="exportChart('risk')">📥</button>
-                            </div>
-                        </div>
-                        <div id="risk-chart" class="chart-container"></div>
-                    </div>
-                </div>
+            <!-- Dashboard Content Container -->
+            <div class="dashboard-content" id="main-container">
+                <!-- Content will be loaded here dynamically -->
             </div>
         </main>
     </div>
@@ -727,468 +631,6 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
-    <script>
-        // ==================== GLOBAL STATE ====================
-        let socket = null;
-        let currentTheme = 'dark';
-        let currentTimeFilter = '30d';
-        let chartInstances = {};
-        let dashboardData = {};
-
-        // ==================== INITIALIZATION ====================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing BotV2 Dashboard v3.2...');
-            
-            // Initialize WebSocket
-            initWebSocket();
-            
-            // Load demo data
-            loadDemoData();
-            
-            // Initialize all charts
-            initializeAllCharts();
-            
-            // Start auto-refresh
-            setInterval(() => refreshAllCharts(), 10000);
-            
-            console.log('✅ Dashboard initialized successfully');
-        });
-
-        // ==================== WEBSOCKET ====================
-        function initWebSocket() {
-            socket = io();
-            
-            socket.on('connect', () => {
-                console.log('✅ WebSocket connected');
-                updateConnectionStatus(true);
-                showToast('Connected to BotV2', 'success');
-            });
-            
-            socket.on('disconnect', () => {
-                console.log('❌ WebSocket disconnected');
-                updateConnectionStatus(false);
-                showToast('Disconnected from server', 'warning');
-            });
-            
-            socket.on('update', (data) => {
-                console.log('📊 Data update received', data);
-                dashboardData = data;
-                updateAllCharts();
-            });
-        }
-
-        function updateConnectionStatus(connected) {
-            const statusText = document.getElementById('connection-text');
-            const statusDot = document.querySelector('.status-dot');
-            
-            if (connected) {
-                statusText.textContent = 'Connected';
-                statusDot.style.background = 'var(--accent-green)';
-            } else {
-                statusText.textContent = 'Disconnected';
-                statusDot.style.background = 'var(--accent-red)';
-            }
-        }
-
-        // ==================== DEMO DATA ====================
-        function loadDemoData() {
-            // Generate demo equity curve data
-            const days = 90;
-            const timestamps = [];
-            const equity = [];
-            let currentEquity = 3000;
-            
-            for (let i = 0; i < days; i++) {
-                const date = new Date();
-                date.setDate(date.getDate() - (days - i));
-                timestamps.push(date);
-                
-                // Random walk with upward drift
-                const change = (Math.random() - 0.45) * 50;
-                currentEquity = Math.max(2500, currentEquity + change);
-                equity.push(currentEquity);
-            }
-            
-            dashboardData = {
-                equity: {
-                    timestamps: timestamps,
-                    equity: equity
-                },
-                strategies: {
-                    names: ['Momentum', 'Mean Reversion', 'Breakout', 'Pairs Trading', 'ML Model'],
-                    returns: [12.5, 8.3, 15.7, 6.2, 9.8]
-                },
-                risk: {
-                    metrics: ['Sharpe', 'Sortino', 'Calmar', 'Max DD', 'Volatility'],
-                    values: [2.34, 3.12, 1.87, -8.2, 12.5]
-                }
-            };
-        }
-
-        // ==================== CHART INITIALIZATION ====================
-        function initializeAllCharts() {
-            createEquityChart();
-            createPnLChart();
-            createCorrelationChart();
-            createTreemapChart();
-            createDrawdownChart();
-            createStrategiesChart();
-            createRiskChart();
-        }
-
-        function createEquityChart() {
-            const data = dashboardData.equity;
-            
-            const trace = {
-                x: data.timestamps,
-                y: data.equity,
-                type: 'scatter',
-                mode: 'lines',
-                name: 'Equity',
-                line: {
-                    color: '#1d9bf0',
-                    width: 2
-                },
-                fill: 'tozeroy',
-                fillcolor: 'rgba(29, 155, 240, 0.1)'
-            };
-            
-            const layout = {
-                title: '',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: '#e7e9ea' },
-                xaxis: {
-                    gridcolor: '#2f3336',
-                    showgrid: true
-                },
-                yaxis: {
-                    gridcolor: '#2f3336',
-                    showgrid: true,
-                    tickprefix: '€'
-                },
-                margin: { t: 20, r: 20, b: 40, l: 60 },
-                showlegend: false
-            };
-            
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                displaylogo: false
-            };
-            
-            Plotly.newPlot('equity-chart', [trace], layout, config);
-            chartInstances['equity'] = 'equity-chart';
-        }
-
-        function createPnLChart() {
-            const trace = {
-                x: ['Q1', 'Q2', 'Q3', 'Q4'],
-                y: [45.2, -12.8, 89.5, 53.6],
-                type: 'waterfall',
-                name: 'P&L',
-                connector: {
-                    line: { color: '#536471' }
-                },
-                increasing: { marker: { color: '#00ba7c' } },
-                decreasing: { marker: { color: '#f4212e' } },
-                totals: { marker: { color: '#1d9bf0' } }
-            };
-            
-            const layout = {
-                title: '',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: '#e7e9ea' },
-                yaxis: { tickprefix: '€' },
-                margin: { t: 20, r: 20, b: 40, l: 60 },
-                showlegend: false
-            };
-            
-            Plotly.newPlot('pnl-chart', [trace], layout, { responsive: true });
-            chartInstances['pnl'] = 'pnl-chart';
-        }
-
-        function createCorrelationChart() {
-            const strategies = ['Momentum', 'MeanRev', 'Breakout', 'Pairs', 'ML'];
-            const correlation = [
-                [1.00, 0.32, 0.45, -0.12, 0.28],
-                [0.32, 1.00, 0.18, 0.56, 0.34],
-                [0.45, 0.18, 1.00, 0.22, 0.41],
-                [-0.12, 0.56, 0.22, 1.00, 0.15],
-                [0.28, 0.34, 0.41, 0.15, 1.00]
-            ];
-            
-            const trace = {
-                z: correlation,
-                x: strategies,
-                y: strategies,
-                type: 'heatmap',
-                colorscale: [
-                    [0, '#f4212e'],
-                    [0.5, '#eff3f4'],
-                    [1, '#00ba7c']
-                ],
-                text: correlation.map(row => row.map(val => val.toFixed(2))),
-                texttemplate: '%{text}',
-                textfont: { size: 10 },
-                showscale: true
-            };
-            
-            const layout = {
-                title: '',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: '#e7e9ea' },
-                margin: { t: 20, r: 20, b: 60, l: 80 }
-            };
-            
-            Plotly.newPlot('correlation-chart', [trace], layout, { responsive: true });
-            chartInstances['correlation'] = 'correlation-chart';
-        }
-
-        function createTreemapChart() {
-            const trace = {
-                type: 'treemap',
-                labels: ['Portfolio', 'Stocks', 'Crypto', 'ETH', 'BTC', 'AAPL', 'GOOGL', 'TSLA'],
-                parents: ['', 'Portfolio', 'Portfolio', 'Crypto', 'Crypto', 'Stocks', 'Stocks', 'Stocks'],
-                values: [0, 1800, 1200, 700, 500, 600, 650, 550],
-                textinfo: 'label+value+percent parent',
-                marker: {
-                    colors: ['#1d9bf0', '#00ba7c', '#ffd400', '#00ba7c', '#00ba7c', '#1d9bf0', '#1d9bf0', '#1d9bf0']
-                }
-            };
-            
-            const layout = {
-                title: '',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: '#ffffff' },
-                margin: { t: 20, r: 20, b: 20, l: 20 }
-            };
-            
-            Plotly.newPlot('treemap-chart', [trace], layout, { responsive: true });
-            chartInstances['treemap'] = 'treemap-chart';
-        }
-
-        function createDrawdownChart() {
-            const data = dashboardData.equity;
-            const drawdown = calculateDrawdown(data.equity);
-            
-            const trace = {
-                x: data.timestamps,
-                y: drawdown,
-                type: 'scatter',
-                mode: 'lines',
-                fill: 'tozeroy',
-                fillcolor: 'rgba(244, 33, 46, 0.2)',
-                line: {
-                    color: '#f4212e',
-                    width: 2
-                }
-            };
-            
-            const layout = {
-                title: '',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: '#e7e9ea' },
-                xaxis: { gridcolor: '#2f3336' },
-                yaxis: {
-                    gridcolor: '#2f3336',
-                    ticksuffix: '%'
-                },
-                margin: { t: 20, r: 20, b: 40, l: 60 },
-                showlegend: false
-            };
-            
-            Plotly.newPlot('drawdown-chart', [trace], layout, { responsive: true });
-            chartInstances['drawdown'] = 'drawdown-chart';
-        }
-
-        function createStrategiesChart() {
-            const data = dashboardData.strategies;
-            
-            const trace = {
-                x: data.names,
-                y: data.returns,
-                type: 'bar',
-                marker: {
-                    color: data.returns.map(v => v > 0 ? '#00ba7c' : '#f4212e')
-                }
-            };
-            
-            const layout = {
-                title: '',
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: '#e7e9ea' },
-                yaxis: {
-                    ticksuffix: '%',
-                    gridcolor: '#2f3336'
-                },
-                margin: { t: 20, r: 20, b: 60, l: 60 },
-                showlegend: false
-            };
-            
-            Plotly.newPlot('strategies-chart', [trace], layout, { responsive: true });
-            chartInstances['strategies'] = 'strategies-chart';
-        }
-
-        function createRiskChart() {
-            const data = dashboardData.risk;
-            
-            const trace = {
-                type: 'scatterpolar',
-                r: data.values.map(v => Math.abs(v)),
-                theta: data.metrics,
-                fill: 'toself',
-                fillcolor: 'rgba(29, 155, 240, 0.2)',
-                line: { color: '#1d9bf0' }
-            };
-            
-            const layout = {
-                polar: {
-                    radialaxis: {
-                        visible: true,
-                        gridcolor: '#2f3336'
-                    },
-                    angularaxis: {
-                        gridcolor: '#2f3336'
-                    },
-                    bgcolor: 'rgba(0,0,0,0)'
-                },
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                font: { color: '#e7e9ea' },
-                margin: { t: 20, r: 20, b: 20, l: 20 },
-                showlegend: false
-            };
-            
-            Plotly.newPlot('risk-chart', [trace], layout, { responsive: true });
-            chartInstances['risk'] = 'risk-chart';
-        }
-
-        // ==================== HELPER FUNCTIONS ====================
-        function calculateDrawdown(equity) {
-            const drawdown = [];
-            let peak = equity[0];
-            
-            for (let i = 0; i < equity.length; i++) {
-                peak = Math.max(peak, equity[i]);
-                const dd = ((equity[i] - peak) / peak) * 100;
-                drawdown.push(dd);
-            }
-            
-            return drawdown;
-        }
-
-        // ==================== UI FUNCTIONS ====================
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('collapsed');
-        }
-
-        function setTheme(theme) {
-            currentTheme = theme;
-            document.documentElement.setAttribute('data-theme', theme);
-            
-            // Update active theme button
-            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            // Reload charts with new theme
-            initializeAllCharts();
-            showToast(`Theme changed to ${theme}`, 'info');
-        }
-
-        function setTimeFilter(period) {
-            currentTimeFilter = period;
-            
-            // Update active filter button
-            document.querySelectorAll('.time-filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            // Reload data for new period
-            loadDemoData();
-            refreshAllCharts();
-            showToast(`Time period: ${period}`, 'info');
-        }
-
-        function showSection(section) {
-            console.log(`Switching to section: ${section}`);
-            // Update active menu item
-            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-            event.target.classList.add('active');
-        }
-
-        function refreshAllCharts() {
-            Object.values(chartInstances).forEach(chartId => {
-                Plotly.Plots.resize(chartId);
-            });
-        }
-
-        function refreshChart(chartName) {
-            console.log(`Refreshing chart: ${chartName}`);
-            showToast(`Refreshing ${chartName} chart...`, 'info');
-            
-            // Re-create the specific chart
-            switch(chartName) {
-                case 'equity': createEquityChart(); break;
-                case 'pnl': createPnLChart(); break;
-                case 'correlation': createCorrelationChart(); break;
-                case 'treemap': createTreemapChart(); break;
-                case 'drawdown': createDrawdownChart(); break;
-                case 'strategies': createStrategiesChart(); break;
-                case 'risk': createRiskChart(); break;
-            }
-        }
-
-        function exportChart(chartName) {
-            const chartId = chartInstances[chartName];
-            if (chartId) {
-                Plotly.downloadImage(chartId, {
-                    format: 'png',
-                    width: 1200,
-                    height: 600,
-                    filename: `botv2-${chartName}-${Date.now()}`
-                });
-                showToast(`Exporting ${chartName} chart...`, 'success');
-            }
-        }
-
-        function fullscreenChart(chartName) {
-            const chartId = chartInstances[chartName];
-            const element = document.getElementById(chartId);
-            if (element) {
-                if (element.requestFullscreen) {
-                    element.requestFullscreen();
-                }
-            }
-        }
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            
-            container.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.animation = 'slideIn 0.3s ease reverse';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        function updateAllCharts() {
-            initializeAllCharts();
-        }
-
-        // ==================== WINDOW RESIZE ====================
-        window.addEventListener('resize', () => {
-            refreshAllCharts();
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>
