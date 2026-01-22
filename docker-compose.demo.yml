@@ -1,0 +1,101 @@
+# ============================================================================
+# BotV2 Trading System - DEMO MODE Configuration
+# ============================================================================
+# 🎮 MODO DEMO: Dashboard standalone con datos de demostración
+#
+# Características:
+#   • Dashboard standalone con generación de datos demo
+#   • NO requiere PostgreSQL ni Redis (usa memoria)
+#   • Perfecto para pruebas, desarrollo y demos
+#   • Inicio rápido (< 30 segundos)
+#   • Bajo consumo de recursos
+#
+# Inicio rápido:
+#   cp .env.example .env
+#   docker-compose -f docker-compose.demo.yml up -d
+#   Acceso: http://localhost:8050
+#
+# Comandos útiles:
+#   docker-compose -f docker-compose.demo.yml logs -f
+#   docker-compose -f docker-compose.demo.yml ps
+#   docker-compose -f docker-compose.demo.yml down
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Dashboard Container - Standalone con Demo Data
+  # ==========================================================================
+  botv2-dashboard:
+    container_name: botv2-dashboard
+    image: botv2-dashboard:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      # Python
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      
+      # Flask
+      - FLASK_ENV=development
+      - FLASK_APP=src.dashboard.web_app
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # Dashboard
+      - DASHBOARD_HOST=0.0.0.0
+      - DASHBOARD_PORT=8050
+      
+      # Demo Mode (ENABLED)
+      - DEMO_MODE=true
+      - INITIAL_CAPITAL=3000
+      
+      # Redis (fallback to memory if not available)
+      - REDIS_HOST=${REDIS_HOST:-localhost}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      
+      # Authentication (auto-generated if not set)
+      - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-}
+      - SECRET_KEY=${SECRET_KEY:-}
+    
+    command: ["python", "src/dashboard/dashboard_standalone.py"]
+    
+    ports:
+      - "${DASHBOARD_PORT:-8050}:8050"
+    
+    networks:
+      - botv2-network
+    
+    restart: on-failure:3
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8050/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    
+    labels:
+      - "com.botv2.mode=demo"
+      - "com.botv2.service=dashboard"
+      - "com.botv2.version=2.0"
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  botv2-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    labels:
+      - "com.botv2.mode=demo"

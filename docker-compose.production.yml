@@ -1,0 +1,257 @@
+# ============================================================================
+# BotV2 Trading System - PRODUCTION MODE Configuration
+# ============================================================================
+# 🏭 MODO PRODUCCIÓN: Sistema completo con base de datos
+#
+# Características:
+#   • Trading Bot + Dashboard + PostgreSQL + Redis
+#   • Persistencia de datos real
+#   • Rate limiting con Redis
+#   • Backups automáticos
+#   • Healthchecks completos
+#
+# Requisitos previos:
+#   cp .env.example .env
+#   Configurar variables en .env:
+#     - TRADING_MODE=live (o paper)
+#     - POSTGRES_PASSWORD
+#     - REDIS_PASSWORD
+#     - DASHBOARD_PASSWORD
+#     - API keys de exchanges
+#
+# Inicio:
+#   docker-compose -f docker-compose.production.yml up -d
+#
+# Comandos útiles:
+#   docker-compose -f docker-compose.production.yml logs -f
+#   docker-compose -f docker-compose.production.yml ps
+#   docker-compose -f docker-compose.production.yml down
+#   docker-compose -f docker-compose.production.yml exec botv2-postgres psql -U botv2 -d botv2_db
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Trading Bot Container - Production Mode
+  # ==========================================================================
+  botv2-app:
+    container_name: botv2-app
+    image: botv2-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      # Python
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      
+      # Trading
+      - TRADING_MODE=${TRADING_MODE:-paper}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEMO_MODE=false
+      
+      # Database
+      - POSTGRES_HOST=botv2-postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=botv2-redis
+      - REDIS_PORT=6379
+    
+    command: ["python", "src/main.py"]
+    
+    depends_on:
+      botv2-postgres:
+        condition: service_healthy
+      botv2-redis:
+        condition: service_healthy
+    
+    networks:
+      - botv2-network
+    
+    restart: on-failure:3
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    volumes:
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+      - ./data:/app/data
+    
+    labels:
+      - "com.botv2.mode=production"
+      - "com.botv2.service=trading-bot"
+      - "com.botv2.version=2.0"
+
+  # ==========================================================================
+  # Dashboard Container - Production Mode with Real Data
+  # ==========================================================================
+  botv2-dashboard:
+    container_name: botv2-dashboard
+    image: botv2-dashboard:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      # Python
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      
+      # Flask
+      - FLASK_ENV=production
+      - FLASK_APP=src.dashboard.web_app
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # Dashboard
+      - DASHBOARD_HOST=0.0.0.0
+      - DASHBOARD_PORT=8050
+      
+      # Production Mode (DISABLED demo)
+      - DEMO_MODE=false
+      
+      # Database
+      - POSTGRES_HOST=botv2-postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=botv2-redis
+      - REDIS_PORT=6379
+      
+      # Authentication (REQUIRED in production)
+      - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+    
+    command: ["python", "src/dashboard/web_app.py"]
+    
+    ports:
+      - "${DASHBOARD_PORT:-8050}:8050"
+    
+    depends_on:
+      botv2-postgres:
+        condition: service_healthy
+      botv2-redis:
+        condition: service_healthy
+    
+    networks:
+      - botv2-network
+    
+    restart: on-failure:3
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8050/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    volumes:
+      - ./logs:/app/logs
+    
+    labels:
+      - "com.botv2.mode=production"
+      - "com.botv2.service=dashboard"
+      - "com.botv2.version=2.0"
+
+  # ==========================================================================
+  # PostgreSQL Database - Production
+  # ==========================================================================
+  botv2-postgres:
+    container_name: botv2-postgres
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-botv2}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-botv2password}
+      - POSTGRES_DB=${POSTGRES_DATABASE:-botv2_db}
+      - POSTGRES_INITDB_ARGS=-c shared_buffers=256MB -c max_connections=200
+    
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    
+    networks:
+      - botv2-network
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-botv2} -d ${POSTGRES_DATABASE:-botv2_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    
+    labels:
+      - "com.botv2.mode=production"
+      - "com.botv2.service=database"
+      - "com.botv2.version=2.0"
+
+  # ==========================================================================
+  # Redis Cache - Production
+  # ==========================================================================
+  botv2-redis:
+    container_name: botv2-redis
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:-}
+    env_file:
+      - .env
+    
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    
+    networks:
+      - botv2-network
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    volumes:
+      - redis_data:/data
+    
+    labels:
+      - "com.botv2.mode=production"
+      - "com.botv2.service=cache"
+      - "com.botv2.version=2.0"
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  botv2-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    labels:
+      - "com.botv2.mode=production"
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local
+    labels:
+      - "com.botv2.mode=production"
+      - "com.botv2.data=postgres"
+  
+  redis_data:
+    driver: local
+    labels:
+      - "com.botv2.mode=production"
+      - "com.botv2.data=redis"
