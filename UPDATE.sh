@@ -1,12 +1,13 @@
 #!/bin/bash
 #
-# 🚀 BotV2 UPDATE SCRIPT v3.1 - Mode Selection Edition
+# 🚀 BotV2 UPDATE SCRIPT v3.2 - Mode Selection Edition
 # ================================================================
 # Actualiza servicios con selección de modo Demo/Producción
 # - Menú interactivo para elegir modo
 # - Utiliza docker-compose específico según modo
 # - Detección inteligente y segura
 # - Preserva datos y valida salud
+# - Muestra errores completos en tiempo real
 # Author: Juan Carlos Garcia
 # Date: 22-01-2026
 #
@@ -132,7 +133,7 @@ wait_for_healthy() {
 
 echo ""
 echo -e "${BLUE}${BOLD}================================================================================${NC}"
-echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.1 - Mode Selection${NC}"
+echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.2 - Mode Selection${NC}"
 echo -e "${BLUE}${BOLD}================================================================================${NC}"
 echo ""
 
@@ -146,8 +147,9 @@ echo ""
 echo -e "${WHITE}Selecciona el modo en el que deseas actualizar el sistema:${NC}"
 echo ""
 echo -e "  ${CYAN}${BOLD}1)${NC} 🎮 ${GREEN}${BOLD}MODO DEMO${NC}"
-log_dim "• Dashboard standalone con datos de demostración"
+log_dim "• Trading Bot + Dashboard con datos demo"
 log_dim "• NO requiere PostgreSQL ni Redis"
+log_dim "• Paper trading mode activado"
 log_dim "• Perfecto para pruebas y desarrollo"
 log_dim "• Ligero y rápido de iniciar"
 log_dim "• Archivo: docker-compose.demo.yml"
@@ -276,7 +278,7 @@ if service_is_defined "botv2-app" "$COMPOSE_FILE"; then
     HAS_APP=true
     log_info "Trading Bot (botv2-app):       ${GREEN}DEFINIDO${NC}"
 else
-    log_dim "Trading Bot (botv2-app):       ${GRAY}NO DEFINIDO${NC}"
+    log_warning "Trading Bot (botv2-app):       ${GRAY}NO DEFINIDO${NC}"
 fi
 
 if service_is_defined "botv2-dashboard" "$COMPOSE_FILE"; then
@@ -361,22 +363,44 @@ BUILD_ERRORS=false
 
 if [ "$HAS_APP" = true ]; then
     log_step "Compilando imagen botv2-app..."
-    if docker-compose -f "$COMPOSE_FILE" build botv2-app 2>&1 | grep -q "Successfully built\|Successfully tagged"; then
+    
+    # Capturar output completo del build
+    BUILD_OUTPUT=$(docker-compose -f "$COMPOSE_FILE" build botv2-app 2>&1)
+    BUILD_EXIT_CODE=$?
+    
+    if [ $BUILD_EXIT_CODE -eq 0 ]; then
         log_success "Imagen botv2-app compilada exitosamente"
     else
-        log_error "Error compilando botv2-app"
-        log_info "Ejecuta: docker-compose -f $COMPOSE_FILE build botv2-app (para ver detalles)"
+        echo ""
+        log_error "Error compilando botv2-app (exit code: $BUILD_EXIT_CODE)"
+        echo ""
+        log_info "ÚLTIMAS 50 LÍNEAS DEL ERROR:"
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        echo "$BUILD_OUTPUT" | tail -n 50
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        echo ""
         BUILD_ERRORS=true
     fi
 fi
 
 if [ "$HAS_DASHBOARD" = true ]; then
     log_step "Compilando imagen botv2-dashboard..."
-    if docker-compose -f "$COMPOSE_FILE" build botv2-dashboard 2>&1 | grep -q "Successfully built\|Successfully tagged"; then
+    
+    # Capturar output completo del build
+    BUILD_OUTPUT=$(docker-compose -f "$COMPOSE_FILE" build botv2-dashboard 2>&1)
+    BUILD_EXIT_CODE=$?
+    
+    if [ $BUILD_EXIT_CODE -eq 0 ]; then
         log_success "Imagen botv2-dashboard compilada exitosamente"
     else
-        log_error "Error compilando botv2-dashboard"
-        log_info "Ejecuta: docker-compose -f $COMPOSE_FILE build botv2-dashboard (para ver detalles)"
+        echo ""
+        log_error "Error compilando botv2-dashboard (exit code: $BUILD_EXIT_CODE)"
+        echo ""
+        log_info "ÚLTIMAS 50 LÍNEAS DEL ERROR:"
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        echo "$BUILD_OUTPUT" | tail -n 50
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        echo ""
         BUILD_ERRORS=true
     fi
 fi
@@ -436,12 +460,15 @@ else
     echo ""
     log_error "Error iniciando servicios (exit code: $UP_EXIT_CODE)"
     echo ""
-    log_info "Detalles del error:"
-    echo -e "${GRAY}$UP_OUTPUT${NC}"
+    log_info "DETALLES DEL ERROR:"
+    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+    echo "$UP_OUTPUT"
+    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
     echo ""
     log_info "Comandos de diagnóstico:"
     log_dim "docker-compose -f $COMPOSE_FILE ps"
     log_dim "docker-compose -f $COMPOSE_FILE logs"
+    echo ""
     exit 1
 fi
 
@@ -553,6 +580,10 @@ echo ""
 
 if [ "$HAS_DASHBOARD" = true ]; then
     echo -e "  ${CYAN}•${NC} Dashboard:  ${BOLD}http://localhost:8050${NC}"
+    if [ "$MODE" = "demo" ]; then
+        echo -e "    ${DIM}Usuario: admin${NC}"
+        echo -e "    ${DIM}Password: admin (default en demo)${NC}"
+    fi
 fi
 
 if [ "$HAS_POSTGRES" = true ]; then
