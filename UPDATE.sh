@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# 🚀 BotV2 UPDATE SCRIPT v3.2 - Mode Selection Edition
+# 🚀 BotV2 UPDATE SCRIPT v3.3 - Mode Selection Edition
 # ================================================================
 # Actualiza servicios con selección de modo Demo/Producción
 # - Menú interactivo para elegir modo
@@ -8,6 +8,7 @@
 # - Detección inteligente y segura
 # - Preserva datos y valida salud
 # - Muestra errores completos en tiempo real
+# - Timeout para evitar cuelgues infinitos
 # Author: Juan Carlos Garcia
 # Date: 22-01-2026
 #
@@ -127,13 +128,39 @@ wait_for_healthy() {
     return 1
 }
 
+# Función para ejecutar comando con timeout
+run_with_timeout() {
+    local timeout=$1
+    shift
+    local cmd="$@"
+    
+    # Ejecutar comando en background
+    $cmd &
+    local pid=$!
+    
+    # Esperar con timeout
+    local count=0
+    while kill -0 $pid 2>/dev/null; do
+        if [ $count -ge $timeout ]; then
+            kill -9 $pid 2>/dev/null
+            return 124  # Timeout exit code
+        fi
+        sleep 1
+        count=$((count + 1))
+    done
+    
+    # Obtener exit code del comando
+    wait $pid
+    return $?
+}
+
 # ============================================================================
 # MENÚ DE SELECCIÓN DE MODO
 # ============================================================================
 
 echo ""
 echo -e "${BLUE}${BOLD}================================================================================${NC}"
-echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.2 - Mode Selection${NC}"
+echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.3 - Mode Selection${NC}"
 echo -e "${BLUE}${BOLD}================================================================================${NC}"
 echo ""
 
@@ -448,22 +475,32 @@ fi
 echo ""
 
 # Iniciar servicios
-log_step "Iniciando servicios con docker-compose up -d..."
+log_step "Iniciando servicios (puede tardar hasta 2 minutos)..."
+echo ""
 
-# Capturar output para debugging
-UP_OUTPUT=$(docker-compose -f "$COMPOSE_FILE" up -d 2>&1)
+# Ejecutar docker-compose up con output en tiempo real
+log_dim "Mostrando output de docker-compose..."
+echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+
+# Ejecutar con timeout y mostrar en tiempo real
+set +e  # Deshabilitar exit on error temporalmente
+docker-compose -f "$COMPOSE_FILE" up -d
 UP_EXIT_CODE=$?
+set -e  # Rehabilitar exit on error
+
+echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+echo ""
 
 if [ $UP_EXIT_CODE -eq 0 ]; then
     log_success "Servicios iniciados exitosamente"
+elif [ $UP_EXIT_CODE -eq 124 ]; then
+    log_error "Timeout: docker-compose tardó más de 2 minutos"
+    log_info "Los servicios pueden estar iniciando aún. Verifica con:"
+    log_dim "docker-compose -f $COMPOSE_FILE ps"
+    log_dim "docker-compose -f $COMPOSE_FILE logs -f"
+    exit 1
 else
-    echo ""
     log_error "Error iniciando servicios (exit code: $UP_EXIT_CODE)"
-    echo ""
-    log_info "DETALLES DEL ERROR:"
-    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
-    echo "$UP_OUTPUT"
-    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
     echo ""
     log_info "Comandos de diagnóstico:"
     log_dim "docker-compose -f $COMPOSE_FILE ps"
