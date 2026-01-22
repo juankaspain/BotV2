@@ -1,5 +1,5 @@
 """
-BotV2 Professional Dashboard v2.0 - Enterprise Security Edition
+BotV2 Professional Dashboard v3.2 - Enterprise Security Edition
 Ultra-professional real-time trading dashboard with production-grade security
 
 Security Features:
@@ -45,6 +45,9 @@ import hashlib
 import secrets
 from pathlib import Path
 from collections import defaultdict
+
+# Dashboard version
+__version__ = '3.2'
 
 # Setup structured logging
 logger = logging.getLogger(__name__)
@@ -282,7 +285,7 @@ class DashboardAuth:
 
 class ProfessionalDashboard:
     """
-    Ultra-professional trading dashboard v2.0 with enterprise security
+    Ultra-professional trading dashboard v3.2 with enterprise security
     
     Architecture:
     - Flask + SocketIO for real-time updates
@@ -408,7 +411,7 @@ class ProfessionalDashboard:
                 path=request.path,
                 user_agent=request.headers.get('User-Agent', 'Unknown')
             )
-            logger.warning(f"⚠️  SECURITY: Rate limit exceeded - IP: {request.remote_addr}, Path: {request.path}")
+            logger.warning(f"⚠️ SECURITY: Rate limit exceeded - IP: {request.remote_addr}, Path: {request.path}")
             
             return jsonify({
                 'error': 'Rate limit exceeded',
@@ -454,19 +457,19 @@ class ProfessionalDashboard:
             'system.startup',
             'INFO',
             environment=self.env,
-            version='2.0-secure',
+            version=__version__,
             features=['session_auth', 'rate_limiting', 'audit_logging', 'account_lockout']
         )
         
         # Consolidated startup banner
         logger.info("")
         logger.info("=" * 70)
-        logger.info("        BotV2 Professional Dashboard v2.0 - Security Edition")
+        logger.info(f"        BotV2 Professional Dashboard v{__version__} - Security Edition")
         logger.info("=" * 70)
         logger.info("")
         logger.info("📊 SYSTEM CONFIGURATION")
         logger.info(f"   Environment:           {self.env.upper()}")
-        logger.info(f"   Version:               2.0-secure")
+        logger.info(f"   Version:               {__version__}")
         logger.info(f"   URL:                   http{'s' if self.is_production else ''}://{self.host}:{self.port}")
         logger.info(f"   Health Check:          http://{self.host}:{self.port}/health")
         logger.info("")
@@ -539,7 +542,7 @@ class ProfessionalDashboard:
                 lockout_info = self.auth.failed_attempts[ip]
                 remaining = (lockout_info['locked_until'] - datetime.now()).seconds
                 
-                logger.warning(f"⚠️  SECURITY: Login attempt from locked IP: {ip}, User: {username}")
+                logger.warning(f"⚠️ SECURITY: Login attempt from locked IP: {ip}, User: {username}")
                 return jsonify({
                     'error': 'Account locked',
                     'message': f'Too many failed attempts. Try again in {remaining} seconds.'
@@ -659,7 +662,7 @@ class ProfessionalDashboard:
             """Health check (no authentication required for Docker)"""
             return jsonify({
                 'status': 'healthy',
-                'version': '2.0-secure',
+                'version': __version__,
                 'service': 'dashboard',
                 'uptime': self._get_uptime(),
                 'last_update': self.cache.get('last_update'),
@@ -679,8 +682,8 @@ class ProfessionalDashboard:
         def handle_connect():
             logger.debug(f"🔗 WEBSOCKET: Client connected - SID: {request.sid}, IP: {request.remote_addr}")
             emit('connected', {
-                'message': 'Connected to BotV2 Dashboard v2.0 (Secure)',
-                'version': '2.0-secure',
+                'message': f'Connected to BotV2 Dashboard v{__version__}',
+                'version': __version__,
                 'features': ['session_auth', 'rate_limiting', 'audit_logging']
             })
         
