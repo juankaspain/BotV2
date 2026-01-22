@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logged Out - BotV2 Dashboard</title>
+    
+    <!-- Professional Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ==================== PROFESSIONAL VARIABLES (MATCH DASHBOARD) ==================== */
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --bg-hover: #30363d;
+            --border-default: #30363d;
+            --border-muted: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #7d8590;
+            --text-muted: #484f58;
+            --accent-primary: #2f81f7;
+            --accent-hover: #4493f8;
+            --accent-success: #3fb950;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            --radius-sm: 6px;
+            --radius: 8px;
+        }
+
+        /* ==================== RESET ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ==================== LOGOUT CARD ==================== */
+        .logout-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        /* ==================== SUCCESS ICON ==================== */
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--accent-success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+
+        .success-icon svg {
+            width: 32px;
+            height: 32px;
+            color: var(--accent-success);
+        }
+
+        /* ==================== LOGO ==================== */
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-primary);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+        }
+
+        /* ==================== TEXT CONTENT ==================== */
+        .logout-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .logout-message {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* ==================== COUNTDOWN ==================== */
+        .countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+
+        .countdown-number {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        /* ==================== BUTTON ==================== */
+        .btn-login {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--accent-primary);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 150ms ease;
+            text-decoration: none;
+            font-family: inherit;
+        }
+
+        .btn-login:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-login svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ==================== FOOTER ==================== */
+        .footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-default);
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 480px) {
+            .logout-card {
+                padding: 32px 24px;
+            }
+
+            .logout-title {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="logout-card">
+        <!-- Success Icon -->
+        <div class="success-icon">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+        </div>
+
+        <!-- Logo -->
+        <div class="logo">B2</div>
+
+        <!-- Content -->
+        <h1 class="logout-title">Successfully Logged Out</h1>
+        <p class="logout-message">
+            You have been securely logged out of BotV2 Dashboard.<br>
+            Your session has been terminated.
+        </p>
+
+        <!-- Countdown -->
+        <div class="countdown">
+            <span>Redirecting in</span>
+            <span class="countdown-number" id="countdown">3</span>
+            <span>seconds</span>
+        </div>
+
+        <!-- Login Button -->
+        <a href="/login" class="btn-login">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <span>Back to Login</span>
+        </a>
+
+        <!-- Footer -->
+        <div class="footer">
+            BotV2 v4.1 Enterprise Edition
+        </div>
+    </div>
+
+    <script>
+        // Auto-redirect countdown
+        let seconds = 3;
+        const countdownEl = document.getElementById('countdown');
+
+        const interval = setInterval(() => {
+            seconds--;
+            countdownEl.textContent = seconds;
+
+            if (seconds <= 0) {
+                clearInterval(interval);
+                window.location.href = '/login';
+            }
+        }, 1000);
+
+        // Clear any stored session data
+        sessionStorage.clear();
+    </script>
+</body>
+</html>
