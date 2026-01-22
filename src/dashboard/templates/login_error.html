@@ -1,10 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authentication Required - BotV2 Dashboard</title>
+    <title>Authentication Failed - BotV2 Dashboard</title>
+    
+    <!-- Professional Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
+        /* ==================== PROFESSIONAL VARIABLES (MATCH DASHBOARD) ==================== */
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --bg-hover: #30363d;
+            --border-default: #30363d;
+            --border-muted: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #7d8590;
+            --text-muted: #484f58;
+            --accent-primary: #2f81f7;
+            --accent-hover: #4493f8;
+            --accent-danger: #f85149;
+            --accent-warning: #d29922;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            --radius-sm: 6px;
+            --radius: 8px;
+        }
+
+        /* ==================== RESET ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -12,198 +40,207 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #e0e6ed;
             padding: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .error-container {
-            background: rgba(26, 31, 58, 0.95);
-            border: 1px solid rgba(79, 209, 197, 0.2);
-            border-radius: 16px;
-            padding: 48px;
-            max-width: 600px;
+        /* ==================== ERROR CARD ==================== */
+        .error-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius);
+            padding: 40px;
+            max-width: 480px;
             width: 100%;
-            box-shadow: 
-                0 20px 60px rgba(0, 0, 0, 0.5),
-                0 0 40px rgba(79, 209, 197, 0.1);
-            animation: fadeIn 0.4s ease-out;
+            box-shadow: var(--shadow);
             text-align: center;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
+        /* ==================== ERROR ICON ==================== */
         .error-icon {
-            width: 120px;
-            height: 120px;
-            margin: 0 auto 32px;
-            position: relative;
+            width: 64px;
+            height: 64px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--accent-danger);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
         }
 
         .error-icon svg {
-            width: 100%;
-            height: 100%;
-            animation: pulse 2s ease-in-out infinite;
+            width: 32px;
+            height: 32px;
+            color: var(--accent-danger);
         }
 
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.05);
-                opacity: 0.8;
-            }
-        }
-
-        h1 {
-            font-size: 32px;
+        /* ==================== LOGO ==================== */
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-primary);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 20px;
             font-weight: 700;
-            color: #ff6b6b;
-            margin-bottom: 16px;
-            letter-spacing: -0.5px;
+            color: white;
         }
 
+        /* ==================== TEXT CONTENT ==================== */
         .error-code {
-            font-size: 14px;
-            color: #8b949e;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--accent-danger);
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .error-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
         }
 
         .error-message {
-            font-size: 18px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
             line-height: 1.6;
-            color: #c9d1d9;
-            margin-bottom: 32px;
         }
 
-        .error-details {
-            background: rgba(10, 14, 39, 0.6);
-            border-left: 3px solid #4fd1c5;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 32px;
+        /* ==================== INFO BOX ==================== */
+        .info-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-left: 3px solid var(--accent-warning);
+            border-radius: var(--radius-sm);
+            padding: 16px;
             text-align: left;
+            margin-bottom: 24px;
         }
 
-        .error-details h3 {
-            font-size: 16px;
-            color: #4fd1c5;
-            margin-bottom: 12px;
+        .info-title {
+            font-size: 13px;
             font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .error-details ul {
+        .info-title svg {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-warning);
+        }
+
+        .info-list {
             list-style: none;
             padding: 0;
+            margin: 0;
         }
 
-        .error-details li {
-            font-size: 14px;
-            color: #8b949e;
-            padding: 8px 0;
-            padding-left: 24px;
+        .info-list li {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 4px 0;
+            padding-left: 16px;
             position: relative;
         }
 
-        .error-details li:before {
+        .info-list li:before {
             content: '•';
             position: absolute;
-            left: 8px;
-            color: #4fd1c5;
-            font-weight: bold;
+            left: 4px;
+            color: var(--accent-warning);
         }
 
+        /* ==================== BUTTONS ==================== */
         .button-group {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             justify-content: center;
             flex-wrap: wrap;
         }
 
         .btn {
-            padding: 14px 32px;
-            font-size: 16px;
+            padding: 10px 20px;
+            font-size: 14px;
             font-weight: 600;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
+            transition: all 150ms ease;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
-            color: #0a0e27;
-            box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3);
+            background: var(--accent-primary);
+            color: white;
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(79, 209, 197, 0.4);
-            background: linear-gradient(135deg, #5fe1d5 0%, #48c2bc 100%);
-        }
-
-        .btn-primary:active {
-            transform: translateY(0);
+            background: var(--accent-hover);
         }
 
         .btn-secondary {
-            background: rgba(79, 209, 197, 0.1);
-            color: #4fd1c5;
-            border: 1px solid rgba(79, 209, 197, 0.3);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-default);
         }
 
         .btn-secondary:hover {
-            background: rgba(79, 209, 197, 0.2);
-            border-color: rgba(79, 209, 197, 0.5);
+            background: var(--bg-hover);
         }
 
-        .security-notice {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid rgba(79, 209, 197, 0.1);
-            font-size: 13px;
-            color: #6e7681;
-            line-height: 1.6;
+        .btn svg {
+            width: 16px;
+            height: 16px;
         }
 
-        .security-notice strong {
-            color: #4fd1c5;
+        /* ==================== FOOTER ==================== */
+        .footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-default);
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
-        /* Responsive */
-        @media (max-width: 640px) {
-            .error-container {
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 480px) {
+            .error-card {
                 padding: 32px 24px;
             }
 
-            h1 {
-                font-size: 24px;
-            }
-
-            .error-icon {
-                width: 80px;
-                height: 80px;
+            .error-title {
+                font-size: 18px;
             }
 
             .button-group {
@@ -217,83 +254,84 @@
     </style>
 </head>
 <body>
-    <div class="error-container">
+    <div class="error-card">
         <!-- Error Icon -->
         <div class="error-icon">
-            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Shield Background -->
-                <path d="M60 10L20 30V55C20 78.5 35.5 100 60 110C84.5 100 100 78.5 100 55V30L60 10Z" 
-                      fill="#ff6b6b" opacity="0.1"/>
-                <path d="M60 10L20 30V55C20 78.5 35.5 100 60 110C84.5 100 100 78.5 100 55V30L60 10Z" 
-                      stroke="#ff6b6b" stroke-width="2" fill="none"/>
-                
-                <!-- X Mark -->
-                <line x1="45" y1="45" x2="75" y2="75" stroke="#ff6b6b" stroke-width="4" stroke-linecap="round"/>
-                <line x1="75" y1="45" x2="45" y2="75" stroke="#ff6b6b" stroke-width="4" stroke-linecap="round"/>
+            <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
             </svg>
         </div>
 
-        <!-- Error Content -->
-        <div class="error-code">HTTP 401 - Unauthorized</div>
-        <h1>Authentication Failed</h1>
+        <!-- Logo -->
+        <div class="logo">B2</div>
+
+        <!-- Error Code -->
+        <div class="error-code">401 Unauthorized</div>
+
+        <!-- Content -->
+        <h1 class="error-title">Authentication Failed</h1>
         <p class="error-message">
             Invalid credentials. Please check your username and password and try again.
         </p>
 
-        <!-- Error Details -->
-        <div class="error-details">
-            <h3>🔐 Security Information</h3>
-            <ul>
-                <li>Failed login attempts are logged for security purposes</li>
-                <li>Rate limiting: Maximum 10 attempts per minute</li>
-                <li>Account lockout may occur after multiple failed attempts</li>
-                <li>Contact your administrator if you forgot your credentials</li>
+        <!-- Info Box -->
+        <div class="info-box">
+            <div class="info-title">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Security Information</span>
+            </div>
+            <ul class="info-list">
+                <li>Failed attempts are logged for security</li>
+                <li>Rate limit: 10 attempts per minute</li>
+                <li>Account lockout after multiple failures</li>
+                <li>Contact admin if you forgot credentials</li>
             </ul>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Buttons -->
         <div class="button-group">
-            <button class="btn btn-primary" onclick="window.location.reload()">
-                🔄 Try Again
+            <button class="btn btn-primary" onclick="window.location.href='/login'">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                </svg>
+                <span>Try Again</span>
             </button>
-            <button class="btn btn-secondary" onclick="showCredentials()">
-                ℹ️ Help
+            <button class="btn btn-secondary" onclick="showHelp()">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                </svg>
+                <span>Help</span>
             </button>
         </div>
 
-        <!-- Security Notice -->
-        <div class="security-notice">
-            <strong>BotV2 Dashboard v2.0 (Secure)</strong><br>
-            Protected by enterprise-grade security<br>
-            Rate Limiting • Brute Force Protection • Audit Logging
+        <!-- Footer -->
+        <div class="footer">
+            BotV2 v4.1 Enterprise Edition<br>
+            Protected by enterprise-grade security
         </div>
     </div>
 
     <script>
-        // Auto-focus on reload button with keyboard
+        // Keyboard support
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                window.location.reload();
+                window.location.href = '/login';
             }
         });
 
-        // Show help information
-        function showCredentials() {
+        // Show help dialog
+        function showHelp() {
             alert(
                 'BotV2 Dashboard Login Help\n\n' +
                 '• Default username: admin\n' +
-                '• Password: Set via DASHBOARD_PASSWORD environment variable\n' +
-                '• Ensure credentials are correct (case-sensitive)\n' +
-                '• Check if rate limiting is active (wait 1 minute)\n\n' +
-                'For assistance, contact your system administrator.'
+                '• Password: Set via DASHBOARD_PASSWORD\n' +
+                '• Credentials are case-sensitive\n' +
+                '• Wait 1 minute if rate limited\n\n' +
+                'Contact your system administrator for assistance.'
             );
         }
-
-        // Add fade-in animation
-        document.querySelector('.error-container').style.opacity = '0';
-        setTimeout(() => {
-            document.querySelector('.error-container').style.opacity = '1';
-        }, 100);
     </script>
 </body>
 </html>
