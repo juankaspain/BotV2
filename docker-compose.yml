@@ -1,62 +1,73 @@
 # BotV2 Trading System - Docker Compose Configuration
-# Production-Ready Multi-Container Setup
-# Services: Trading Bot + Dashboard + PostgreSQL + Redis
+# Demo Mode Configuration (Default)
+# Services: Trading Bot (Demo) + Dashboard (Demo Data)
 
-# ARCHITECTURE:
-#   Trading Bot → Writes to → PostgreSQL/Redis (Optional)
-#   Dashboard → Standalone Mode with Demo Data (No dependencies)
-#   Dashboard (Production) → Reads from → PostgreSQL/Redis
-#   (No API layer needed - direct DB access)
+# ARCHITECTURE (DEMO MODE):
+#   Trading Bot → Paper Trading Mode (No real money)
+#   Dashboard → Standalone Mode with Demo Data
+#   No Database Required → All data is simulated/demo
 
-# IMPORTANT: Copy local.env to .env before running:
+# ARCHITECTURE (PRODUCTION MODE):
+#   Trading Bot → Writes to → PostgreSQL/Redis
+#   Dashboard → Reads from → PostgreSQL/Redis
+#   (Uncomment PostgreSQL and Redis services below)
+
+# QUICK START (DEMO MODE):
 #   cp local.env .env
 #   docker compose up -d
+#   Access: http://localhost:8050 (Dashboard)
+
+# PRODUCTION MODE:
+#   1. Uncomment botv2-postgres and botv2-redis services
+#   2. Uncomment depends_on sections in botv2-app and botv2-dashboard
+#   3. Set TRADING_MODE=live in .env
+#   4. Set DEMO_MODE=false in .env
 
 services:
   # ============================================================================
-  # Trading Bot Container (Background Process) - OPTIONAL
+  # Trading Bot Container (Background Process) - DEMO MODE ENABLED
   # ============================================================================
-  # Commented out by default - uncomment for production with real trading
-  # botv2-app:
-  #   container_name: botv2-app
-  #   image: botv2-botv2:latest
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   env_file:
-  #     - .env  # CRITICAL: Loads all environment variables from .env file
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
-  #     - PYTHONDONTWRITEBYTECODE=1
-  #     - TRADING_MODE=${TRADING_MODE:-paper}
-  #     - LOG_LEVEL=${LOG_LEVEL:-INFO}
-  #   command: ["python", "src/main.py"]  # Trading bot (async process, NO HTTP server)
-  #   # NOTE: No port mapping - this is a background process, not an API
-  #   depends_on:
-  #     botv2-postgres:
-  #       condition: service_healthy
-  #     botv2-redis:
-  #       condition: service_healthy
-  #   networks:
-  #     - botv2-network
-  #   restart: on-failure:3  # Stop after 3 failures (no infinite loop)
-  #   healthcheck:
-  #     test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 40s
-  #   volumes:
-  #     - ./logs:/app/logs
-  #     - ./backups:/app/backups
-  #     - ./data:/app/data
+  botv2-app:
+    container_name: botv2-app
+    image: botv2-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env  # CRITICAL: Loads all environment variables from .env file
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - TRADING_MODE=${TRADING_MODE:-paper}  # paper = demo mode (no real money)
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEMO_MODE=true  # Enable demo/simulation mode
+    command: ["python", "src/main.py"]  # Trading bot entry point
+    # NOTE: No port mapping - this is a background process, not an HTTP server
+    
+    # PRODUCTION: Uncomment for database dependencies
+    # depends_on:
+    #   botv2-postgres:
+    #     condition: service_healthy
+    #   botv2-redis:
+    #     condition: service_healthy
+    
+    networks:
+      - botv2-network
+    restart: on-failure:3  # Stop after 3 failures (no infinite restart loop)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+      - ./data:/app/data
 
   # ============================================================================
-  # Dashboard Container (Web Interface) - STANDALONE MODE WITH DEMO DATA
+  # Dashboard Container (Web Interface) - DEMO MODE WITH DEMO DATA
   # ============================================================================
-  # This service runs independently with automatically generated demo data
-  # No trading bot or database required for demo/testing
-  # For production: Uncomment database dependencies and change DEMO_MODE to false
   botv2-dashboard:
     container_name: botv2-dashboard
     image: botv2-dashboard:latest
@@ -77,7 +88,7 @@ services:
       - DEMO_MODE=true  # Enables demo data generation
       - INITIAL_CAPITAL=3000  # Demo portfolio starting capital
       # Redis (optional for demo, required for production rate limiting)
-      - REDIS_HOST=${REDIS_HOST:-botv2-redis}
+      - REDIS_HOST=${REDIS_HOST:-localhost}
       - REDIS_PORT=${REDIS_PORT:-6379}
       # Authentication (will be auto-generated if not set)
       - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
@@ -86,15 +97,17 @@ services:
     command: ["python", "src/dashboard/dashboard_standalone.py"]  # Standalone entry point with demo data
     ports:
       - "${DASHBOARD_PORT:-8050}:8050"  # Dashboard web interface
-    # OPTIONAL: Uncomment for production mode with real data
+    
+    # PRODUCTION: Uncomment for database dependencies
     # depends_on:
     #   botv2-postgres:
     #     condition: service_healthy
     #   botv2-redis:
     #     condition: service_healthy
+    
     networks:
       - botv2-network
-    restart: on-failure:3  # Stop after 3 failures (no infinite loop)
+    restart: on-failure:3  # Stop after 3 failures (no infinite restart loop)
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8050/health').read()"]
       interval: 30s
@@ -108,7 +121,7 @@ services:
   # ============================================================================
   # PostgreSQL Database - OPTIONAL (Required for production mode)
   # ============================================================================
-  # Commented out by default - uncomment for production with real trading
+  # PRODUCTION: Uncomment this entire section for production mode
   # botv2-postgres:
   #   container_name: botv2-postgres
   #   image: postgres:16-alpine
@@ -137,7 +150,7 @@ services:
   # ============================================================================
   # Redis Cache - OPTIONAL (Recommended for rate limiting in production)
   # ============================================================================
-  # Commented out by default - uncomment for production rate limiting
+  # PRODUCTION: Uncomment this entire section for production mode
   # botv2-redis:
   #   container_name: botv2-redis
   #   image: redis:7-alpine
@@ -168,7 +181,7 @@ networks:
         - subnet: 172.20.0.0/16
 
 # ============================================================================
-# Volumes - OPTIONAL (Uncomment if using PostgreSQL/Redis)
+# Volumes - OPTIONAL (Uncomment if using PostgreSQL/Redis in production)
 # ============================================================================
 # volumes:
 #   postgres_data:
