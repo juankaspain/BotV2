@@ -1,10 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BotV2 Dashboard - Login</title>
+    
+    <!-- Professional Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
+        /* ==================== PROFESSIONAL VARIABLES (MATCH DASHBOARD) ==================== */
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --bg-hover: #30363d;
+            --border-default: #30363d;
+            --border-muted: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #7d8590;
+            --text-muted: #484f58;
+            --accent-primary: #2f81f7;
+            --accent-hover: #4493f8;
+            --accent-success: #3fb950;
+            --accent-danger: #f85149;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            --radius-sm: 6px;
+            --radius: 8px;
+        }
+
+        /* ==================== RESET ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -12,143 +40,78 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #e0e6ed;
             padding: 20px;
-            position: relative;
-            overflow: hidden;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Animated background particles */
-        .particles {
-            position: absolute;
+        /* ==================== LOGIN CARD - MINIMAL ==================== */
+        .login-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius);
+            padding: 40px;
+            max-width: 400px;
             width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 1;
+            box-shadow: var(--shadow);
         }
 
-        .particle {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: rgba(79, 209, 197, 0.3);
-            border-radius: 50%;
-            animation: float 20s infinite;
-        }
-
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0) translateX(0);
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-100vh) translateX(50px);
-                opacity: 0;
-            }
-        }
-
-        .login-container {
-            background: rgba(26, 31, 58, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(79, 209, 197, 0.2);
-            border-radius: 20px;
-            padding: 48px;
-            max-width: 480px;
-            width: 100%;
-            box-shadow: 
-                0 20px 60px rgba(0, 0, 0, 0.5),
-                0 0 40px rgba(79, 209, 197, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            animation: slideIn 0.5s ease-out;
-            position: relative;
-            z-index: 10;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Logo Section */
+        /* ==================== LOGO SECTION ==================== */
         .logo-section {
             text-align: center;
             margin-bottom: 32px;
         }
 
         .logo {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-            position: relative;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.05);
-                opacity: 0.9;
-            }
-        }
-
-        .logo svg {
-            width: 100%;
-            height: 100%;
-            filter: drop-shadow(0 0 10px rgba(79, 209, 197, 0.5));
-        }
-
-        h1 {
-            font-size: 28px;
+            width: 48px;
+            height: 48px;
+            background: var(--accent-primary);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 24px;
             font-weight: 700;
-            color: #4fd1c5;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
+            color: white;
         }
 
-        .subtitle {
-            font-size: 14px;
-            color: #8b949e;
+        .logo-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .logo-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
             font-weight: 500;
         }
 
-        /* Form Styles */
+        /* ==================== FORM STYLES ==================== */
         .login-form {
-            margin-top: 32px;
+            margin-top: 24px;
         }
 
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         label {
             display: block;
             font-size: 13px;
-            font-weight: 600;
-            color: #c9d1d9;
+            font-weight: 500;
+            color: var(--text-primary);
             margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .input-wrapper {
@@ -157,127 +120,105 @@
 
         .input-icon {
             position: absolute;
-            left: 16px;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
-            color: #4fd1c5;
-            opacity: 0.6;
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary);
+            pointer-events: none;
         }
 
         input[type="text"],
         input[type="password"] {
             width: 100%;
-            padding: 14px 16px 14px 48px;
-            background: rgba(10, 14, 39, 0.8);
-            border: 1px solid rgba(79, 209, 197, 0.2);
-            border-radius: 10px;
-            color: #e0e6ed;
-            font-size: 15px;
-            transition: all 0.3s ease;
+            padding: 10px 12px 10px 36px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 150ms ease;
             outline: none;
         }
 
         input[type="text"]:focus,
         input[type="password"]:focus {
-            border-color: #4fd1c5;
-            background: rgba(10, 14, 39, 0.95);
-            box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.1);
+            border-color: var(--accent-primary);
+            background: var(--bg-secondary);
         }
 
         input::placeholder {
-            color: #6e7681;
+            color: var(--text-muted);
         }
 
-        /* Error Message */
+        /* ==================== ERROR MESSAGE ==================== */
         .error-message {
             display: none;
-            background: rgba(255, 107, 107, 0.1);
-            border: 1px solid rgba(255, 107, 107, 0.3);
-            border-radius: 8px;
-            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--accent-danger);
+            border-left: 3px solid var(--accent-danger);
+            border-radius: var(--radius-sm);
+            padding: 12px;
             margin-bottom: 20px;
-            font-size: 14px;
-            color: #ff6b6b;
-            animation: shake 0.5s ease-in-out;
+            font-size: 13px;
+            color: var(--accent-danger);
+            animation: slideDown 200ms ease;
         }
 
         .error-message.show {
             display: block;
         }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        /* Button */
+        /* ==================== BUTTON ==================== */
         .btn-login {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
-            color: #0a0e27;
-            font-size: 16px;
-            font-weight: 700;
+            padding: 10px 16px;
+            background: var(--accent-primary);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
             border: none;
-            border-radius: 10px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3);
-            position: relative;
-            overflow: hidden;
+            transition: all 150ms ease;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .btn-login:before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .btn-login:hover:before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(79, 209, 197, 0.4);
-        }
-
-        .btn-login:active {
-            transform: translateY(0);
+        .btn-login:hover:not(:disabled) {
+            background: var(--accent-hover);
         }
 
         .btn-login:disabled {
             opacity: 0.6;
             cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-login span {
-            position: relative;
-            z-index: 1;
         }
 
         /* Loading Spinner */
         .spinner {
             display: none;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(10, 14, 39, 0.3);
-            border-top-color: #0a0e27;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto;
+            animation: spin 0.6s linear infinite;
         }
 
         .spinner.show {
@@ -288,120 +229,80 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Security Notice */
-        .security-notice {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid rgba(79, 209, 197, 0.1);
-            text-align: center;
+        /* ==================== SECURITY INFO ==================== */
+        .security-info {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-default);
         }
 
         .security-badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            background: rgba(79, 209, 197, 0.1);
-            border: 1px solid rgba(79, 209, 197, 0.2);
-            border-radius: 20px;
-            padding: 8px 16px;
-            font-size: 12px;
-            color: #4fd1c5;
-            font-weight: 600;
-            margin-bottom: 16px;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 12px;
         }
 
-        .security-info {
+        .security-badge svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .security-text {
             font-size: 12px;
-            color: #6e7681;
+            color: var(--text-secondary);
             line-height: 1.6;
         }
 
-        .security-info strong {
-            color: #4fd1c5;
-        }
-
-        /* Footer */
+        /* ==================== FOOTER ==================== */
         .footer {
-            margin-top: 24px;
+            margin-top: 20px;
             text-align: center;
             font-size: 12px;
-            color: #6e7681;
+            color: var(--text-muted);
         }
 
         .footer a {
-            color: #4fd1c5;
+            color: var(--accent-primary);
             text-decoration: none;
-            transition: color 0.3s ease;
+            transition: color 150ms ease;
         }
 
         .footer a:hover {
-            color: #5fe1d5;
+            color: var(--accent-hover);
         }
 
-        /* Responsive */
-        @media (max-width: 640px) {
-            .login-container {
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 480px) {
+            .login-card {
                 padding: 32px 24px;
             }
 
-            h1 {
-                font-size: 24px;
+            .logo-title {
+                font-size: 18px;
             }
-
-            .logo {
-                width: 60px;
-                height: 60px;
-            }
-        }
-
-        /* Accessibility */
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border-width: 0;
         }
     </style>
 </head>
 <body>
-    <!-- Animated Particles Background -->
-    <div class="particles" id="particles"></div>
-
-    <!-- Login Container -->
-    <div class="login-container">
+    <div class="login-card">
         <!-- Logo Section -->
         <div class="logo-section">
-            <div class="logo">
-                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Bot Head -->
-                    <rect x="20" y="30" width="60" height="50" rx="10" fill="#4fd1c5" opacity="0.2"/>
-                    <rect x="20" y="30" width="60" height="50" rx="10" fill="none" stroke="#4fd1c5" stroke-width="2"/>
-                    
-                    <!-- Eyes -->
-                    <circle cx="35" cy="50" r="6" fill="#4fd1c5"/>
-                    <circle cx="65" cy="50" r="6" fill="#4fd1c5"/>
-                    
-                    <!-- Antenna -->
-                    <line x1="50" y1="30" x2="50" y2="15" stroke="#4fd1c5" stroke-width="2"/>
-                    <circle cx="50" cy="15" r="4" fill="#4fd1c5"/>
-                    
-                    <!-- Mouth -->
-                    <path d="M 35 65 Q 50 72 65 65" fill="none" stroke="#4fd1c5" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <h1>BotV2 Dashboard</h1>
-            <p class="subtitle">Professional Trading Platform v2.0</p>
+            <div class="logo">B2</div>
+            <h1 class="logo-title">BotV2 Dashboard</h1>
+            <p class="logo-subtitle">Sign in to continue</p>
         </div>
 
         <!-- Error Message -->
         <div class="error-message" id="errorMessage" role="alert">
-            <strong>⚠️ Authentication Failed</strong><br>
-            Invalid username or password. Please try again.
+            Invalid credentials. Please try again.
         </div>
 
         <!-- Login Form -->
@@ -409,12 +310,14 @@
             <div class="form-group">
                 <label for="username">Username</label>
                 <div class="input-wrapper">
-                    <span class="input-icon">👤</span>
+                    <svg class="input-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                    </svg>
                     <input 
                         type="text" 
                         id="username" 
                         name="username" 
-                        placeholder="Enter your username"
+                        placeholder="Enter username"
                         required
                         autocomplete="username"
                         autofocus
@@ -425,12 +328,14 @@
             <div class="form-group">
                 <label for="password">Password</label>
                 <div class="input-wrapper">
-                    <span class="input-icon">🔒</span>
+                    <svg class="input-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                    </svg>
                     <input 
                         type="password" 
                         id="password" 
                         name="password" 
-                        placeholder="Enter your password"
+                        placeholder="Enter password"
                         required
                         autocomplete="current-password"
                     >
@@ -443,62 +348,49 @@
             </button>
         </form>
 
-        <!-- Security Notice -->
-        <div class="security-notice">
+        <!-- Security Info -->
+        <div class="security-info">
             <div class="security-badge">
-                <span>🔒</span>
-                <span>Enterprise Security</span>
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Secure Login</span>
             </div>
-            <div class="security-info">
-                <strong>Protected by:</strong><br>
-                Rate Limiting • Brute Force Protection • Audit Logging<br>
-                Maximum 10 login attempts per minute
+            <div class="security-text">
+                Protected by rate limiting and brute force protection<br>
+                Maximum 10 attempts per minute
             </div>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            BotV2 Dashboard v2.0 (Secure) • © 2026<br>
+            BotV2 v4.1 Enterprise Edition<br>
             <a href="https://github.com/juankaspain/BotV2" target="_blank">Documentation</a>
         </div>
     </div>
 
     <script>
-        // Generate animated particles
-        function createParticles() {
-            const container = document.getElementById('particles');
-            const particleCount = 50;
+        const form = document.getElementById('loginForm');
+        const btn = document.getElementById('loginBtn');
+        const btnText = document.getElementById('btnText');
+        const spinner = document.getElementById('spinner');
+        const errorMessage = document.getElementById('errorMessage');
 
-            for (let i = 0; i < particleCount; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 20 + 's';
-                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
-                container.appendChild(particle);
-            }
-        }
-
-        // Form submission handler
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
 
-            const btn = document.getElementById('loginBtn');
-            const btnText = document.getElementById('btnText');
-            const spinner = document.getElementById('spinner');
-            const errorMessage = document.getElementById('errorMessage');
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            // Hide error message
+            // Hide error
             errorMessage.classList.remove('show');
 
-            // Show loading state
+            // Show loading
             btn.disabled = true;
-            btnText.style.display = 'none';
+            btnText.textContent = 'Signing in...';
             spinner.classList.add('show');
 
-            // Submit form via fetch
+            // Submit
             fetch('/login', {
                 method: 'POST',
                 headers: {
@@ -508,35 +400,41 @@
             })
             .then(response => {
                 if (response.ok) {
-                    // Success - redirect to dashboard
-                    window.location.href = '/';
+                    return response.json();
                 } else if (response.status === 401) {
-                    // Invalid credentials
                     throw new Error('Invalid credentials');
                 } else if (response.status === 429) {
-                    // Rate limit exceeded
-                    throw new Error('Too many attempts. Please wait a moment.');
+                    throw new Error('Too many attempts. Please wait.');
                 } else {
-                    throw new Error('Login failed. Please try again.');
+                    throw new Error('Login failed');
                 }
             })
+            .then(data => {
+                // Success
+                window.location.href = data.redirect || '/';
+            })
             .catch(error => {
-                // Show error message
-                errorMessage.textContent = '⚠️ ' + error.message;
+                // Error
+                errorMessage.textContent = error.message;
                 errorMessage.classList.add('show');
 
                 // Reset button
                 btn.disabled = false;
-                btnText.style.display = 'inline';
+                btnText.textContent = 'Sign In';
                 spinner.classList.remove('show');
 
-                // Clear password field
+                // Clear password
                 document.getElementById('password').value = '';
                 document.getElementById('password').focus();
+
+                // Auto-hide after 5s
+                setTimeout(() => {
+                    errorMessage.classList.remove('show');
+                }, 5000);
             });
         });
 
-        // Remember username (localStorage)
+        // Remember username
         const savedUsername = localStorage.getItem('botv2_username');
         if (savedUsername) {
             document.getElementById('username').value = savedUsername;
@@ -547,24 +445,12 @@
             localStorage.setItem('botv2_username', this.value);
         });
 
-        // Check for error parameter in URL
+        // Check URL params for error
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('error') === 'invalid') {
-            document.getElementById('errorMessage').classList.add('show');
+        if (urlParams.get('error')) {
+            errorMessage.textContent = 'Authentication failed. Please try again.';
+            errorMessage.classList.add('show');
         }
-
-        // Initialize particles
-        createParticles();
-
-        // Auto-hide error after 5 seconds
-        setInterval(() => {
-            const errorMsg = document.getElementById('errorMessage');
-            if (errorMsg.classList.contains('show')) {
-                setTimeout(() => {
-                    errorMsg.classList.remove('show');
-                }, 5000);
-            }
-        }, 100);
     </script>
 </body>
 </html>
