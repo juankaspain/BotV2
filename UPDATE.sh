@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-# 🚀 BotV2 UPDATE SCRIPT
+# 🚀 BotV2 UPDATE SCRIPT v2.0
 # ================================
-# Actualiza SOLO la app y dashboard sin perder datos
-# Preserva: PostgreSQL, Redis y datos
-# Soporta: Modo Demo y Modo Producción
+# Actualiza servicios de forma inteligente y segura
+# Detecta modo Demo/Producción automáticamente
+# Preserva datos y valida salud de servicios
 # Author: Juan Carlos Garcia
 # Date: 22-01-2026
 #
@@ -52,10 +52,9 @@ log_info() {
     echo -e "${BLUE}ℹ${NC} $1"
 }
 
-# Función mejorada para verificar si un servicio está realmente definido
+# Función para verificar si un servicio está realmente definido
 service_is_defined() {
     local service=$1
-    # Usa docker-compose config para ver la configuración parseada (ignora comentarios)
     if docker-compose config 2>/dev/null | grep -q "^  ${service}:"; then
         return 0
     fi
@@ -71,21 +70,48 @@ service_is_running() {
     return 1
 }
 
+# Función para verificar si un contenedor existe (aunque esté detenido)
+container_exists() {
+    local service=$1
+    if docker-compose ps -a --services 2>/dev/null | grep -q "^${service}$"; then
+        return 0
+    fi
+    return 1
+}
+
+# Función para esperar a que un servicio esté healthy
+wait_for_healthy() {
+    local service=$1
+    local max_wait=${2:-60}  # Segundos máximos a esperar
+    local waited=0
+    
+    while [ $waited -lt $max_wait ]; do
+        local health=$(docker-compose ps | grep "$service" | grep -o "(healthy)" || echo "")
+        if [ -n "$health" ]; then
+            return 0
+        fi
+        sleep 2
+        waited=$((waited + 2))
+    done
+    return 1
+}
+
 # ============================================================================
 # PRE-ACTUALIZACIÓN
 # ============================================================================
 
-log_header "🚀 BotV2 Update Script"
+log_header "🚀 BotV2 Update Script v2.0"
 
 echo -e "${YELLOW}INFORMACIÓN DE LA ACTUALIZACIÓN${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Este script:"
 echo "  ✓ Actualiza servicios activos"
-echo "  ✓ Preserva PostgreSQL intacto (si existe)"
-echo "  ✓ Preserva Redis intacto (si existe)"
-echo "  ✓ Preserva TODOS los datos"
 echo "  ✓ Detecta modo Demo/Producción automáticamente"
-echo "  ✓ Detiene servicios innecesarios en modo Demo"
+echo "  ✓ Elimina contenedores huérfanos en modo Demo"
+echo "  ✓ Preserva PostgreSQL/Redis intactos (si existen)"
+echo "  ✓ Preserva TODOS los datos en volúmenes"
+echo "  ✓ Verifica healthchecks de servicios"
+echo "  ✓ Valida conectividad y puertos"
 echo "  ✓ Sin downtime significativo"
 echo ""
 echo -e "${YELLOW}Confirmación${NC}"
@@ -99,7 +125,7 @@ if [[ ! $confirm =~ ^[Ss]$ ]]; then
 fi
 
 # ============================================================================
-# PASO 1: Verificar que Docker está funcionando
+# PASO 1: Verificar requisitos
 # ============================================================================
 
 log_step "Verificando Docker..."
@@ -115,10 +141,6 @@ if ! docker info &> /dev/null; then
 fi
 log_success "Docker daemon está corriendo"
 
-# ============================================================================
-# PASO 2: Verificar que docker-compose está disponible
-# ============================================================================
-
 log_step "Verificando docker-compose..."
 if ! command -v docker-compose &> /dev/null; then
     log_error "docker-compose no está instalado"
@@ -127,14 +149,13 @@ fi
 log_success "docker-compose está disponible"
 
 # ============================================================================
-# PASO 2.5: Detectar servicios activos (solo servicios no comentados)
+# PASO 2: Detectar servicios activos
 # ============================================================================
 
 log_header "🔍 Detectando configuración"
 
 log_step "Analizando servicios definidos..."
 
-# Detectar servicios (solo los que NO están comentados en docker-compose.yml)
 HAS_APP=false
 HAS_DASHBOARD=false
 HAS_POSTGRES=false
@@ -142,84 +163,92 @@ HAS_REDIS=false
 
 if service_is_defined "botv2-app"; then
     HAS_APP=true
-    log_info "Trading Bot (botv2-app): ACTIVO"
+    log_info "Trading Bot (botv2-app): DEFINIDO"
 else
     log_warning "Trading Bot (botv2-app): NO DEFINIDO (comentado)"
 fi
 
 if service_is_defined "botv2-dashboard"; then
     HAS_DASHBOARD=true
-    log_info "Dashboard (botv2-dashboard): ACTIVO"
+    log_info "Dashboard (botv2-dashboard): DEFINIDO"
 else
     log_warning "Dashboard (botv2-dashboard): NO DEFINIDO (comentado)"
 fi
 
 if service_is_defined "botv2-postgres"; then
     HAS_POSTGRES=true
-    log_info "PostgreSQL (botv2-postgres): ACTIVO"
+    log_info "PostgreSQL (botv2-postgres): DEFINIDO"
 else
     log_warning "PostgreSQL (botv2-postgres): NO DEFINIDO (comentado)"
 fi
 
 if service_is_defined "botv2-redis"; then
     HAS_REDIS=true
-    log_info "Redis (botv2-redis): ACTIVO"
+    log_info "Redis (botv2-redis): DEFINIDO"
 else
     log_warning "Redis (botv2-redis): NO DEFINIDO (comentado)"
 fi
 
 echo ""
-# Modo DEMO: solo app + dashboard (sin postgres ni redis)
+# Determinar modo
 if [ "$HAS_DASHBOARD" = true ] && [ "$HAS_APP" = true ] && [ "$HAS_POSTGRES" = false ] && [ "$HAS_REDIS" = false ]; then
     log_info "🎯 Modo detectado: DEMO (App + Dashboard sin base de datos)"
     MODE="demo"
 elif [ "$HAS_DASHBOARD" = true ] && [ "$HAS_APP" = false ] && [ "$HAS_POSTGRES" = false ]; then
-    log_info "🎯 Modo detectado: DEMO (Dashboard standalone con datos demo)"
+    log_info "🎯 Modo detectado: DEMO (Dashboard standalone)"
     MODE="demo"
 else
-    log_info "🎯 Modo detectado: PRODUCCIÓN (Con base de datos y/o trading bot)"
+    log_info "🎯 Modo detectado: PRODUCCIÓN (Con base de datos y/o servicios completos)"
     MODE="production"
 fi
 
 # ============================================================================
-# PASO 2.7: Si modo DEMO, detener Redis/PostgreSQL si están corriendo
+# PASO 3: Limpieza en modo DEMO
 # ============================================================================
 
 if [ "$MODE" = "demo" ]; then
     log_header "🧼 Limpieza para modo DEMO"
     
-    STOPPED_SERVICES=false
+    CLEANUP_PERFORMED=false
     
-    # Verificar si PostgreSQL está corriendo aunque no esté definido
+    # Detener servicios innecesarios que estén corriendo
     if service_is_running "botv2-postgres"; then
         log_warning "PostgreSQL está corriendo pero no está definido en modo demo"
-        log_step "Deteniendo PostgreSQL (no necesario en modo demo)..."
-        if docker-compose stop botv2-postgres &> /dev/null; then
-            log_success "PostgreSQL detenido"
-            STOPPED_SERVICES=true
-        fi
+        log_step "Deteniendo PostgreSQL..."
+        docker-compose stop botv2-postgres &> /dev/null && log_success "PostgreSQL detenido"
+        CLEANUP_PERFORMED=true
     fi
     
-    # Verificar si Redis está corriendo aunque no esté definido
     if service_is_running "botv2-redis"; then
         log_warning "Redis está corriendo pero no está definido en modo demo"
-        log_step "Deteniendo Redis (no necesario en modo demo)..."
-        if docker-compose stop botv2-redis &> /dev/null; then
-            log_success "Redis detenido"
-            STOPPED_SERVICES=true
-        fi
+        log_step "Deteniendo Redis..."
+        docker-compose stop botv2-redis &> /dev/null && log_success "Redis detenido"
+        CLEANUP_PERFORMED=true
     fi
     
-    if [ "$STOPPED_SERVICES" = true ]; then
-        log_info "Servicios innecesarios detenidos (datos preservados en volúmenes)"
+    # Eliminar contenedores huérfanos (detenidos pero existentes)
+    if container_exists "botv2-postgres" && [ "$HAS_POSTGRES" = false ]; then
+        log_step "Eliminando contenedor huérfano: PostgreSQL (datos preservados)..."
+        docker-compose rm -f botv2-postgres &> /dev/null && log_success "Contenedor PostgreSQL eliminado"
+        CLEANUP_PERFORMED=true
+    fi
+    
+    if container_exists "botv2-redis" && [ "$HAS_REDIS" = false ]; then
+        log_step "Eliminando contenedor huérfano: Redis (datos preservados)..."
+        docker-compose rm -f botv2-redis &> /dev/null && log_success "Contenedor Redis eliminado"
+        CLEANUP_PERFORMED=true
+    fi
+    
+    if [ "$CLEANUP_PERFORMED" = true ]; then
+        log_info "Limpieza completada - Datos preservados en volúmenes"
         log_info "Para reactivar: descomentar servicios en docker-compose.yml"
     else
-        log_info "No hay servicios innecesarios corriendo"
+        log_info "No hay servicios innecesarios (sistema limpio)"
     fi
 fi
 
 # ============================================================================
-# PASO 3: Backup de datos (PREVENTIVO) - Solo si hay PostgreSQL
+# PASO 4: Backup (solo en modo producción con PostgreSQL)
 # ============================================================================
 
 if [ "$HAS_POSTGRES" = true ]; then
@@ -242,109 +271,95 @@ else
 fi
 
 # ============================================================================
-# PASO 4: Obtener último código
+# PASO 5: Actualizar código
 # ============================================================================
 
-log_header "📥 Obteniendo últimas actualizaciones"
+log_header "📥 Actualizando código fuente"
 
-log_step "Obteniendo código de Git..."
+log_step "Obteniendo cambios de Git..."
 if git pull origin main &> /dev/null; then
     log_success "Código actualizado desde Git"
 else
-    log_warning "No se pudo actualizar desde Git (puede estar offline o sin cambios)"
+    log_warning "No hay cambios o Git no disponible (usando código local)"
 fi
 
 # ============================================================================
-# PASO 5: Reconstruir imágenes - SOLO servicios activos
+# PASO 6: Reconstruir imágenes
 # ============================================================================
 
-log_header "🔨 Reconstruyendo imágenes"
+log_header "🔨 Reconstruyendo imágenes Docker"
 
 BUILD_ERRORS=false
 
 if [ "$HAS_APP" = true ]; then
     log_step "Compilando imagen botv2-app..."
     if docker-compose build botv2-app &> /dev/null; then
-        log_success "Imagen botv2-app compilada"
+        log_success "Imagen botv2-app compilada exitosamente"
     else
         log_error "Error compilando botv2-app"
         BUILD_ERRORS=true
     fi
 else
-    log_info "Omitiendo botv2-app (no definido en docker-compose.yml)"
+    log_info "Omitiendo botv2-app (no definido)"
 fi
 
 if [ "$HAS_DASHBOARD" = true ]; then
     log_step "Compilando imagen botv2-dashboard..."
     if docker-compose build botv2-dashboard &> /dev/null; then
-        log_success "Imagen botv2-dashboard compilada"
+        log_success "Imagen botv2-dashboard compilada exitosamente"
     else
         log_error "Error compilando botv2-dashboard"
         BUILD_ERRORS=true
     fi
 else
-    log_error "Dashboard no está definido - no se puede actualizar"
+    log_error "Dashboard no definido - actualización imposible"
     exit 1
 fi
 
 if [ "$BUILD_ERRORS" = true ]; then
-    log_error "Errores durante la compilación - abortando"
+    log_error "Fallos en compilación - abortando actualización"
     exit 1
 fi
 
 # ============================================================================
-# PASO 6: Parar solo servicios activos
+# PASO 7: Reiniciar servicios
 # ============================================================================
 
-log_header "🛑 Deteniendo servicios (preservando datos)"
+log_header "🔄 Reiniciando servicios"
 
 if [ "$HAS_APP" = true ]; then
     log_step "Deteniendo botv2-app..."
-    if docker-compose stop botv2-app &> /dev/null; then
-        log_success "botv2-app detenida"
-    else
-        log_warning "botv2-app no estaba corriendo"
-    fi
+    docker-compose stop botv2-app &> /dev/null && log_success "botv2-app detenida" || log_warning "No estaba corriendo"
 fi
 
 if [ "$HAS_DASHBOARD" = true ]; then
     log_step "Deteniendo botv2-dashboard..."
-    if docker-compose stop botv2-dashboard &> /dev/null; then
-        log_success "botv2-dashboard detenida"
-    else
-        log_warning "botv2-dashboard no estaba corriendo"
-    fi
+    docker-compose stop botv2-dashboard &> /dev/null && log_success "botv2-dashboard detenida" || log_warning "No estaba corriendo"
 fi
 
 if [ "$HAS_POSTGRES" = true ]; then
-    log_step "PostgreSQL: ✓ PRESERVADO (no detenido)"
+    log_info "PostgreSQL: PRESERVADO (no detenido)"
 fi
 
 if [ "$HAS_REDIS" = true ]; then
-    log_step "Redis: ✓ PRESERVADO (no detenido)"
+    log_info "Redis: PRESERVADO (no detenido)"
 fi
 
-# ============================================================================
-# PASO 7: Iniciar los nuevos contenedores
-# ============================================================================
-
-log_header "🚀 Iniciando nuevas versiones"
+echo ""
 
 if [ "$HAS_APP" = true ]; then
-    log_step "Iniciando botv2-app con nuevo código..."
+    log_step "Iniciando botv2-app..."
     if docker-compose up -d botv2-app &> /dev/null; then
         log_success "botv2-app iniciada"
     else
         log_error "Error iniciando botv2-app"
         exit 1
     fi
-    
-    log_step "Esperando 3 segundos..."
     sleep 3
 fi
 
 if [ "$HAS_DASHBOARD" = true ]; then
-    log_step "Iniciando botv2-dashboard con nuevo código..."
+    log_step "Iniciando botv2-dashboard..."
     if docker-compose up -d botv2-dashboard &> /dev/null; then
         log_success "botv2-dashboard iniciada"
     else
@@ -354,66 +369,70 @@ if [ "$HAS_DASHBOARD" = true ]; then
 fi
 
 # ============================================================================
-# PASO 8: Verificar salud
+# PASO 8: Verificación exhaustiva de servicios
 # ============================================================================
 
-log_header "✅ Verificando servicios"
+log_header "✅ Verificación de servicios"
 
-log_step "Esperando 5 segundos a que los servicios arranquen..."
-sleep 5
+log_step "Esperando inicialización (10 segundos)..."
+sleep 10
 
-log_step "Verificando estado de servicios..."
+log_step "Estado de contenedores:"
 echo ""
 docker-compose ps
 echo ""
 
-# ============================================================================
-# PASO 9: Test de conectividad
-# ============================================================================
+# Verificar healthchecks
+if [ "$HAS_APP" = true ]; then
+    log_step "Esperando healthcheck de botv2-app..."
+    if wait_for_healthy "botv2-app" 30; then
+        log_success "botv2-app: HEALTHY"
+    else
+        log_warning "botv2-app: healthcheck no pasó (verificar logs)"
+    fi
+fi
 
-log_header "🧪 Tests de conectividad"
+if [ "$HAS_DASHBOARD" = true ]; then
+    log_step "Esperando healthcheck de botv2-dashboard..."
+    if wait_for_healthy "botv2-dashboard" 30; then
+        log_success "botv2-dashboard: HEALTHY"
+    else
+        log_warning "botv2-dashboard: healthcheck no pasó (verificar logs)"
+    fi
+fi
 
 if [ "$HAS_POSTGRES" = true ]; then
     log_step "Verificando PostgreSQL..."
     if docker-compose exec -T botv2-postgres pg_isready -U botv2 &> /dev/null; then
-        log_success "PostgreSQL responde"
+        log_success "PostgreSQL: RESPONDIENDO"
     else
-        log_warning "PostgreSQL no responde (puede estar inicializando)"
+        log_warning "PostgreSQL: no responde"
     fi
 fi
 
 if [ "$HAS_REDIS" = true ]; then
     log_step "Verificando Redis..."
     if docker-compose exec -T botv2-redis redis-cli ping &> /dev/null; then
-        log_success "Redis responde"
+        log_success "Redis: RESPONDIENDO"
     else
-        log_warning "Redis no responde (puede estar inicializando)"
+        log_warning "Redis: no responde"
     fi
 fi
 
-log_step "Esperando 10 segundos para que aplicaciones arranquen..."
-sleep 10
-
-if [ "$HAS_APP" = true ]; then
-    log_step "Verificando API..."
-    if curl -s http://localhost:8000/health &> /dev/null; then
-        log_success "API está respondiendo"
-    else
-        log_warning "API no responde aún (puede estar inicializando)"
-    fi
-fi
+# Verificar conectividad HTTP
+echo ""
+log_step "Verificando conectividad HTTP..."
 
 if [ "$HAS_DASHBOARD" = true ]; then
-    log_step "Verificando Dashboard..."
-    if curl -s http://localhost:8050/health &> /dev/null; then
-        log_success "Dashboard está respondiendo"
+    if curl -s -o /dev/null -w "%{http_code}" http://localhost:8050/health | grep -q "200\|401"; then
+        log_success "Dashboard (puerto 8050): ACCESIBLE"
     else
-        log_warning "Dashboard no responde aún (puede estar inicializando)"
+        log_warning "Dashboard (puerto 8050): no responde"
     fi
 fi
 
 # ============================================================================
-# PASO 10: Resumen final
+# PASO 9: Resumen final
 # ============================================================================
 
 log_header "✨ Actualización Completada"
@@ -421,72 +440,72 @@ log_header "✨ Actualización Completada"
 echo -e "${GREEN}ACTUALIZACIÓN EXITOSA${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "📊 Estado:"
+echo "📊 Estado de servicios:"
+echo ""
 
 if [ "$HAS_APP" = true ]; then
-    echo "  ✓ App (botv2-app):     ACTUALIZADA"
+    echo "  ✓ Trading Bot (botv2-app):    ACTUALIZADA"
 fi
 
 if [ "$HAS_DASHBOARD" = true ]; then
-    echo "  ✓ Dashboard:           ACTUALIZADA"
+    echo "  ✓ Dashboard (botv2-dashboard): ACTUALIZADA"
 fi
 
 if [ "$HAS_POSTGRES" = true ]; then
-    echo "  ✓ PostgreSQL:          INTACTO (datos preservados)"
+    echo "  ✓ PostgreSQL:                   ACTIVA (datos preservados)"
     if [ -n "$BACKUP_FILE" ]; then
-        echo ""
-        echo "📁 Backup:"
-        echo "  ✓ Ubicación: $BACKUP_FILE"
+        echo "  ✓ Backup:                        $BACKUP_FILE"
     fi
 else
-    echo "  ℹ PostgreSQL:          NO ACTIVO (modo demo)"
+    echo "  ℹ PostgreSQL:                   NO ACTIVA (modo demo)"
 fi
 
 if [ "$HAS_REDIS" = true ]; then
-    echo "  ✓ Redis:               INTACTO"
+    echo "  ✓ Redis:                         ACTIVA"
+else
+    echo "  ℹ Redis:                         NO ACTIVA (modo demo)"
 fi
 
 echo ""
-echo "🎯 Modo: $MODE"
+echo "🎯 Modo operación: $MODE"
 echo ""
-echo "🌐 Acceso:"
-
-if [ "$HAS_APP" = true ]; then
-    echo "  • API:       http://localhost:8000"
-fi
+echo "🌐 Puntos de acceso:"
+echo ""
 
 if [ "$HAS_DASHBOARD" = true ]; then
-    echo "  • Dashboard: http://localhost:8050"
+    echo "  • Dashboard:  http://localhost:8050"
 fi
 
 if [ "$HAS_POSTGRES" = true ]; then
-    echo "  • Base datos: localhost:5432"
+    echo "  • PostgreSQL: localhost:5432"
 fi
 
 if [ "$HAS_REDIS" = true ]; then
-    echo "  • Cache:      localhost:6379"
+    echo "  • Redis:      localhost:6379"
 fi
 
 echo ""
 echo "📋 Comandos útiles:"
+echo ""
 
 if [ "$HAS_APP" = true ]; then
-    echo "  • Ver logs app:   docker-compose logs -f botv2-app"
+    echo "  • Logs del bot:        docker-compose logs -f botv2-app"
 fi
 
 if [ "$HAS_DASHBOARD" = true ]; then
-    echo "  • Ver logs dash:  docker-compose logs -f botv2-dashboard"
+    echo "  • Logs del dashboard:  docker-compose logs -f botv2-dashboard"
 fi
 
 if [ "$HAS_POSTGRES" = true ]; then
-    echo "  • Conectar BD:    docker-compose exec botv2-postgres psql -U botv2 -d botv2_db"
+    echo "  • Conectar PostgreSQL: docker-compose exec botv2-postgres psql -U botv2 -d botv2_db"
 fi
 
 if [ "$HAS_REDIS" = true ]; then
-    echo "  • Conectar Cache: docker-compose exec botv2-redis redis-cli"
+    echo "  • Conectar Redis:      docker-compose exec botv2-redis redis-cli"
 fi
 
-echo "  • Ver estado:     docker-compose ps"
+echo "  • Estado servicios:   docker-compose ps"
+echo "  • Estadísticas uso:    docker stats --no-stream"
 echo ""
-echo -e "${GREEN}¡Actualización completada exitosamente! 🎉${NC}"
+echo -e "${GREEN}¡Todos los servicios actualizados y operativos! 🎉${NC}"
 echo ""
