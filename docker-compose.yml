@@ -3,8 +3,9 @@
 # Services: Trading Bot + Dashboard + PostgreSQL + Redis
 
 # ARCHITECTURE:
-#   Trading Bot \u2192 Writes to \u2192 PostgreSQL/Redis
-#   Dashboard \u2192 Reads from \u2192 PostgreSQL/Redis
+#   Trading Bot → Writes to → PostgreSQL/Redis (Optional)
+#   Dashboard → Standalone Mode with Demo Data (No dependencies)
+#   Dashboard (Production) → Reads from → PostgreSQL/Redis
 #   (No API layer needed - direct DB access)
 
 # IMPORTANT: Copy local.env to .env before running:
@@ -13,45 +14,49 @@
 
 services:
   # ============================================================================
-  # Trading Bot Container (Background Process)
+  # Trading Bot Container (Background Process) - OPTIONAL
   # ============================================================================
-  botv2-app:
-    container_name: botv2-app
-    image: botv2-botv2:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env  # CRITICAL: Loads all environment variables from .env file
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - TRADING_MODE=${TRADING_MODE:-paper}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    command: ["python", "src/main.py"]  # Trading bot (async process, NO HTTP server)
-    # NOTE: No port mapping - this is a background process, not an API
-    depends_on:
-      botv2-postgres:
-        condition: service_healthy
-      botv2-redis:
-        condition: service_healthy
-    networks:
-      - botv2-network
-    restart: on-failure:3  # Stop after 3 failures (no infinite loop)
-    healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    volumes:
-      - ./logs:/app/logs
-      - ./backups:/app/backups
-      - ./data:/app/data
+  # Commented out by default - uncomment for production with real trading
+  # botv2-app:
+  #   container_name: botv2-app
+  #   image: botv2-botv2:latest
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   env_file:
+  #     - .env  # CRITICAL: Loads all environment variables from .env file
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - PYTHONDONTWRITEBYTECODE=1
+  #     - TRADING_MODE=${TRADING_MODE:-paper}
+  #     - LOG_LEVEL=${LOG_LEVEL:-INFO}
+  #   command: ["python", "src/main.py"]  # Trading bot (async process, NO HTTP server)
+  #   # NOTE: No port mapping - this is a background process, not an API
+  #   depends_on:
+  #     botv2-postgres:
+  #       condition: service_healthy
+  #     botv2-redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - botv2-network
+  #   restart: on-failure:3  # Stop after 3 failures (no infinite loop)
+  #   healthcheck:
+  #     test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   volumes:
+  #     - ./logs:/app/logs
+  #     - ./backups:/app/backups
+  #     - ./data:/app/data
 
   # ============================================================================
-  # Dashboard Container (Web Interface)
+  # Dashboard Container (Web Interface) - STANDALONE MODE WITH DEMO DATA
   # ============================================================================
+  # This service runs independently with automatically generated demo data
+  # No trading bot or database required for demo/testing
+  # For production: Uncomment database dependencies and change DEMO_MODE to false
   botv2-dashboard:
     container_name: botv2-dashboard
     image: botv2-dashboard:latest
@@ -63,80 +68,94 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - FLASK_ENV=development  # CORRECTED: development mode (HTTP only)
+      - FLASK_ENV=development  # development mode (HTTP only) for demo
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - FLASK_APP=src.dashboard.web_app
       - DASHBOARD_HOST=0.0.0.0
       - DASHBOARD_PORT=8050
-      - REDIS_HOST=botv2-redis  # CORRECTED: Use Docker service name
-      - REDIS_PORT=6379
-    command: ["python", "src/dashboard/dashboard_standalone.py"]  # FIXED: Use standalone entry point with demo data
+      # Demo mode environment variables
+      - DEMO_MODE=true  # Enables demo data generation
+      - INITIAL_CAPITAL=3000  # Demo portfolio starting capital
+      # Redis (optional for demo, required for production rate limiting)
+      - REDIS_HOST=${REDIS_HOST:-botv2-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      # Authentication (will be auto-generated if not set)
+      - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-}  # Leave empty for auto-generation
+      - SECRET_KEY=${SECRET_KEY:-}  # Leave empty for auto-generation
+    command: ["python", "src/dashboard/dashboard_standalone.py"]  # Standalone entry point with demo data
     ports:
-      - "8050:8050"  # Dashboard web interface
-    depends_on:
-      botv2-postgres:
-        condition: service_healthy
-      botv2-redis:
-        condition: service_healthy
+      - "${DASHBOARD_PORT:-8050}:8050"  # Dashboard web interface
+    # OPTIONAL: Uncomment for production mode with real data
+    # depends_on:
+    #   botv2-postgres:
+    #     condition: service_healthy
+    #   botv2-redis:
+    #     condition: service_healthy
     networks:
       - botv2-network
     restart: on-failure:3  # Stop after 3 failures (no infinite loop)
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8050/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8050/health').read()"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    volumes:
+      - ./logs:/app/logs  # Dashboard logs
+      - ./data:/app/data  # Optional: Persistent demo data
 
   # ============================================================================
-  # PostgreSQL Database
+  # PostgreSQL Database - OPTIONAL (Required for production mode)
   # ============================================================================
-  botv2-postgres:
-    container_name: botv2-postgres
-    image: postgres:16-alpine
-    env_file:
-      - .env  # Reads POSTGRES_* variables
-    environment:
-      # Override with values from .env if present
-      - POSTGRES_USER=${POSTGRES_USER:-botv2}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-botv2password}
-      - POSTGRES_DB=${POSTGRES_DATABASE:-botv2_db}
-      - POSTGRES_INITDB_ARGS=-c shared_buffers=256MB -c max_connections=200
-    ports:
-      - "5432:5432"
-    networks:
-      - botv2-network
-    restart: unless-stopped  # Database should always restart
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-botv2} -d ${POSTGRES_DATABASE:-botv2_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backups:/backups
+  # Commented out by default - uncomment for production with real trading
+  # botv2-postgres:
+  #   container_name: botv2-postgres
+  #   image: postgres:16-alpine
+  #   env_file:
+  #     - .env  # Reads POSTGRES_* variables
+  #   environment:
+  #     # Override with values from .env if present
+  #     - POSTGRES_USER=${POSTGRES_USER:-botv2}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-botv2password}
+  #     - POSTGRES_DB=${POSTGRES_DATABASE:-botv2_db}
+  #     - POSTGRES_INITDB_ARGS=-c shared_buffers=256MB -c max_connections=200
+  #   ports:
+  #     - "${POSTGRES_PORT:-5432}:5432"
+  #   networks:
+  #     - botv2-network
+  #   restart: unless-stopped  # Database should always restart
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-botv2} -d ${POSTGRES_DATABASE:-botv2_db}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./backups:/backups
 
   # ============================================================================
-  # Redis Cache
+  # Redis Cache - OPTIONAL (Recommended for rate limiting in production)
   # ============================================================================
-  botv2-redis:
-    container_name: botv2-redis
-    image: redis:7-alpine
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:-}
-    env_file:
-      - .env  # Reads REDIS_* variables
-    ports:
-      - "6379:6379"
-    networks:
-      - botv2-network
-    restart: unless-stopped  # Cache should always restart
-    healthcheck:
-      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-}", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - redis_data:/data
+  # Commented out by default - uncomment for production rate limiting
+  # botv2-redis:
+  #   container_name: botv2-redis
+  #   image: redis:7-alpine
+  #   command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:-}
+  #   env_file:
+  #     - .env  # Reads REDIS_* variables
+  #   ports:
+  #     - "${REDIS_PORT:-6379}:6379"
+  #   networks:
+  #     - botv2-network
+  #   restart: unless-stopped  # Cache should always restart
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-}", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   volumes:
+  #     - redis_data:/data
 
 # ============================================================================
 # Networks
@@ -149,10 +168,10 @@ networks:
         - subnet: 172.20.0.0/16
 
 # ============================================================================
-# Volumes
+# Volumes - OPTIONAL (Uncomment if using PostgreSQL/Redis)
 # ============================================================================
-volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
+# volumes:
+#   postgres_data:
+#     driver: local
+#   redis_data:
+#     driver: local
