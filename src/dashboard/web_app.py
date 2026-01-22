@@ -1,4 +1,4 @@
-"""BotV2 Professional Dashboard v4.3 - Live Monitoring Edition
+"""BotV2 Professional Dashboard v4.4 - Strategy Editor Edition
 Ultra-professional real-time trading dashboard with production-grade security
 
 Security Features:
@@ -23,6 +23,7 @@ Features:
 - Performance attribution
 - Control Panel v4.2 (Bot management)
 - 📊 Live Monitoring v4.3 (Real-time visibility)
+- ✏️ Strategy Editor v4.4 (Parameter tuning without code)
 """
 
 import logging
@@ -53,8 +54,11 @@ from .control_routes import control_bp
 # ==================== LIVE MONITORING IMPORT ====================
 from .monitoring_routes import monitoring_bp
 
+# ==================== STRATEGY EDITOR IMPORT ====================
+from .strategy_routes import strategy_bp
+
 # Dashboard version
-__version__ = '4.3'
+__version__ = '4.4'
 
 # Setup structured logging
 logger = logging.getLogger(__name__)
@@ -284,7 +288,7 @@ class DashboardAuth:
 
 
 class ProfessionalDashboard:
-    """Ultra-professional trading dashboard v4.3 with Live Monitoring
+    """Ultra-professional trading dashboard v4.4 with Strategy Editor
     
     Architecture:
     - Flask + SocketIO for real-time updates
@@ -298,6 +302,7 @@ class ProfessionalDashboard:
     - Professional audit logging (JSON structured)
     - Control Panel v4.2 for bot management
     - Live Monitoring v4.3 for real-time visibility
+    - Strategy Editor v4.4 for parameter tuning
     
     Security:
     - Rate limiting on all endpoints
@@ -353,6 +358,7 @@ class ProfessionalDashboard:
         # ==================== REGISTER BLUEPRINTS ====================
         self.app.register_blueprint(control_bp)
         self.app.register_blueprint(monitoring_bp)
+        self.app.register_blueprint(strategy_bp)
         
         # Data stores
         self.portfolio_history = []
@@ -463,13 +469,13 @@ class ProfessionalDashboard:
             'INFO',
             environment=self.env,
             version=__version__,
-            features=['session_auth', 'rate_limiting', 'audit_logging', 'account_lockout', 'spa_navigation', '3_themes', 'control_panel_v4.2', 'live_monitoring_v4.3']
+            features=['session_auth', 'rate_limiting', 'audit_logging', 'account_lockout', 'spa_navigation', '3_themes', 'control_panel_v4.2', 'live_monitoring_v4.3', 'strategy_editor_v4.4']
         )
         
         # Consolidated startup banner
         logger.info("")
         logger.info("=" * 80)
-        logger.info(f"        BotV2 Professional Dashboard v{__version__} - Live Monitoring Edition")
+        logger.info(f"        BotV2 Professional Dashboard v{__version__} - Strategy Editor Edition")
         logger.info("=" * 80)
         logger.info("")
         logger.info("📊 SYSTEM CONFIGURATION")
@@ -479,6 +485,7 @@ class ProfessionalDashboard:
         logger.info(f"   Dashboard:             http://{self.host}:{self.port}/dashboard")
         logger.info(f"   Control Panel:         http://{self.host}:{self.port}/control")
         logger.info(f"   Live Monitor:          http://{self.host}:{self.port}/monitoring")
+        logger.info(f"   Strategy Editor:       http://{self.host}:{self.port}/api/strategies/")
         logger.info(f"   Health Check:          http://{self.host}:{self.port}/health")
         logger.info("")
         logger.info("🔒 SECURITY FEATURES")
@@ -501,6 +508,7 @@ class ProfessionalDashboard:
         logger.info("   • Mobile responsive design")
         logger.info("   • 🏛️ Control Panel v4.2 (Bot management)")
         logger.info("   • 📊 Live Monitoring v4.3 (Real-time visibility)")
+        logger.info("   • ✏️ Strategy Editor v4.4 (Parameter tuning without code)")
         logger.info("")
         
         if not self.is_production:
@@ -640,7 +648,8 @@ class ProfessionalDashboard:
                     'charts': 'plotly',
                     'websocket': True,
                     'control_panel': 'v4.2',
-                    'live_monitoring': 'v4.3'
+                    'live_monitoring': 'v4.3',
+                    'strategy_editor': 'v4.4'
                 }
             })
     
@@ -653,7 +662,7 @@ class ProfessionalDashboard:
             emit('connected', {
                 'message': f'Connected to BotV2 Dashboard v{__version__}',
                 'version': __version__,
-                'features': ['session_auth', 'rate_limiting', 'audit_logging', 'spa', '3_themes', 'control_panel_v4.2', 'live_monitoring_v4.3']
+                'features': ['session_auth', 'rate_limiting', 'audit_logging', 'spa', '3_themes', 'control_panel_v4.2', 'live_monitoring_v4.3', 'strategy_editor_v4.4']
             })
         
         @self.socketio.on('disconnect')
