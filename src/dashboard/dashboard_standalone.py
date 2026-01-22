@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 BotV2 Dashboard - Standalone Entry Point with Demo Data
 Runs dashboard with automatically generated demo data for testing and demos
@@ -13,10 +14,15 @@ Access:
 
 import sys
 import os
+import io
 from pathlib import Path
 import logging
 from datetime import datetime, timedelta
 import numpy as np
+
+# Force UTF-8 encoding for stdout in Docker containers
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -66,7 +72,7 @@ def generate_demo_data():
     Returns:
         Tuple of (portfolio_history, trades_history, strategy_performance, risk_metrics)
     """
-    logger.info("\ud83d\udd04 Generating demo trading data...")
+    logger.info("[DEMO] Generating demo trading data...")
     
     # ===== PORTFOLIO HISTORY (90 days) =====
     days = 90
@@ -93,7 +99,7 @@ def generate_demo_data():
             } if i > 10 else {}
         })
     
-    logger.info(f"  \u2705 Generated {len(portfolio_history)} portfolio snapshots")
+    logger.info(f"  [OK] Generated {len(portfolio_history)} portfolio snapshots")
     
     # ===== TRADES HISTORY (125 trades) =====
     trades_count = 125
@@ -132,7 +138,7 @@ def generate_demo_data():
     # Sort by date
     trades_history.sort(key=lambda x: x['timestamp'])
     
-    logger.info(f"  \u2705 Generated {len(trades_history)} trades (68.5% win rate)")
+    logger.info(f"  [OK] Generated {len(trades_history)} trades (68.5% win rate)")
     
     # ===== STRATEGY PERFORMANCE =====
     strategy_performance = {
@@ -198,7 +204,7 @@ def generate_demo_data():
         }
     }
     
-    logger.info(f"  \u2705 Generated {len(strategy_performance)} strategy profiles")
+    logger.info(f"  [OK] Generated {len(strategy_performance)} strategy profiles")
     
     # ===== RISK METRICS =====
     risk_metrics = {
@@ -214,9 +220,9 @@ def generate_demo_data():
         'information_ratio': 1.45
     }
     
-    logger.info(f"  \u2705 Generated risk metrics (Sharpe: {risk_metrics['sharpe_ratio']})")
+    logger.info(f"  [OK] Generated risk metrics (Sharpe: {risk_metrics['sharpe_ratio']})")
     
-    logger.info("\u2705 Demo data generation complete!")
+    logger.info("[OK] Demo data generation complete!")
     
     return portfolio_history, trades_history, strategy_performance, risk_metrics
 
@@ -227,23 +233,23 @@ def main():
     """
     
     print("")
-    print("\u2554" + "="*68 + "\u2557")
-    print("\u2551" + " "*14 + "BotV2 Dashboard - Standalone Mode" + " "*20 + "\u2551")
-    print("\u2551" + " "*20 + "v3.2 with Demo Data" + " "*27 + "\u2551")
-    print("\u255a" + "="*68 + "\u255d")
+    print("=" * 70)
+    print("     BotV2 Dashboard - Standalone Mode with Demo Data")
+    print("                      v3.2")
+    print("=" * 70)
     print("")
     
-    logger.info("\ud83d\ude80 Starting dashboard in standalone mode...")
+    logger.info("[START] Starting dashboard in standalone mode...")
     
     # Check environment
     env = os.getenv('FLASK_ENV', 'development')
-    logger.info(f"\ud83c\udf0d Environment: {env.upper()}")
+    logger.info(f"[ENV] Environment: {env.upper()}")
     
     # Import dashboard
     try:
         from src.dashboard.web_app import ProfessionalDashboard
     except ImportError as e:
-        logger.error(f"\u274c Failed to import dashboard: {e}")
+        logger.error(f"[ERROR] Failed to import dashboard: {e}")
         logger.error("Make sure you're running from project root: python src/dashboard/dashboard_standalone.py")
         sys.exit(1)
     
@@ -253,9 +259,9 @@ def main():
     # Create dashboard instance
     try:
         dashboard = ProfessionalDashboard(config)
-        logger.info("\u2705 Dashboard instance created successfully")
+        logger.info("[OK] Dashboard instance created successfully")
     except Exception as e:
-        logger.error(f"\u274c Failed to create dashboard: {e}")
+        logger.error(f"[ERROR] Failed to create dashboard: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
@@ -270,9 +276,9 @@ def main():
         dashboard.strategy_performance = strategy_performance
         dashboard.risk_metrics = risk_metrics
         
-        logger.info("\u2705 Demo data loaded into dashboard")
+        logger.info("[OK] Demo data loaded into dashboard")
     except Exception as e:
-        logger.error(f"\u274c Failed to generate demo data: {e}")
+        logger.error(f"[ERROR] Failed to generate demo data: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
@@ -284,68 +290,68 @@ def main():
     password = os.getenv('DASHBOARD_PASSWORD')
     
     print("")
-    print("\u2554" + "="*68 + "\u2557")
-    print("\u2551" + " "*23 + "\ud83d\udd10 Access Information" + " "*23 + "\u2551")
-    print("\u2560" + "\u2500"*68 + "\u2563")
-    print(f"\u2551  \ud83c\udf0d URL:      http://localhost:{port}/login" + " "*(68-40-len(str(port))) + "\u2551")
-    print(f"\u2551  \ud83d\udc64 Username: {username}" + " "*(68-15-len(username)) + "\u2551")
+    print("=" * 70)
+    print("                    ACCESS INFORMATION")
+    print("-" * 70)
+    print(f"  URL:      http://localhost:{port}/login")
+    print(f"  Username: {username}")
     
     if password:
         # Mask password
         masked = password[:4] + '*' * (len(password) - 4) if len(password) > 4 else '****'
-        print(f"\u2551  \ud83d\udd11 Password: {masked} (from DASHBOARD_PASSWORD)" + " "*(68-48-len(masked)) + "\u2551")
+        print(f"  Password: {masked} (from DASHBOARD_PASSWORD)")
     else:
-        print(f"\u2551  \ud83d\udd11 Password: [Check console output above]" + " "*19 + "\u2551")
+        print(f"  Password: [Check console output above]")
     
-    print("\u255a" + "="*68 + "\u255d")
+    print("=" * 70)
     print("")
     
     logger.info("")
-    logger.info("\ud83d\udcca Dashboard Features:")
-    logger.info("  \u2705 13 Interactive Charts (Equity, P&L, Correlation, etc.)")
-    logger.info("  \u2705 Real-time WebSocket Updates")
-    logger.info("  \u2705 Dark/Light/Bloomberg Themes")
-    logger.info("  \u2705 Time Filters (24h, 7d, 30d, 90d, YTD, All)")
-    logger.info("  \u2705 Export Capabilities (PNG, SVG)")
-    logger.info("  \u2705 Mobile Responsive Design")
+    logger.info("[FEATURES] Dashboard Features:")
+    logger.info("  - 13 Interactive Charts (Equity, P&L, Correlation, etc.)")
+    logger.info("  - Real-time WebSocket Updates")
+    logger.info("  - Dark/Light/Bloomberg Themes")
+    logger.info("  - Time Filters (24h, 7d, 30d, 90d, YTD, All)")
+    logger.info("  - Export Capabilities (PNG, SVG)")
+    logger.info("  - Mobile Responsive Design")
     logger.info("")
     
-    logger.info("\ud83d\udd12 Security Features:")
-    logger.info("  \u2705 Session-Based Authentication")
-    logger.info("  \u2705 Rate Limiting (10 req/min per IP)")
-    logger.info("  \u2705 Brute Force Protection (5 attempts lockout)")
-    logger.info("  \u2705 Security Audit Logging (JSON)")
+    logger.info("[SECURITY] Security Features:")
+    logger.info("  - Session-Based Authentication")
+    logger.info("  - Rate Limiting (10 req/min per IP)")
+    logger.info("  - Brute Force Protection (5 attempts lockout)")
+    logger.info("  - Security Audit Logging (JSON)")
     
     if env == 'production':
-        logger.info("  \u2705 HTTPS Enforcement ENABLED")
+        logger.info("  - HTTPS Enforcement ENABLED")
     else:
-        logger.info("  \u26a0\ufe0f  HTTPS Enforcement DISABLED (dev mode)")
+        logger.info("  - HTTPS Enforcement DISABLED (dev mode)")
     
     logger.info("")
     
     # Start dashboard server
     try:
-        logger.info("="*70)
-        logger.info("\ud83d\ude80 Starting Flask server...")
-        logger.info("="*70)
+        logger.info("=" * 70)
+        logger.info("[START] Starting Flask server...")
+        logger.info("=" * 70)
         logger.info("")
         
         dashboard.run()
     
     except KeyboardInterrupt:
         logger.info("")
-        logger.info("\u26a0\ufe0f  Keyboard interrupt received")
-        logger.info("\ud83d\udc4b Shutting down dashboard...")
+        logger.info("[INTERRUPT] Keyboard interrupt received")
+        logger.info("[SHUTDOWN] Shutting down dashboard...")
     
     except Exception as e:
-        logger.error(f"\u274c Dashboard error: {e}")
+        logger.error(f"[ERROR] Dashboard error: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
     
     logger.info("")
-    logger.info("\u2705 Dashboard shutdown complete")
-    logger.info("\ud83d\udc4b Goodbye!")
+    logger.info("[OK] Dashboard shutdown complete")
+    logger.info("[BYE] Goodbye!")
     logger.info("")
 
 
