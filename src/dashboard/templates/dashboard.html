@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BotV2 Dashboard v4.3 - Live Monitoring</title>
+    <title>BotV2 Dashboard v4.4 - Strategy Editor</title>
     
     <!-- External Libraries -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -15,8 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* [EXACT SAME STYLES AS BEFORE] */
-        /* ==================== PROFESSIONAL VARIABLES ==================== */
+        /* ==================== PROFESSIONAL VARIABLES v4.4 ==================== */
         :root {
             /* Dark Theme - Professional */
             --bg-primary: #0d1117;
@@ -35,6 +34,7 @@
             --accent-danger: #f85149;
             --accent-control: #8b5cf6;
             --accent-monitoring: #10b981;
+            --accent-strategy-editor: #f97316; /* 🆕 Orange for Strategy Editor */
             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
             --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
             --radius-sm: 6px;
@@ -59,6 +59,7 @@
             --accent-danger: #cf222e;
             --accent-control: #7c3aed;
             --accent-monitoring: #059669;
+            --accent-strategy-editor: #ea580c;
             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
             --shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
         }
@@ -80,6 +81,7 @@
             --accent-danger: #ff0000;
             --accent-control: #9966ff;
             --accent-monitoring: #00ff88;
+            --accent-strategy-editor: #ff6600;
             --shadow-sm: 0 1px 2px rgba(255, 153, 0, 0.1);
             --shadow: 0 2px 4px rgba(255, 153, 0, 0.2);
         }
@@ -209,6 +211,9 @@
             color: white;
         }
 
+        /* ==================== SPECIAL MENU ITEMS - v4.4 ==================== */
+        
+        /* Control Panel - Purple */
         .menu-item.control-panel {
             background: linear-gradient(135deg, var(--accent-control) 0%, #6d28d9 100%);
             color: white;
@@ -238,7 +243,7 @@
             color: white;
         }
 
-        /* NEW: Live Monitoring specific styling */
+        /* Live Monitoring - Green */
         .menu-item.live-monitoring {
             background: linear-gradient(135deg, var(--accent-monitoring) 0%, #059669 100%);
             color: white;
@@ -268,6 +273,36 @@
             color: white;
         }
 
+        /* 🆕 Strategy Editor - Orange */
+        .menu-item.strategy-editor {
+            background: linear-gradient(135deg, var(--accent-strategy-editor) 0%, #ea580c 100%);
+            color: white;
+            font-weight: 600;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-item.strategy-editor::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .menu-item.strategy-editor:hover::before {
+            left: 100%;
+        }
+
+        .menu-item.strategy-editor:hover {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+            color: white;
+        }
+
         .menu-icon {
             width: 16px;
             height: 16px;
@@ -275,7 +310,8 @@
         }
 
         .menu-item.control-panel .menu-icon,
-        .menu-item.live-monitoring .menu-icon {
+        .menu-item.live-monitoring .menu-icon,
+        .menu-item.strategy-editor .menu-icon {
             opacity: 1;
         }
 
@@ -294,14 +330,16 @@
             animation: pulse 2s infinite;
         }
 
+        .menu-badge.dev {
+            background: var(--accent-warning);
+            animation: pulse 2s infinite;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
         }
 
-        /* [REST OF THE STYLES REMAIN EXACTLY THE SAME AS BEFORE - COPY ALL CSS FROM PREVIOUS VERSION] */
-        /* For brevity, I'll indicate this continues with all the remaining styles... */
-        
         /* ==================== MAIN CONTENT ==================== */
         .main-content {
             flex: 1;
@@ -408,9 +446,184 @@
             50% { opacity: 0.5; transform: scale(1.1); }
         }
 
-        /* [CONTINUE WITH ALL OTHER EXISTING STYLES...] */
-        /* User Menu, Dashboard Content, KPIs, Tables, Charts, etc. */
-        
+        /* ==================== USER MENU - DROPDOWN ==================== */
+        .user-menu {
+            position: relative;
+        }
+
+        .user-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 150ms ease;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .user-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-muted);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 200px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 4px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .user-dropdown.show {
+            display: block;
+            animation: fadeIn 150ms ease;
+        }
+
+        .user-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: background 150ms ease;
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .user-dropdown-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .user-dropdown-item svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.7;
+        }
+
+        .user-dropdown-divider {
+            height: 1px;
+            background: var(--border-default);
+            margin: 4px 0;
+        }
+
+        /* ==================== DASHBOARD CONTENT ==================== */
+        .dashboard-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: var(--bg-primary);
+        }
+
+        .dashboard-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .dashboard-content::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        .dashboard-content::-webkit-scrollbar-thumb {
+            background: var(--border-default);
+            border-radius: 4px;
+        }
+
+        .section-content {
+            display: none;
+        }
+
+        .section-content.active {
+            display: block;
+            animation: fadeIn 200ms ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== LOADING ==================== */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 2px solid var(--border-default);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* ==================== TOAST NOTIFICATIONS ==================== */
+        .toast-container {
+            position: fixed;
+            top: 70px;
+            right: 24px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            min-width: 280px;
+            max-width: 380px;
+            box-shadow: var(--shadow);
+            animation: slideIn 200ms ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.info { border-left: 3px solid var(--accent-primary); }
+        .toast.success { border-left: 3px solid var(--accent-success); }
+        .toast.warning { border-left: 3px solid var(--accent-warning); }
+        .toast.error { border-left: 3px solid var(--accent-danger); }
+
+        .toast-icon {
+            font-size: 16px;
+        }
+
         /* ==================== RESPONSIVE ==================== */
         @media (max-width: 768px) {
             .sidebar {
@@ -423,14 +636,6 @@
 
             .sidebar.open {
                 left: 0;
-            }
-
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .kpi-grid {
-                grid-template-columns: 1fr;
             }
 
             .dashboard-content {
@@ -448,7 +653,7 @@
                     <div class="logo-icon">B2</div>
                     <span>BotV2</span>
                 </div>
-                <span class="version-badge">v4.3</span>
+                <span class="version-badge">v4.4</span>
             </div>
             
             <nav class="sidebar-menu">
@@ -477,7 +682,7 @@
                 
                 <div class="menu-section">
                     <div class="menu-section-title">Monitoring</div>
-                    <div class="menu-item live-monitoring" data-section="live-monitor">
+                    <a href="/monitoring" class="menu-item live-monitoring">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
                             <circle cx="10" cy="4" r="3" fill="currentColor" opacity="0.3">
@@ -485,8 +690,8 @@
                             </circle>
                         </svg>
                         <span>Live Monitor</span>
-                        <span class="menu-badge new">v4.3</span>
-                    </div>
+                        <span class="menu-badge">v4.3</span>
+                    </a>
                 </div>
                 
                 <div class="menu-section">
@@ -504,6 +709,17 @@
                         </svg>
                         <span>Trades</span>
                     </div>
+                </div>
+                
+                <div class="menu-section">
+                    <div class="menu-section-title">Development</div>
+                    <a href="/strategy-editor" class="menu-item strategy-editor">
+                        <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                        </svg>
+                        <span>Strategy Editor</span>
+                        <span class="menu-badge dev">v4.4</span>
+                    </a>
                 </div>
                 
                 <div class="menu-section">
@@ -531,14 +747,83 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- [EXACT SAME TOPBAR AND CONTENT AS BEFORE] -->
-            <!-- Topbar HTML remains unchanged -->
-            <!-- Dashboard Content Container remains unchanged -->
-            
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h1 id="page-title">Dashboard</h1>
+                    <div class="breadcrumb" id="breadcrumb">
+                        <span>Home</span>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <!-- Theme Switcher -->
+                    <div class="theme-switcher">
+                        <button class="theme-btn active" onclick="setTheme('dark')">Dark</button>
+                        <button class="theme-btn" onclick="setTheme('light')">Light</button>
+                        <button class="theme-btn" onclick="setTheme('bloomberg')">Terminal</button>
+                    </div>
+                    
+                    <!-- Connection Status -->
+                    <div class="connection-status">
+                        <div class="status-dot"></div>
+                        <span id="connection-text">Connected</span>
+                    </div>
+                    
+                    <!-- User Menu with Dropdown -->
+                    <div class="user-menu">
+                        <div class="user-btn" onclick="toggleUserMenu()">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ user }}</span>
+                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        
+                        <div class="user-dropdown" id="user-dropdown">
+                            <a href="/control" class="user-dropdown-item">
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"/>
+                                </svg>
+                                <span>Control Panel</span>
+                            </a>
+                            <a href="/monitoring" class="user-dropdown-item">
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                                </svg>
+                                <span>Live Monitor</span>
+                            </a>
+                            <a href="/strategy-editor" class="user-dropdown-item">
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                                </svg>
+                                <span>Strategy Editor</span>
+                            </a>
+                            <div class="user-dropdown-divider"></div>
+                            <div class="user-dropdown-item" onclick="loadSection('settings')">
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Settings</span>
+                            </div>
+                            <div class="user-dropdown-divider"></div>
+                            <a href="/logout" class="user-dropdown-item">
+                                <svg fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content Container -->
             <div class="dashboard-content" id="main-container">
                 <div class="loading">
                     <div class="spinner"></div>
-                    <div class="loading-text">Loading BotV2 v4.3 - Live Monitoring...</div>
+                    <div class="loading-text">Loading BotV2 v4.4...</div>
                 </div>
             </div>
         </main>
@@ -548,11 +833,65 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        // [EXISTING JAVASCRIPT REMAINS THE SAME]
-        // Plus new toast for v4.3
+        // ==================== THEME MANAGEMENT ====================
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            
+            // Update active button
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // ==================== USER MENU ====================
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('user-dropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('user-dropdown');
+            
+            if (!userMenu.contains(event.target) && dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // ==================== TOAST NOTIFICATIONS ====================
+        function showToast(type, message) {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = type === 'info' ? 'ℹ️' : 
+                        type === 'success' ? '✅' : 
+                        type === 'warning' ? '⚠️' : '❌';
+            
+            toast.innerHTML = `
+                <span class="toast-icon">${icon}</span>
+                <span>${message}</span>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 200ms ease reverse';
+                setTimeout(() => toast.remove(), 200);
+            }, 5000);
+        }
+
+        // ==================== WELCOME TOAST v4.4 ====================
         window.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
-                showToast('success', '📊 Live Monitoring v4.3 is now available! Real-time visibility into bot operations.');
+                showToast('success', '🌊 NEW v4.4: Strategy Editor now available! Design custom strategies with visual tools.');
             }, 2000);
         });
     </script>
