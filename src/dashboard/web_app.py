@@ -1,5 +1,4 @@
-"""
-BotV2 Professional Dashboard v4.0 - Enterprise Edition
+"""BotV2 Professional Dashboard v4.0 - Enterprise Edition
 Ultra-professional real-time trading dashboard with production-grade security
 
 Security Features:
@@ -22,6 +21,7 @@ Other Features:
 - Export capabilities
 - Alert system
 - Performance attribution
+- Control Panel v4.2 (Bot management)
 """
 
 import logging
@@ -46,8 +46,11 @@ import secrets
 from pathlib import Path
 from collections import defaultdict
 
+# ==================== CONTROL PANEL IMPORT ====================
+from .control_routes import control_bp
+
 # Dashboard version
-__version__ = '4.0'
+__version__ = '4.2'
 
 # Setup structured logging
 logger = logging.getLogger(__name__)
@@ -59,8 +62,7 @@ limiter_logger.setLevel(logging.CRITICAL)
 
 
 class SecurityAuditLogger:
-    """
-    Professional security audit logger with JSON structured output
+    """Professional security audit logger with JSON structured output
     
     Features:
     - JSON structured logs for SIEM integration
@@ -90,8 +92,7 @@ class SecurityAuditLogger:
         self.logger.addHandler(handler)
     
     def log_event(self, event_type: str, level: str, **kwargs):
-        """
-        Log security event in JSON format
+        """Log security event in JSON format
         
         Args:
             event_type: Event type (e.g., 'auth.login.success')
@@ -111,8 +112,7 @@ class SecurityAuditLogger:
 
 
 class DashboardAuth:
-    """
-    Session-Based Authentication for Dashboard
+    """Session-Based Authentication for Dashboard
     
     Security Features:
     - SHA-256 password hashing
@@ -171,8 +171,7 @@ class DashboardAuth:
         return hashlib.sha256(password.encode()).hexdigest()
     
     def is_locked_out(self, ip: str) -> bool:
-        """
-        Check if IP is locked out
+        """Check if IP is locked out
         
         Args:
             ip: Client IP address
@@ -193,8 +192,7 @@ class DashboardAuth:
         return False
     
     def record_failed_attempt(self, ip: str, username: str):
-        """
-        Record failed login attempt
+        """Record failed login attempt
         
         Args:
             ip: Client IP address
@@ -235,8 +233,7 @@ class DashboardAuth:
             )
     
     def record_successful_login(self, ip: str, username: str):
-        """
-        Record successful login and reset failed attempts
+        """Record successful login and reset failed attempts
         
         Args:
             ip: Client IP address
@@ -258,8 +255,7 @@ class DashboardAuth:
         logger.info(f"✅ AUTH: Login successful - User: {username}, IP: {ip}")
     
     def check_credentials(self, username: str, password: str) -> bool:
-        """
-        Verify username and password (timing-attack safe)
+        """Verify username and password (timing-attack safe)
         
         Args:
             username: Provided username
@@ -284,8 +280,7 @@ class DashboardAuth:
 
 
 class ProfessionalDashboard:
-    """
-    Ultra-professional trading dashboard v4.0 with enterprise security
+    """Ultra-professional trading dashboard v4.2 with enterprise security
     
     Architecture:
     - Flask + SocketIO for real-time updates
@@ -297,6 +292,7 @@ class ProfessionalDashboard:
     - WebSocket push for instant updates
     - Modular component design
     - Professional audit logging (JSON structured)
+    - Control Panel v4.2 for bot management
     
     Security:
     - Rate limiting on all endpoints
@@ -348,6 +344,9 @@ class ProfessionalDashboard:
         # Setup security middleware
         self.rate_limiter_storage = self._setup_rate_limiting()
         self._setup_https_enforcement()  # Only active in production
+        
+        # ==================== REGISTER CONTROL PANEL BLUEPRINT ====================
+        self.app.register_blueprint(control_bp)
         
         # Data stores
         self.portfolio_history = []
@@ -458,7 +457,7 @@ class ProfessionalDashboard:
             'INFO',
             environment=self.env,
             version=__version__,
-            features=['session_auth', 'rate_limiting', 'audit_logging', 'account_lockout', 'spa_navigation', '3_themes']
+            features=['session_auth', 'rate_limiting', 'audit_logging', 'account_lockout', 'spa_navigation', '3_themes', 'control_panel_v4.2']
         )
         
         # Consolidated startup banner
@@ -471,6 +470,8 @@ class ProfessionalDashboard:
         logger.info(f"   Environment:           {self.env.upper()}")
         logger.info(f"   Version:               {__version__}")
         logger.info(f"   URL:                   http{'s' if self.is_production else ''}://{self.host}:{self.port}")
+        logger.info(f"   Dashboard:             http://{self.host}:{self.port}/dashboard")
+        logger.info(f"   Control Panel:         http://{self.host}:{self.port}/control")
         logger.info(f"   Health Check:          http://{self.host}:{self.port}/health")
         logger.info("")
         logger.info("🔒 SECURITY FEATURES")
@@ -491,13 +492,14 @@ class ProfessionalDashboard:
         logger.info("   • Single Page Application (SPA) navigation")
         logger.info("   • Glassmorphism UI effects")
         logger.info("   • Mobile responsive design")
+        logger.info("   • 🎛️ Control Panel v4.2 (Bot management)")
         logger.info("")
         
         if not self.is_production:
             logger.info("=" * 80)
             logger.info("                      ACCESS INFORMATION")
             logger.info("-" * 80)
-            logger.info(f"  URL:      http://localhost:{self.port}/login")
+            logger.info(f"  Login:    http://localhost:{self.port}/login")
             logger.info(f"  Username: {self.auth.username}")
             logger.info(f"  Password: {'(set via DASHBOARD_PASSWORD)' if self.auth.password_hash else 'NOT SET'}")
             logger.info("=" * 80)
@@ -595,6 +597,17 @@ class ProfessionalDashboard:
             """Main dashboard page"""
             return render_template('dashboard.html', user=session.get('user'))
         
+        # ==================== CONTROL PANEL ROUTE ====================
+        
+        @self.app.route('/control')
+        @self.limiter.limit("20 per minute")
+        @self.login_required
+        def control_panel():
+            """Control panel page v4.2"""
+            return render_template('control.html', user=session.get('user'))
+        
+        # ==================== API Routes ====================
+        
         @self.app.route('/api/overview')
         @self.limiter.limit("20 per minute")
         @self.login_required
@@ -652,7 +665,7 @@ class ProfessionalDashboard:
             """Active alerts"""
             return jsonify({'alerts': self.alerts})
         
-        # ==================== NEW: Dynamic Section API ====================
+        # ==================== Dynamic Section API ====================
         
         @self.app.route('/api/section/<section>')
         @self.limiter.limit("20 per minute")
@@ -716,7 +729,8 @@ class ProfessionalDashboard:
                     'spa_navigation': True,
                     'themes': ['dark', 'light', 'bloomberg'],
                     'charts': 'plotly',
-                    'websocket': True
+                    'websocket': True,
+                    'control_panel': 'v4.2'
                 }
             })
     
@@ -729,7 +743,7 @@ class ProfessionalDashboard:
             emit('connected', {
                 'message': f'Connected to BotV2 Dashboard v{__version__}',
                 'version': __version__,
-                'features': ['session_auth', 'rate_limiting', 'audit_logging', 'spa', '3_themes']
+                'features': ['session_auth', 'rate_limiting', 'audit_logging', 'spa', '3_themes', 'control_panel_v4.2']
             })
         
         @self.socketio.on('disconnect')
@@ -1056,8 +1070,7 @@ class ProfessionalDashboard:
     # ==================== Public API ====================
     
     def update_data(self, portfolio: Dict, trades: List, strategies: Dict, risk: Dict):
-        """
-        Update dashboard data from trading system
+        """Update dashboard data from trading system
         
         Args:
             portfolio: Current portfolio state
@@ -1091,8 +1104,7 @@ class ProfessionalDashboard:
         logger.debug("📊 DATA: Dashboard data updated via WebSocket")
     
     def add_alert(self, level: str, message: str, category: str = 'general'):
-        """
-        Add alert to dashboard
+        """Add alert to dashboard
         
         Args:
             level: Alert level (info, warning, danger)
