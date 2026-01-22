@@ -73,7 +73,7 @@ services:
     labels:
       - "com.botv2.mode=demo"
       - "com.botv2.service=trading-bot"
-      - "com.botv2.version=3.2"
+      - "com.botv2.version=3.3"
 
   # ==========================================================================
   # Dashboard Container - Standalone con Demo Data
@@ -148,7 +148,7 @@ services:
     labels:
       - "com.botv2.mode=demo"
       - "com.botv2.service=dashboard"
-      - "com.botv2.version=3.2"
+      - "com.botv2.version=3.3"
     
     depends_on:
       botv2-app:
@@ -160,9 +160,5 @@ services:
 networks:
   botv2-network:
     driver: bridge
-    name: botv2-demo-network
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
     labels:
       - "com.botv2.mode=demo"
