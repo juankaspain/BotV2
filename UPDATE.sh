@@ -52,15 +52,20 @@ log_info() {
     echo -e "${BLUE}ℹ${NC} $1"
 }
 
-# Función para verificar si un servicio está activo
-service_is_active() {
+# Función mejorada para verificar si un servicio está realmente definido
+service_is_defined() {
     local service=$1
-    # Verifica si el servicio está corriendo
-    if docker-compose ps --services --filter "status=running" 2>/dev/null | grep -q "^${service}$"; then
+    # Usa docker-compose config para ver la configuración parseada (ignora comentarios)
+    if docker-compose config 2>/dev/null | grep -q "^  ${service}:"; then
         return 0
     fi
-    # Verifica si el servicio está definido (aunque no esté corriendo)
-    if docker-compose config --services 2>/dev/null | grep -q "^${service}$"; then
+    return 1
+}
+
+# Función para verificar si un servicio está corriendo
+service_is_running() {
+    local service=$1
+    if docker-compose ps --services --filter "status=running" 2>/dev/null | grep -q "^${service}$"; then
         return 0
     fi
     return 1
@@ -121,49 +126,53 @@ fi
 log_success "docker-compose está disponible"
 
 # ============================================================================
-# PASO 2.5: Detectar servicios activos
+# PASO 2.5: Detectar servicios activos (solo servicios no comentados)
 # ============================================================================
 
 log_header "🔍 Detectando configuración"
 
 log_step "Analizando servicios definidos..."
 
-# Detectar servicios
+# Detectar servicios (solo los que NO están comentados en docker-compose.yml)
 HAS_APP=false
 HAS_DASHBOARD=false
 HAS_POSTGRES=false
 HAS_REDIS=false
 
-if service_is_active "botv2-app"; then
+if service_is_defined "botv2-app"; then
     HAS_APP=true
     log_info "Trading Bot (botv2-app): ACTIVO"
 else
-    log_warning "Trading Bot (botv2-app): NO ACTIVO (comentado o no definido)"
+    log_warning "Trading Bot (botv2-app): NO DEFINIDO (comentado)"
 fi
 
-if service_is_active "botv2-dashboard"; then
+if service_is_defined "botv2-dashboard"; then
     HAS_DASHBOARD=true
     log_info "Dashboard (botv2-dashboard): ACTIVO"
 else
-    log_warning "Dashboard (botv2-dashboard): NO ACTIVO"
+    log_warning "Dashboard (botv2-dashboard): NO DEFINIDO (comentado)"
 fi
 
-if service_is_active "botv2-postgres"; then
+if service_is_defined "botv2-postgres"; then
     HAS_POSTGRES=true
     log_info "PostgreSQL (botv2-postgres): ACTIVO"
 else
-    log_warning "PostgreSQL (botv2-postgres): NO ACTIVO (modo demo sin base de datos)"
+    log_warning "PostgreSQL (botv2-postgres): NO DEFINIDO (comentado)"
 fi
 
-if service_is_active "botv2-redis"; then
+if service_is_defined "botv2-redis"; then
     HAS_REDIS=true
     log_info "Redis (botv2-redis): ACTIVO"
 else
-    log_warning "Redis (botv2-redis): NO ACTIVO"
+    log_warning "Redis (botv2-redis): NO DEFINIDO (comentado)"
 fi
 
 echo ""
-if [ "$HAS_DASHBOARD" = true ] && [ "$HAS_APP" = false ] && [ "$HAS_POSTGRES" = false ]; then
+# Modo DEMO: solo app + dashboard (sin postgres ni redis)
+if [ "$HAS_DASHBOARD" = true ] && [ "$HAS_APP" = true ] && [ "$HAS_POSTGRES" = false ] && [ "$HAS_REDIS" = false ]; then
+    log_info "🎯 Modo detectado: DEMO (App + Dashboard sin base de datos)"
+    MODE="demo"
+elif [ "$HAS_DASHBOARD" = true ] && [ "$HAS_APP" = false ] && [ "$HAS_POSTGRES" = false ]; then
     log_info "🎯 Modo detectado: DEMO (Dashboard standalone con datos demo)"
     MODE="demo"
 else
@@ -217,32 +226,26 @@ BUILD_ERRORS=false
 
 if [ "$HAS_APP" = true ]; then
     log_step "Compilando imagen botv2-app..."
-    if docker-compose build botv2-app 2>&1 | grep -q "service.*not found\|no such service"; then
-        log_warning "Servicio botv2-app no encontrado en docker-compose.yml (omitiendo)"
-        HAS_APP=false
-    elif docker-compose build botv2-app &> /dev/null; then
+    if docker-compose build botv2-app &> /dev/null; then
         log_success "Imagen botv2-app compilada"
     else
         log_error "Error compilando botv2-app"
         BUILD_ERRORS=true
     fi
 else
-    log_info "Omitiendo botv2-app (no activo)"
+    log_info "Omitiendo botv2-app (no definido en docker-compose.yml)"
 fi
 
 if [ "$HAS_DASHBOARD" = true ]; then
     log_step "Compilando imagen botv2-dashboard..."
-    if docker-compose build botv2-dashboard 2>&1 | grep -q "service.*not found\|no such service"; then
-        log_error "Servicio botv2-dashboard no encontrado en docker-compose.yml"
-        exit 1
-    elif docker-compose build botv2-dashboard &> /dev/null; then
+    if docker-compose build botv2-dashboard &> /dev/null; then
         log_success "Imagen botv2-dashboard compilada"
     else
         log_error "Error compilando botv2-dashboard"
         BUILD_ERRORS=true
     fi
 else
-    log_error "Dashboard no está activo - no se puede actualizar"
+    log_error "Dashboard no está definido - no se puede actualizar"
     exit 1
 fi
 
