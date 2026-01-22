@@ -85,6 +85,7 @@ echo "  ✓ Preserva PostgreSQL intacto (si existe)"
 echo "  ✓ Preserva Redis intacto (si existe)"
 echo "  ✓ Preserva TODOS los datos"
 echo "  ✓ Detecta modo Demo/Producción automáticamente"
+echo "  ✓ Detiene servicios innecesarios en modo Demo"
 echo "  ✓ Sin downtime significativo"
 echo ""
 echo -e "${YELLOW}Confirmación${NC}"
@@ -178,6 +179,43 @@ elif [ "$HAS_DASHBOARD" = true ] && [ "$HAS_APP" = false ] && [ "$HAS_POSTGRES" 
 else
     log_info "🎯 Modo detectado: PRODUCCIÓN (Con base de datos y/o trading bot)"
     MODE="production"
+fi
+
+# ============================================================================
+# PASO 2.7: Si modo DEMO, detener Redis/PostgreSQL si están corriendo
+# ============================================================================
+
+if [ "$MODE" = "demo" ]; then
+    log_header "🧼 Limpieza para modo DEMO"
+    
+    STOPPED_SERVICES=false
+    
+    # Verificar si PostgreSQL está corriendo aunque no esté definido
+    if service_is_running "botv2-postgres"; then
+        log_warning "PostgreSQL está corriendo pero no está definido en modo demo"
+        log_step "Deteniendo PostgreSQL (no necesario en modo demo)..."
+        if docker-compose stop botv2-postgres &> /dev/null; then
+            log_success "PostgreSQL detenido"
+            STOPPED_SERVICES=true
+        fi
+    fi
+    
+    # Verificar si Redis está corriendo aunque no esté definido
+    if service_is_running "botv2-redis"; then
+        log_warning "Redis está corriendo pero no está definido en modo demo"
+        log_step "Deteniendo Redis (no necesario en modo demo)..."
+        if docker-compose stop botv2-redis &> /dev/null; then
+            log_success "Redis detenido"
+            STOPPED_SERVICES=true
+        fi
+    fi
+    
+    if [ "$STOPPED_SERVICES" = true ]; then
+        log_info "Servicios innecesarios detenidos (datos preservados en volúmenes)"
+        log_info "Para reactivar: descomentar servicios en docker-compose.yml"
+    else
+        log_info "No hay servicios innecesarios corriendo"
+    fi
 fi
 
 # ============================================================================
