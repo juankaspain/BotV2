@@ -1,6 +1,6 @@
 # 🎯 BotV2 Mode Selection Guide
 
-**Version:** 3.0  
+**Version:** 3.2  
 **Date:** 2026-01-22  
 **Status:** ✅ Production Ready
 
@@ -37,12 +37,13 @@ BotV2 ahora incluye un sistema profesional de selección de modo con **configura
 | Aspecto | Demo Mode | Production Mode |
 |---------|-----------|----------------|
 | **Archivo** | `docker-compose.demo.yml` | `docker-compose.production.yml` |
-| **Servicios** | Dashboard standalone | Bot + Dashboard + DB + Redis |
+| **Servicios** | Bot + Dashboard (demo data) | Bot + Dashboard + DB + Redis |
 | **Datos** | Generados (demo) | Reales (trading) |
 | **PostgreSQL** | ❌ No requerido | ✓ Requerido |
 | **Redis** | ❌ No requerido (usa memoria) | ✓ Requerido |
+| **Trading Mode** | Paper (simulado) | Paper o Live |
 | **Backups** | ❌ No | ✓ Automáticos |
-| **Recursos** | Mínimos (~200MB RAM) | Moderados (~1GB RAM) |
+| **Recursos** | Bajos (~300MB RAM) | Moderados (~1GB RAM) |
 | **Inicio** | Rápido (< 30s) | Medio (< 60s) |
 | **Uso ideal** | Desarrollo, demos, pruebas | Trading real, staging |
 
@@ -55,20 +56,23 @@ BotV2 ahora incluye un sistema profesional de selección de modo con **configura
 **Propósito:** Desarrollo, pruebas, demostraciones
 
 **Características:**
-- Dashboard standalone con datos de demostración
+- **Trading Bot + Dashboard** con datos de demostración
 - NO requiere base de datos (usa memoria)
 - Generación automática de trades y métricas
+- Paper trading mode activado
 - Inicio ultra rápido
 - Ideal para:
-  - Probar el dashboard
+  - Probar el sistema completo
   - Desarrollo de features
   - Demos a clientes
-  - Testing de UI/UX
+  - Testing de estrategias
+  - Pruebas de integración
 
 **Servicios incluidos:**
 ```
+├── botv2-app (trading bot - paper mode)
 ├── botv2-dashboard (port 8050)
-└── botv2-network
+└── botv2-demo-network
 ```
 
 **Comando de inicio:**
@@ -91,7 +95,7 @@ docker-compose -f docker-compose.demo.yml up -d
 - Healthchecks completos
 - Ideal para:
   - Trading con dinero real
-  - Paper trading serio
+  - Paper trading serio con persistencia
   - Entornos de staging
   - Producción
 
@@ -118,15 +122,15 @@ docker-compose -f docker-compose.production.yml up -d
 ```bash
 # 1. Asegúrate de tener .env configurado
 cp .env.example .env
-# Edita .env según tus necesidades
+# Edita .env según tus necesidades (mínimo para demo ya está OK)
 
 # 2. Ejecuta el script de actualización
 chmod +x UPDATE.sh
 ./UPDATE.sh
 
 # 3. Sigue el menú interactivo:
-#    - Opción 1: Demo Mode
-#    - Opción 2: Production Mode
+#    - Opción 1: Demo Mode (Bot + Dashboard con demo data)
+#    - Opción 2: Production Mode (Sistema completo)
 #    - Opción 3: Cancelar
 ```
 
@@ -144,10 +148,12 @@ docker-compose -f docker-compose.demo.yml up -d
 docker-compose -f docker-compose.demo.yml ps
 
 # Ver logs
-docker-compose -f docker-compose.demo.yml logs -f botv2-dashboard
+docker-compose -f docker-compose.demo.yml logs -f
 
 # Acceder
 # http://localhost:8050
+# Usuario: admin
+# Password: admin (default en demo)
 ```
 
 **Production Mode:**
@@ -192,8 +198,9 @@ El script `UPDATE.sh` presenta un menú interactivo profesional:
 Selecciona el modo en el que deseas actualizar el sistema:
 
   1) 🎮 MODO DEMO
-     • Dashboard standalone con datos de demostración
+     • Trading Bot + Dashboard con datos demo
      • NO requiere PostgreSQL ni Redis
+     • Paper trading mode activado
      • Perfecto para pruebas y desarrollo
      • Ligero y rápido de iniciar
      • Archivo: docker-compose.demo.yml
@@ -233,7 +240,7 @@ Elige una opción (1-3):
 **Ubicación:** `./docker-compose.demo.yml`
 
 **Contenido:**
-- 1 servicio: `botv2-dashboard`
+- 2 servicios: `botv2-app` (paper mode) + `botv2-dashboard`
 - Sin dependencias de base de datos
 - Demo data auto-generado
 - Rate limiting en memoria
@@ -241,14 +248,14 @@ Elige una opción (1-3):
 
 **Variables requeridas en .env:**
 ```bash
-# Mínimo para demo
+# Mínimo para demo (todo tiene defaults)
 DASHBOARD_PORT=8050
 LOG_LEVEL=INFO
 
-# Opcionales (se auto-generan)
+# Opcionales (ya tienen defaults en demo)
 DASHBOARD_USERNAME=admin
-DASHBOARD_PASSWORD=
-SECRET_KEY=
+DASHBOARD_PASSWORD=admin
+SECRET_KEY=demo-secret-key-change-in-production
 ```
 
 ### docker-compose.production.yml
@@ -292,260 +299,96 @@ BINANCE_API_SECRET=
 LOG_LEVEL=INFO
 ```
 
-### docker-compose.yml (Original)
-
-**Estado:** Se mantiene para compatibilidad hacia atrás
-
-**Recomendación:** Usar los archivos específicos (`demo.yml` o `production.yml`) en su lugar
-
----
-
-## ⚙️ Environment Variables
-
-### Variables Comunes
-
-| Variable | Demo | Production | Default | Descripción |
-|----------|------|------------|---------|---------------|
-| `LOG_LEVEL` | ✓ | ✓ | INFO | Nivel de logs (DEBUG, INFO, WARNING, ERROR) |
-| `DASHBOARD_PORT` | ✓ | ✓ | 8050 | Puerto del dashboard |
-| `DASHBOARD_USERNAME` | ✓ | ✓ | admin | Usuario del dashboard |
-| `DASHBOARD_PASSWORD` | Opcional | **Requerido** | - | Contraseña del dashboard |
-| `SECRET_KEY` | Auto | **Requerido** | - | Clave secreta de Flask |
-
-### Variables Solo Production
-
-| Variable | Required | Default | Descripción |
-|----------|----------|---------|---------------|
-| `TRADING_MODE` | ✓ | paper | Modo de trading (paper/live) |
-| `POSTGRES_USER` | ✓ | botv2 | Usuario PostgreSQL |
-| `POSTGRES_PASSWORD` | ✓ | - | Contraseña PostgreSQL |
-| `POSTGRES_DATABASE` | ✓ | botv2_db | Nombre base de datos |
-| `POSTGRES_PORT` | ❌ | 5432 | Puerto PostgreSQL |
-| `REDIS_PASSWORD` | ✓ | - | Contraseña Redis |
-| `REDIS_PORT` | ❌ | 6379 | Puerto Redis |
-
-### Exchange API Keys (Production)
-
-```bash
-# Binance
-BINANCE_API_KEY=
-BINANCE_API_SECRET=
-BINANCE_TESTNET=false
-
-# Coinbase
-COINBASE_API_KEY=
-COINBASE_API_SECRET=
-COINBASE_SANDBOX=false
-
-# ... otros exchanges
-```
-
----
-
-## 🔄 Migration Guide
-
-### Desde docker-compose.yml Antiguo
-
-Si ya estabas usando `docker-compose.yml` con comentarios:
-
-#### Paso 1: Identificar tu modo actual
-
-```bash
-# Verifica qué servicios están corriendo
-docker-compose ps
-```
-
-**Si solo ves `botv2-dashboard`:** Estás en modo Demo
-**Si ves todos los servicios:** Estás en modo Production
-
-#### Paso 2: Migrar a nuevo archivo
-
-**Para Demo:**
-```bash
-# Detener servicios actuales
-docker-compose down
-
-# Iniciar con nuevo archivo
-docker-compose -f docker-compose.demo.yml up -d
-```
-
-**Para Production:**
-```bash
-# Detener servicios actuales (sin eliminar volúmenes)
-docker-compose down
-
-# Iniciar con nuevo archivo
-docker-compose -f docker-compose.production.yml up -d
-```
-
-#### Paso 3: Verificar
-
-```bash
-# Demo
-docker-compose -f docker-compose.demo.yml ps
-
-# Production
-docker-compose -f docker-compose.production.yml ps
-```
-
-### Cambiar de Demo a Production
-
-```bash
-# 1. Detener demo
-docker-compose -f docker-compose.demo.yml down
-
-# 2. Configurar .env para producción
-# Agregar todas las variables requeridas
-
-# 3. Iniciar producción
-docker-compose -f docker-compose.production.yml up -d
-```
-
-### Cambiar de Production a Demo
-
-```bash
-# 1. Backup (importante!)
-docker-compose -f docker-compose.production.yml exec botv2-postgres \
-  pg_dump -U botv2 botv2_db > backup_$(date +%Y%m%d).sql
-
-# 2. Detener producción (datos se preservan en volúmenes)
-docker-compose -f docker-compose.production.yml down
-
-# 3. Iniciar demo
-docker-compose -f docker-compose.demo.yml up -d
-
-# Nota: Los volúmenes de PostgreSQL/Redis quedan intactos
-# Puedes volver a production en cualquier momento
-```
-
 ---
 
 ## 🔧 Troubleshooting
 
-### Problema: "Archivo docker-compose no encontrado"
+### Problema: Dashboard no responde en modo demo
 
 **Síntoma:**
-```
-ERROR: Can't find a suitable configuration file
-```
-
-**Solución:**
 ```bash
-# Verifica que el archivo existe
-ls -la docker-compose.*.yml
-
-# Si no existe, verifica que estás en el directorio correcto
-pwd
-
-# Debe ser el directorio raíz de BotV2
+HTTP 000 o connection refused
 ```
-
-### Problema: "Service 'botv2-dashboard' not defined"
-
-**Causa:** Usando archivo incorrecto
-
-**Solución:**
-```bash
-# Usa el archivo correcto
-docker-compose -f docker-compose.demo.yml ps      # Para demo
-docker-compose -f docker-compose.production.yml ps # Para production
-```
-
-### Problema: Variables de entorno faltantes
-
-**Síntoma:**
-```
-WARNING: The POSTGRES_PASSWORD variable is not set
-```
-
-**Solución:**
-```bash
-# 1. Copia el ejemplo
-cp .env.example .env
-
-# 2. Edita .env con tus valores
-nano .env
-
-# 3. Verifica que las variables están configuradas
-cat .env | grep POSTGRES_PASSWORD
-```
-
-### Problema: Puerto ya en uso
-
-**Síntoma:**
-```
-ERROR: for botv2-dashboard  Cannot start service: 
-driver failed: Bind for 0.0.0.0:8050 failed: port is already allocated
-```
-
-**Solución:**
-```bash
-# Opción 1: Cambiar puerto en .env
-echo "DASHBOARD_PORT=8051" >> .env
-
-# Opción 2: Detener servicio que usa el puerto
-lsof -ti:8050 | xargs kill -9
-
-# Opción 3: Detener contenedores antiguos
-docker-compose down
-docker-compose -f docker-compose.demo.yml down
-docker-compose -f docker-compose.production.yml down
-```
-
-### Problema: Dashboard muestra "Unhealthy"
 
 **Diagnóstico:**
 ```bash
 # Ver logs del dashboard
-docker-compose -f docker-compose.demo.yml logs botv2-dashboard
+docker-compose -f docker-compose.demo.yml logs -f botv2-dashboard
 
-# Ver estado detallado
+# Ver estado del contenedor
+docker-compose -f docker-compose.demo.yml ps botv2-dashboard
+
+# Verificar healthcheck
 docker inspect botv2-dashboard | grep -A 10 Health
 ```
 
-**Soluciones comunes:**
+**Soluciones:**
 
-1. **Redis no disponible (solo production):**
+1. **Esperar más tiempo**
    ```bash
-   # Verificar Redis
-   docker-compose -f docker-compose.production.yml exec botv2-redis redis-cli ping
+   # El dashboard puede tardar hasta 60s en iniciarse
+   sleep 30
+   curl http://localhost:8050/health
+   ```
+
+2. **Verificar puerto no está ocupado**
+   ```bash
+   # Windows
+   netstat -ano | findstr :8050
    
-   # Reiniciar Redis si es necesario
-   docker-compose -f docker-compose.production.yml restart botv2-redis
-   ```
-
-2. **PostgreSQL no disponible (solo production):**
-   ```bash
-   # Verificar PostgreSQL
-   docker-compose -f docker-compose.production.yml exec botv2-postgres pg_isready -U botv2
+   # Linux/Mac
+   lsof -i :8050
    
-   # Reiniciar PostgreSQL si es necesario
-   docker-compose -f docker-compose.production.yml restart botv2-postgres
+   # Si está ocupado, cambiar puerto
+   echo "DASHBOARD_PORT=8051" >> .env
+   docker-compose -f docker-compose.demo.yml down
+   docker-compose -f docker-compose.demo.yml up -d
    ```
 
-3. **Esperar más tiempo:**
-   ```bash
-   # El healthcheck puede tardar hasta 40 segundos
-   sleep 45
-   docker-compose -f docker-compose.demo.yml ps
-   ```
+3. **Healthcheck acepta 401/302**
+   - El healthcheck ahora acepta 200, 401 o 302 como respuestas válidas
+   - 401 = auth requerido (normal)
+   - 302 = redirect a login (normal)
+   - Si aún falla, verificar logs
 
-### Problema: UPDATE.sh no encuentra servicios
+---
+
+### Problema: Bot no inicia en modo demo
 
 **Síntoma:**
+```bash
+botv2-app | ERROR: ...
 ```
-WARNING: Dashboard (botv2-dashboard): NO DEFINIDO
+
+**Verificar:**
+```bash
+# Ver logs completos
+docker-compose -f docker-compose.demo.yml logs botv2-app
+
+# Verificar que está en paper mode
+docker-compose -f docker-compose.demo.yml exec botv2-app env | grep TRADING_MODE
+# Debe mostrar: TRADING_MODE=paper
 ```
 
 **Solución:**
-```bash
-# Verifica que elegiste el modo correcto en el menú
-# Verifica que el archivo docker-compose existe
-ls -la docker-compose.*.yml
+- El bot en demo mode no requiere API keys
+- Si da error de conexión a DB, es normal (usa memoria)
+- Los trades son simulados
 
-# Prueba manualmente
-docker-compose -f docker-compose.demo.yml config | grep botv2-dashboard
+---
+
+### Problema: "version is obsolete" warning
+
+**Síntoma:**
 ```
+the attribute `version` is obsolete
+```
+
+**Acción:**
+- Este es solo un WARNING, no un error
+- Docker Compose v2 no requiere el campo `version`
+- El sistema funciona correctamente
+- Se puede ignorar de forma segura
 
 ---
 
@@ -557,8 +400,11 @@ docker-compose -f docker-compose.demo.yml config | grep botv2-dashboard
 # Iniciar
 docker-compose -f docker-compose.demo.yml up -d
 
-# Ver logs
+# Ver logs de ambos servicios
 docker-compose -f docker-compose.demo.yml logs -f
+
+# Ver solo logs del bot
+docker-compose -f docker-compose.demo.yml logs -f botv2-app
 
 # Ver solo logs del dashboard
 docker-compose -f docker-compose.demo.yml logs -f botv2-dashboard
@@ -569,12 +415,15 @@ docker-compose -f docker-compose.demo.yml ps
 # Detener
 docker-compose -f docker-compose.demo.yml down
 
-# Reiniciar dashboard
+# Reiniciar un servicio
 docker-compose -f docker-compose.demo.yml restart botv2-dashboard
 
 # Reconstruir imagen
 docker-compose -f docker-compose.demo.yml build botv2-dashboard
 docker-compose -f docker-compose.demo.yml up -d
+
+# Ver estadísticas de recursos
+docker stats botv2-app botv2-dashboard
 ```
 
 ### Production Mode
@@ -611,27 +460,6 @@ docker-compose -f docker-compose.production.yml exec botv2-redis redis-cli
 # Backup PostgreSQL
 docker-compose -f docker-compose.production.yml exec botv2-postgres \
   pg_dump -U botv2 botv2_db > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Restaurar backup
-cat backup_20260122_120000.sql | \
-  docker-compose -f docker-compose.production.yml exec -T botv2-postgres \
-  psql -U botv2 -d botv2_db
-```
-
-### Monitoreo
-
-```bash
-# Estadísticas de recursos en tiempo real
-docker stats
-
-# Solo servicios de BotV2
-docker stats botv2-app botv2-dashboard botv2-postgres botv2-redis
-
-# Healthcheck status
-docker inspect botv2-dashboard | grep -A 5 Health
-
-# Verificar conectividad HTTP
-curl -I http://localhost:8050/health
 ```
 
 ---
@@ -644,6 +472,7 @@ curl -I http://localhost:8050/health
 2. **No commitees .env** (está en .gitignore)
 3. **Usa variables de entorno** para configuración
 4. **Verifica logs** regularmente durante desarrollo
+5. **Prueba ambos modos** antes de desplegar
 
 ### Staging/Production
 
@@ -654,14 +483,6 @@ curl -I http://localhost:8050/health
 5. **Logs centralizados** (ELK, Splunk, etc.)
 6. **Rate limiting** con Redis configurado
 
-### Seguridad
-
-1. **Passwords fuertes** para todos los servicios
-2. **SECRET_KEY único** generado con `openssl rand -base64 32`
-3. **No expongas** puertos de DB/Redis si no es necesario
-4. **HTTPS** en producción (reverse proxy como nginx)
-5. **Firewall** configurado adecuadamente
-
 ---
 
 ## 📝 Summary
@@ -669,49 +490,17 @@ curl -I http://localhost:8050/health
 ### Ventajas del Nuevo Sistema
 
 ✅ **Separación clara** entre demo y producción  
+✅ **Demo mode completo** con bot + dashboard  
 ✅ **No más edición manual** de docker-compose.yml  
 ✅ **Menú interactivo** profesional en UPDATE.sh  
 ✅ **Transición suave** entre modos  
 ✅ **Preservación de datos** garantizada  
 ✅ **Backups automáticos** en producción  
-✅ **Detección inteligente** de servicios  
+✅ **Healthcheck mejorado** (acepta 401/302)  
 ✅ **Verificación robusta** post-despliegue  
 
-### Files Overview
-
-```
-BotV2/
-├── UPDATE.sh                          # Script con menú de selección
-├── docker-compose.demo.yml           # Configuración modo demo
-├── docker-compose.production.yml     # Configuración modo producción
-├── docker-compose.yml                # Original (mantener compatibilidad)
-├── .env.example                      # Plantilla de variables
-├── .env                              # Tu configuración (no versionado)
-└── docs/MODE_SELECTION_GUIDE.md      # Este documento
-```
-
 ---
 
-## 🔗 Related Documentation
-
-- [README.md](../README.md) - Documentación general del proyecto
-- [DOCKER_SETUP.md](../DOCKER_SETUP.md) - Guía de configuración Docker
-- [DASHBOARD_ACCESS.md](../DASHBOARD_ACCESS.md) - Acceso y uso del dashboard
-- [LOGGING_IMPROVEMENTS.md](./LOGGING_IMPROVEMENTS.md) - Mejoras de logging
-
----
-
-## 📞 Support
-
-Si encuentras problemas:
-
-1. Revisa esta guía completa
-2. Verifica logs: `docker-compose -f <file> logs -f`
-3. Consulta la sección [Troubleshooting](#troubleshooting)
-4. Verifica issues en GitHub
-
----
-
-**Version:** 3.0  
+**Version:** 3.2  
 **Last Updated:** 2026-01-22  
 **Status:** ✅ Production Ready
