@@ -3,8 +3,8 @@
 # Services: Trading Bot + Dashboard + PostgreSQL + Redis
 
 # ARCHITECTURE:
-#   Trading Bot → Writes to → PostgreSQL/Redis
-#   Dashboard → Reads from → PostgreSQL/Redis
+#   Trading Bot \u2192 Writes to \u2192 PostgreSQL/Redis
+#   Dashboard \u2192 Reads from \u2192 PostgreSQL/Redis
 #   (No API layer needed - direct DB access)
 
 # IMPORTANT: Copy local.env to .env before running:
@@ -70,7 +70,7 @@ services:
       - DASHBOARD_PORT=8050
       - REDIS_HOST=botv2-redis  # CORRECTED: Use Docker service name
       - REDIS_PORT=6379
-    command: ["python", "-m", "src.dashboard.web_app"]  # Dashboard HTTP server
+    command: ["python", "src/dashboard/dashboard_standalone.py"]  # FIXED: Use standalone entry point with demo data
     ports:
       - "8050:8050"  # Dashboard web interface
     depends_on:
@@ -82,7 +82,7 @@ services:
       - botv2-network
     restart: on-failure:3  # Stop after 3 failures (no infinite loop)
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8050/health"]  # CORRECTED: /health endpoint (no auth)
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8050/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
