@@ -1,14 +1,15 @@
 # ============================================================================
 # BotV2 Trading System - DEMO MODE Configuration
 # ============================================================================
-# 🎮 MODO DEMO: Dashboard standalone con datos de demostración
+# 🎮 MODO DEMO: Sistema completo con datos de demostración
 #
 # Características:
-#   • Dashboard standalone con generación de datos demo
+#   • Trading Bot + Dashboard con datos demo
 #   • NO requiere PostgreSQL ni Redis (usa memoria)
 #   • Perfecto para pruebas, desarrollo y demos
 #   • Inicio rápido (< 30 segundos)
 #   • Bajo consumo de recursos
+#   • Paper trading mode activado
 #
 # Inicio rápido:
 #   cp .env.example .env
@@ -21,9 +22,59 @@
 #   docker-compose -f docker-compose.demo.yml down
 # ============================================================================
 
-version: '3.8'
-
 services:
+  # ==========================================================================
+  # Trading Bot Container - Demo Mode
+  # ==========================================================================
+  botv2-app:
+    container_name: botv2-app
+    image: botv2-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      # Python
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      
+      # Trading (DEMO MODE)
+      - TRADING_MODE=paper
+      - DEMO_MODE=true
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - INITIAL_CAPITAL=3000
+      
+      # Database (not used in demo, but defined for compatibility)
+      - POSTGRES_HOST=localhost
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=localhost
+      - REDIS_PORT=6379
+    
+    command: ["python", "src/main.py"]
+    
+    networks:
+      - botv2-network
+    
+    restart: on-failure:3
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    volumes:
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+      - ./data:/app/data
+    
+    labels:
+      - "com.botv2.mode=demo"
+      - "com.botv2.service=trading-bot"
+      - "com.botv2.version=3.2"
+
   # ==========================================================================
   # Dashboard Container - Standalone con Demo Data
   # ==========================================================================
@@ -59,10 +110,10 @@ services:
       
       # Authentication (auto-generated if not set)
       - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
-      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-}
-      - SECRET_KEY=${SECRET_KEY:-}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-admin}
+      - SECRET_KEY=${SECRET_KEY:-demo-secret-key-change-in-production}
     
-    command: ["python", "src/dashboard/dashboard_standalone.py"]
+    command: ["python", "-u", "src/dashboard/dashboard_standalone.py"]
     
     ports:
       - "${DASHBOARD_PORT:-8050}:8050"
@@ -73,11 +124,22 @@ services:
     restart: on-failure:3
     
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8050/health').read()"]
+      test: |
+        python -c "
+        import urllib.request
+        import sys
+        try:
+            response = urllib.request.urlopen('http://localhost:8050/health', timeout=5)
+            sys.exit(0 if response.code in [200, 401, 302] else 1)
+        except urllib.error.HTTPError as e:
+            sys.exit(0 if e.code in [200, 401, 302] else 1)
+        except Exception:
+            sys.exit(1)
+        "
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 60s
     
     volumes:
       - ./logs:/app/logs
@@ -86,7 +148,11 @@ services:
     labels:
       - "com.botv2.mode=demo"
       - "com.botv2.service=dashboard"
-      - "com.botv2.version=2.0"
+      - "com.botv2.version=3.2"
+    
+    depends_on:
+      botv2-app:
+        condition: service_started
 
 # ============================================================================
 # Networks
@@ -94,6 +160,7 @@ services:
 networks:
   botv2-network:
     driver: bridge
+    name: botv2-demo-network
     ipam:
       config:
         - subnet: 172.20.0.0/16
