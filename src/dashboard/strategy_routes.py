@@ -31,8 +31,8 @@ from .strategy_editor import get_strategy_editor, PresetType
 
 logger = logging.getLogger(__name__)
 
-# Create Blueprint
-strategy_bp = Blueprint('strategy_editor', __name__, url_prefix='/api/strategies')
+# Create Blueprint - NO url_prefix for UI route
+strategy_bp = Blueprint('strategy_editor', __name__)
 
 
 # ==================== DECORATORS ====================
@@ -65,7 +65,7 @@ def audit_log(action: str):
 
 # ==================== UI ROUTE ====================
 
-@strategy_bp.route('/', methods=['GET'])
+@strategy_bp.route('/strategy-editor', methods=['GET'])
 @login_required
 def strategy_editor_ui():
     """Strategy Editor UI page"""
@@ -74,7 +74,7 @@ def strategy_editor_ui():
 
 # ==================== API ROUTES ====================
 
-@strategy_bp.route('/list', methods=['GET'])
+@strategy_bp.route('/api/strategies/list', methods=['GET'])
 @login_required
 @audit_log('List strategies')
 def list_strategies():
@@ -106,7 +106,7 @@ def list_strategies():
         }), 500
 
 
-@strategy_bp.route('/<strategy_name>', methods=['GET'])
+@strategy_bp.route('/api/strategies/<strategy_name>', methods=['GET'])
 @login_required
 @audit_log('Get strategy parameters')
 def get_strategy(strategy_name: str):
@@ -147,7 +147,7 @@ def get_strategy(strategy_name: str):
         }), 500
 
 
-@strategy_bp.route('/<strategy_name>/param', methods=['POST'])
+@strategy_bp.route('/api/strategies/<strategy_name>/param', methods=['POST'])
 @login_required
 @audit_log('Update parameter')
 def update_parameter(strategy_name: str):
@@ -210,7 +210,7 @@ def update_parameter(strategy_name: str):
         }), 500
 
 
-@strategy_bp.route('/<strategy_name>/preset', methods=['POST'])
+@strategy_bp.route('/api/strategies/<strategy_name>/preset', methods=['POST'])
 @login_required
 @audit_log('Apply preset')
 def apply_preset_single(strategy_name: str):
@@ -280,7 +280,7 @@ def apply_preset_single(strategy_name: str):
         }), 500
 
 
-@strategy_bp.route('/preset/all', methods=['POST'])
+@strategy_bp.route('/api/strategies/preset/all', methods=['POST'])
 @login_required
 @audit_log('Apply preset to all')
 def apply_preset_all():
@@ -341,7 +341,7 @@ def apply_preset_all():
         }), 500
 
 
-@strategy_bp.route('/history', methods=['GET'])
+@strategy_bp.route('/api/strategies/history', methods=['GET'])
 @login_required
 @audit_log('Get change history')
 def get_history():
@@ -380,7 +380,7 @@ def get_history():
         }), 500
 
 
-@strategy_bp.route('/rollback', methods=['POST'])
+@strategy_bp.route('/api/strategies/rollback', methods=['POST'])
 @login_required
 @audit_log('Rollback configuration')
 def rollback():
@@ -440,7 +440,7 @@ def rollback():
         }), 500
 
 
-@strategy_bp.route('/estimate', methods=['POST'])
+@strategy_bp.route('/api/strategies/estimate', methods=['POST'])
 @login_required
 @audit_log('Estimate impact')
 def estimate_impact():
@@ -499,7 +499,7 @@ def estimate_impact():
         }), 500
 
 
-@strategy_bp.route('/<strategy_name>/backtest', methods=['POST'])
+@strategy_bp.route('/api/strategies/<strategy_name>/backtest', methods=['POST'])
 @login_required
 @audit_log('Quick backtest')
 def quick_backtest(strategy_name: str):
@@ -549,7 +549,7 @@ def quick_backtest(strategy_name: str):
         }), 500
 
 
-@strategy_bp.route('/presets', methods=['GET'])
+@strategy_bp.route('/api/strategies/presets', methods=['GET'])
 @login_required
 @audit_log('Get presets')
 def get_presets():
@@ -599,7 +599,7 @@ def get_presets():
         }), 500
 
 
-@strategy_bp.route('/stats', methods=['GET'])
+@strategy_bp.route('/api/strategies/stats', methods=['GET'])
 @login_required
 @audit_log('Get statistics')
 def get_stats():
@@ -630,7 +630,7 @@ def get_stats():
         }), 500
 
 
-@strategy_bp.route('/export', methods=['POST'])
+@strategy_bp.route('/api/strategies/export', methods=['POST'])
 @login_required
 @audit_log('Export configurations')
 def export_configurations():
