@@ -49,7 +49,7 @@ class ParameterType(str, Enum):
 # ==================== DATA CLASSES ====================
 
 @dataclass
- class ParameterDefinition:
+class ParameterDefinition:
     """Definition of a strategy parameter"""
     name: str
     type: ParameterType
