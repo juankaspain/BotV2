@@ -1,27 +1,29 @@
 # BotV2 Trading System - Docker Compose Configuration
 # Demo Mode Configuration (Default)
-# Services: Trading Bot (Demo) + Dashboard (Demo Data)
+# Services: Trading Bot (Demo) + Dashboard v5.1 (Mock Data)
 
 # ARCHITECTURE (DEMO MODE):
 #   Trading Bot → Paper Trading Mode (No real money)
-#   Dashboard → Standalone Mode with Demo Data
+#   Dashboard v5.1 → Professional dashboard with mock data fallback
 #   No Database Required → All data is simulated/demo
 
 # ARCHITECTURE (PRODUCTION MODE):
 #   Trading Bot → Writes to → PostgreSQL/Redis
-#   Dashboard → Reads from → PostgreSQL/Redis
+#   Dashboard v5.1 → Reads from → PostgreSQL/Redis (with mock fallback)
 #   (Uncomment PostgreSQL and Redis services below)
 
 # QUICK START (DEMO MODE):
 #   cp local.env .env
 #   docker compose up -d
-#   Access: http://localhost:8050 (Dashboard)
+#   Access: http://localhost:8050 (Dashboard v5.1)
+#   Login: admin / admin (change in production)
 
 # PRODUCTION MODE:
 #   1. Uncomment botv2-postgres and botv2-redis services
 #   2. Uncomment depends_on sections in botv2-app and botv2-dashboard
 #   3. Set TRADING_MODE=live in .env
 #   4. Set DEMO_MODE=false in .env
+#   5. Set strong DASHBOARD_PASSWORD in .env
 
 services:
   # ============================================================================
@@ -66,7 +68,7 @@ services:
       - ./data:/app/data
 
   # ============================================================================
-  # Dashboard Container (Web Interface) - DEMO MODE WITH DEMO DATA
+  # Dashboard v5.1 - Complete Integration with Market Data & Annotations
   # ============================================================================
   botv2-dashboard:
     container_name: botv2-dashboard
@@ -85,16 +87,19 @@ services:
       - DASHBOARD_HOST=0.0.0.0
       - DASHBOARD_PORT=8050
       # Demo mode environment variables
-      - DEMO_MODE=true  # Enables demo data generation
+      - DEMO_MODE=true  # Enables mock data generation
       - INITIAL_CAPITAL=3000  # Demo portfolio starting capital
       # Redis (optional for demo, required for production rate limiting)
       - REDIS_HOST=${REDIS_HOST:-localhost}
       - REDIS_PORT=${REDIS_PORT:-6379}
-      # Authentication (will be auto-generated if not set)
+      # Authentication (CHANGE IN PRODUCTION!)
       - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
-      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-}  # Leave empty for auto-generation
-      - SECRET_KEY=${SECRET_KEY:-}  # Leave empty for auto-generation
-    command: ["python", "src/dashboard/dashboard_standalone.py"]  # Standalone entry point with demo data
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-admin}
+      - SECRET_KEY=${SECRET_KEY:-demo-secret-key-change-in-production}
+      # Database (optional - will use mock data if not available)
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///data/dashboard.db}
+    # ⚠️ UPDATED: Use web_app.py v5.1 (dashboard_standalone.py was removed)
+    command: ["python", "-u", "-m", "src.dashboard.web_app"]  # v5.1 entry point
     ports:
       - "${DASHBOARD_PORT:-8050}:8050"  # Dashboard web interface
     
@@ -109,14 +114,28 @@ services:
       - botv2-network
     restart: on-failure:3  # Stop after 3 failures (no infinite restart loop)
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8050/health').read()"]
+      test: |
+        python -c "
+        import urllib.request
+        import sys
+        try:
+            response = urllib.request.urlopen('http://localhost:8050/health', timeout=5)
+            sys.exit(0 if response.code in [200, 401, 302] else 1)
+        except urllib.error.HTTPError as e:
+            sys.exit(0 if e.code in [200, 401, 302] else 1)
+        except Exception:
+            sys.exit(1)
+        "
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 60s
     volumes:
       - ./logs:/app/logs  # Dashboard logs
-      - ./data:/app/data  # Optional: Persistent demo data
+      - ./data:/app/data  # Persistent data and SQLite DB
+    labels:
+      - "com.botv2.service=dashboard"
+      - "com.botv2.version=5.1"
 
   # ============================================================================
   # PostgreSQL Database - OPTIONAL (Required for production mode)
