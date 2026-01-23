@@ -538,7 +538,7 @@ class ProfessionalDashboard:
         return decorated_function
     
     def _setup_routes(self):
-        """Setup Flask routes with authentication"""
+        """Setup Flask routes with authentication and ALL API endpoints"""
         
         # ==================== Authentication Routes ====================
         
@@ -613,8 +613,6 @@ class ProfessionalDashboard:
             """Main dashboard page"""
             return render_template('dashboard.html', user=session.get('user'))
         
-        # ==================== CONTROL PANEL ROUTE ====================
-        
         @self.app.route('/control')
         @self.limiter.limit("20 per minute")
         @self.login_required
@@ -622,9 +620,46 @@ class ProfessionalDashboard:
             """Control panel page v4.2"""
             return render_template('control.html', user=session.get('user'))
         
-        # ==================== API Routes ====================
-        # [ALL EXISTING API ROUTES REMAIN THE SAME]
-        # [Abbreviated for brevity - include all original routes]
+        # ==================== API ENDPOINTS - COMPLETE IMPLEMENTATION ====================
+        
+        @self.app.route('/api/section/<section>')
+        @self.limiter.limit("30 per minute")
+        @self.login_required
+        def get_section_data(section):
+            """Get data for specific dashboard section
+            
+            Sections:
+            - dashboard: Overview with KPIs and main charts
+            - portfolio: Portfolio positions and allocation
+            - strategies: Strategy performance and statistics
+            - risk: Risk metrics and analysis
+            - trades: Trade history and statistics
+            - settings: System settings and configuration
+            """
+            
+            try:
+                logger.debug(f"📊 API: Section data requested - {section}")
+                
+                if section == 'dashboard':
+                    data = self._get_dashboard_data()
+                elif section == 'portfolio':
+                    data = self._get_portfolio_data()
+                elif section == 'strategies':
+                    data = self._get_strategies_data()
+                elif section == 'risk':
+                    data = self._get_risk_data()
+                elif section == 'trades':
+                    data = self._get_trades_data()
+                elif section == 'settings':
+                    data = self._get_settings_data()
+                else:
+                    return jsonify({'error': 'Unknown section', 'section': section}), 404
+                
+                return jsonify(data)
+                
+            except Exception as e:
+                logger.error(f"❌ API Error in section {section}: {str(e)}")
+                return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
         
         @self.app.route('/health')
         def health():
@@ -674,8 +709,242 @@ class ProfessionalDashboard:
             component = data.get('component', 'all')
             self._emit_update(component)
     
-    # [ALL OTHER EXISTING METHODS REMAIN THE SAME]
-    # [Helper methods, getters, etc. - abbreviated for brevity]
+    # ==================== DATA GENERATORS - MOCK DATA FOR DEVELOPMENT ====================
+    
+    def _get_dashboard_data(self) -> Dict:
+        """Generate dashboard overview data"""
+        
+        # Generate timestamps for last 30 days
+        now = datetime.now()
+        timestamps = [(now - timedelta(days=30-i)).strftime('%Y-%m-%d') for i in range(30)]
+        
+        # Generate equity curve (simulated)
+        initial_equity = 10000
+        equity = [initial_equity]
+        for _ in range(29):
+            change = np.random.normal(0.002, 0.015)  # 0.2% mean, 1.5% std
+            equity.append(equity[-1] * (1 + change))
+        
+        return {
+            'overview': {
+                'equity': f'€{equity[-1]:,.2f}',
+                'daily_change': equity[-1] - equity[-2],
+                'daily_change_pct': f'{((equity[-1] / equity[-2]) - 1) * 100:.2f}',
+                'total_pnl': f'€{equity[-1] - initial_equity:,.2f}',
+                'total_return': f'{((equity[-1] / initial_equity) - 1) * 100:.2f}',
+                'win_rate': '65.4',
+                'total_trades': 127,
+                'sharpe_ratio': '1.85',
+                'max_drawdown': '-8.3'
+            },
+            'equity': {
+                'timestamps': timestamps,
+                'equity': equity
+            },
+            'strategies': {
+                'names': ['Momentum', 'Mean Reversion', 'Breakout', 'Trend Following'],
+                'returns': [12.5, -3.2, 8.7, 15.3]
+            },
+            'risk': {
+                'metrics': ['Sharpe', 'Sortino', 'Calmar', 'VaR', 'Volatility'],
+                'values': [1.85, 2.12, 1.67, 4.2, 12.5]
+            }
+        }
+    
+    def _get_portfolio_data(self) -> Dict:
+        """Generate portfolio positions data"""
+        
+        positions = [
+            {
+                'symbol': 'AAPL',
+                'quantity': 50,
+                'entry_price': 145.30,
+                'current_price': 152.80,
+                'pnl': 375.00,
+                'pnl_pct': 5.16,
+                'value': 7640.00
+            },
+            {
+                'symbol': 'GOOGL',
+                'quantity': 25,
+                'entry_price': 2840.50,
+                'current_price': 2795.20,
+                'pnl': -1132.50,
+                'pnl_pct': -1.59,
+                'value': 69880.00
+            },
+            {
+                'symbol': 'MSFT',
+                'quantity': 100,
+                'entry_price': 280.40,
+                'current_price': 295.60,
+                'pnl': 1520.00,
+                'pnl_pct': 5.42,
+                'value': 29560.00
+            }
+        ]
+        
+        total_value = sum(p['value'] for p in positions)
+        total_pnl = sum(p['pnl'] for p in positions)
+        
+        return {
+            'summary': {
+                'total_value': total_value,
+                'cash': 5000.00,
+                'total_pnl': total_pnl,
+                'open_positions': len(positions)
+            },
+            'positions': positions
+        }
+    
+    def _get_strategies_data(self) -> Dict:
+        """Generate strategies performance data"""
+        
+        strategies = [
+            {
+                'name': 'Momentum Strategy',
+                'return': 12.5,
+                'sharpe': 1.85,
+                'win_rate': 65.4,
+                'trades': 45,
+                'status': 'active'
+            },
+            {
+                'name': 'Mean Reversion',
+                'return': -3.2,
+                'sharpe': 0.92,
+                'win_rate': 58.3,
+                'trades': 38,
+                'status': 'active'
+            },
+            {
+                'name': 'Breakout Trading',
+                'return': 8.7,
+                'sharpe': 1.54,
+                'win_rate': 62.1,
+                'trades': 29,
+                'status': 'paused'
+            },
+            {
+                'name': 'Trend Following',
+                'return': 15.3,
+                'sharpe': 2.15,
+                'win_rate': 68.9,
+                'trades': 15,
+                'status': 'active'
+            }
+        ]
+        
+        active = sum(1 for s in strategies if s['status'] == 'active')
+        best = max(strategies, key=lambda x: x['return'])
+        
+        return {
+            'summary': {
+                'active': active,
+                'best_strategy': best['name'],
+                'best_return': best['return'],
+                'avg_sharpe': np.mean([s['sharpe'] for s in strategies]),
+                'total_trades': sum(s['trades'] for s in strategies)
+            },
+            'strategies': strategies
+        }
+    
+    def _get_risk_data(self) -> Dict:
+        """Generate risk metrics data"""
+        
+        # Generate timestamps for last 30 days
+        now = datetime.now()
+        timestamps = [(now - timedelta(days=30-i)).strftime('%Y-%m-%d') for i in range(30)]
+        
+        # Generate drawdown data (negative values)
+        drawdown = [0]
+        for _ in range(29):
+            dd = drawdown[-1] + np.random.normal(-0.2, 0.5)
+            drawdown.append(max(dd, -15))  # Cap at -15%
+        
+        # Generate volatility data
+        volatility = [10 + np.random.normal(0, 2) for _ in range(30)]
+        
+        return {
+            'metrics': {
+                'var_95': 523.40,
+                'max_drawdown': 8.3,
+                'volatility': 12.5,
+                'sharpe': 1.85
+            },
+            'drawdown': {
+                'timestamps': timestamps,
+                'drawdown': drawdown
+            },
+            'volatility': {
+                'timestamps': timestamps,
+                'volatility': volatility
+            }
+        }
+    
+    def _get_trades_data(self) -> Dict:
+        """Generate trades history data"""
+        
+        symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN']
+        strategies = ['Momentum', 'Mean Reversion', 'Breakout', 'Trend Following']
+        
+        trades = []
+        now = datetime.now()
+        
+        for i in range(20):
+            timestamp = now - timedelta(days=i, hours=np.random.randint(0, 24))
+            action = 'BUY' if np.random.random() > 0.5 else 'SELL'
+            pnl = np.random.normal(50, 100)
+            
+            trades.append({
+                'timestamp': timestamp.isoformat(),
+                'strategy': np.random.choice(strategies),
+                'symbol': np.random.choice(symbols),
+                'action': action,
+                'quantity': np.random.randint(10, 100),
+                'price': np.random.uniform(100, 300),
+                'pnl': pnl
+            })
+        
+        winning = sum(1 for t in trades if t['pnl'] > 0)
+        total = len(trades)
+        win_rate = (winning / total) * 100 if total > 0 else 0
+        
+        total_wins = sum(t['pnl'] for t in trades if t['pnl'] > 0)
+        total_losses = abs(sum(t['pnl'] for t in trades if t['pnl'] < 0))
+        profit_factor = total_wins / total_losses if total_losses > 0 else 0
+        
+        return {
+            'summary': {
+                'total': total,
+                'winning': winning,
+                'win_rate': win_rate,
+                'profit_factor': profit_factor
+            },
+            'trades': trades
+        }
+    
+    def _get_settings_data(self) -> Dict:
+        """Generate settings data"""
+        
+        return {
+            'settings': {
+                'mode': 'paper',
+                'initial_capital': 10000,
+                'max_position_size': 10,
+                'stop_loss': 2,
+                'risk_per_trade': 1,
+                'auto_refresh': True
+            },
+            'system': {
+                'version': __version__,
+                'environment': self.env,
+                'uptime': self._get_uptime(),
+                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }
+    
+    # ==================== HELPER METHODS ====================
     
     def _get_uptime(self) -> str:
         """Get system uptime"""
