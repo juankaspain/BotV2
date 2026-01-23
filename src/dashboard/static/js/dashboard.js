@@ -1,8 +1,9 @@
-// ==================== BotV2 Dashboard v4.1 - Ultra Professional ====================
-// Fortune 500 Enterprise Edition - Zero Emoji Design
+// ==================== BotV2 Dashboard v4.4 - Ultra Professional ====================
+// Fortune 500 Enterprise Edition - Strategy Editor Integration
 // Inspired by: Stripe Dashboard, AWS Console, GitHub Enterprise, Linear
 // Author: Juan Carlos Garcia
-// Date: 22-01-2026
+// Date: 23-01-2026
+// Version: 4.4
 
 // ==================== GLOBAL STATE ====================
 let socket = null;
@@ -54,7 +55,7 @@ const plotlyThemes = {
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 BotV2 Dashboard v4.1 - Ultra Professional Edition');
+    console.log('🚀 BotV2 Dashboard v4.4 - Strategy Editor Edition');
     
     initWebSocket();
     setupMenuHandlers();
@@ -73,12 +74,20 @@ function setupMenuHandlers() {
     document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', function() {
             const section = this.getAttribute('data-section');
-            loadSection(section);
+            if (section) {  // ✅ Validate section exists
+                loadSection(section);
+            }
         });
     });
 }
 
 function loadSection(section) {
+    // ✅ Validate section parameter
+    if (!section || section === 'null' || section === 'undefined') {
+        console.error('Invalid section:', section);
+        return;
+    }
+    
     console.log(`Loading: ${section}`);
     currentSection = section;
     
@@ -114,14 +123,26 @@ function fetchSectionContent(section) {
     `;
     
     fetch(`/api/section/${section}`)
-        .then(response => response.json())
-        .then(data => renderSection(section, data))
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // ✅ Validate data before rendering
+            if (!data) {
+                throw new Error('Empty response from server');
+            }
+            renderSection(section, data);
+        })
         .catch(error => {
             console.error('Error:', error);
             container.innerHTML = `
                 <div style="text-align: center; padding: 50px; color: var(--accent-danger);">
                     <h2>Error Loading Section</h2>
                     <p>${error.message}</p>
+                    <button onclick="loadSection('${section}')" style="margin-top: 20px; padding: 10px 20px; background: var(--accent-primary); color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
                 </div>
             `;
         });
@@ -135,6 +156,8 @@ function renderSection(section, data) {
         case 'risk': renderRisk(data); break;
         case 'trades': renderTrades(data); break;
         case 'settings': renderSettings(data); break;
+        default:
+            console.error('Unknown section:', section);
     }
 }
 
@@ -142,6 +165,11 @@ function renderSection(section, data) {
 
 function renderDashboard(data) {
     const container = document.getElementById('main-container');
+    
+    // ✅ Safe accessors with defaults
+    const overview = data.overview || {};
+    const equity = data.equity || { timestamps: [], equity: [] };
+    
     container.innerHTML = `
         <!-- Time Filters -->
         <div class="time-filters">
@@ -157,33 +185,33 @@ function renderDashboard(data) {
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-title">Portfolio Value</div>
-                <div class="kpi-value">${data.overview.equity}</div>
-                <div class="kpi-change ${data.overview.daily_change >= 0 ? 'positive' : 'negative'}">
-                    ${data.overview.daily_change >= 0 ? '↑' : '↓'} ${data.overview.daily_change_pct}% today
+                <div class="kpi-value">${overview.equity || 'N/A'}</div>
+                <div class="kpi-change ${(overview.daily_change || 0) >= 0 ? 'positive' : 'negative'}">
+                    ${(overview.daily_change || 0) >= 0 ? '↑' : '↓'} ${overview.daily_change || 0}% today
                 </div>
             </div>
 
             <div class="kpi-card">
                 <div class="kpi-title">Total P&L</div>
-                <div class="kpi-value">${data.overview.total_pnl}</div>
-                <div class="kpi-change ${data.overview.total_return >= 0 ? 'positive' : 'negative'}">
-                    ${data.overview.total_return >= 0 ? '↑' : '↓'} ${data.overview.total_return}%
+                <div class="kpi-value">${overview.total_pnl || 'N/A'}</div>
+                <div class="kpi-change ${(overview.total_return || 0) >= 0 ? 'positive' : 'negative'}">
+                    ${(overview.total_return || 0) >= 0 ? '↑' : '↓'} ${overview.total_return || 0}%
                 </div>
             </div>
 
             <div class="kpi-card">
                 <div class="kpi-title">Win Rate</div>
-                <div class="kpi-value">${data.overview.win_rate}%</div>
+                <div class="kpi-value">${overview.win_rate || 'N/A'}%</div>
                 <div class="kpi-change">
-                    ${data.overview.total_trades} trades
+                    ${overview.total_trades || 0} trades
                 </div>
             </div>
 
             <div class="kpi-card">
                 <div class="kpi-title">Sharpe Ratio</div>
-                <div class="kpi-value">${data.overview.sharpe_ratio}</div>
+                <div class="kpi-value">${overview.sharpe_ratio || 'N/A'}</div>
                 <div class="kpi-change">
-                    DD: ${data.overview.max_drawdown}%
+                    DD: ${overview.max_drawdown || 'N/A'}%
                 </div>
             </div>
         </div>
@@ -224,25 +252,35 @@ function renderDashboard(data) {
     `;
     
     setTimeout(() => {
-        createEquityChart(data.equity);
-        createStrategiesChart(data.strategies);
-        createRiskChart(data.risk);
+        if (equity.timestamps && equity.equity) {
+            createEquityChart(equity);
+        }
+        if (data.strategies) {
+            createStrategiesChart(data.strategies);
+        }
+        if (data.risk) {
+            createRiskChart(data.risk);
+        }
     }, 100);
 }
 
 function renderPortfolio(data) {
     const container = document.getElementById('main-container');
     
-    let positionsHTML = data.positions.map(pos => `
+    // ✅ Safe accessors
+    const summary = data.summary || {};
+    const positions = data.positions || [];
+    
+    let positionsHTML = positions.map(pos => `
         <tr>
-            <td><strong>${pos.symbol}</strong></td>
-            <td>${pos.quantity}</td>
-            <td>€${pos.entry_price.toFixed(2)}</td>
-            <td>€${pos.current_price.toFixed(2)}</td>
-            <td class="${pos.pnl >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
-                €${pos.pnl.toFixed(2)} (${pos.pnl_pct.toFixed(2)}%)
+            <td><strong>${pos.symbol || 'N/A'}</strong></td>
+            <td>${pos.quantity || 0}</td>
+            <td>€${(pos.entry_price || 0).toFixed(2)}</td>
+            <td>€${(pos.current_price || 0).toFixed(2)}</td>
+            <td class="${(pos.pnl || 0) >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
+                €${(pos.pnl || 0).toFixed(2)} (${(pos.pnl_pct || 0).toFixed(2)}%)
             </td>
-            <td><strong>€${pos.value.toFixed(2)}</strong></td>
+            <td><strong>€${(pos.value || 0).toFixed(2)}</strong></td>
         </tr>
     `).join('');
     
@@ -250,21 +288,21 @@ function renderPortfolio(data) {
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-title">Total Value</div>
-                <div class="kpi-value">€${data.summary.total_value.toFixed(2)}</div>
+                <div class="kpi-value">€${(summary.total_value || 0).toFixed(2)}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Cash Available</div>
-                <div class="kpi-value">€${data.summary.cash.toFixed(2)}</div>
+                <div class="kpi-value">€${(summary.cash || 0).toFixed(2)}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Total P&L</div>
-                <div class="kpi-value ${data.summary.total_pnl >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
-                    €${data.summary.total_pnl.toFixed(2)}
+                <div class="kpi-value ${(summary.total_pnl || 0) >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
+                    €${(summary.total_pnl || 0).toFixed(2)}
                 </div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Open Positions</div>
-                <div class="kpi-value">${data.positions.length}</div>
+                <div class="kpi-value">${positions.length}</div>
             </div>
         </div>
 
@@ -281,7 +319,7 @@ function renderPortfolio(data) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${positionsHTML}
+                    ${positionsHTML || '<tr><td colspan="6">No positions</td></tr>'}
                 </tbody>
             </table>
         </div>
@@ -291,41 +329,45 @@ function renderPortfolio(data) {
 function renderStrategies(data) {
     const container = document.getElementById('main-container');
     
-    let strategiesHTML = data.strategies.map(strat => `
+    // ✅ Safe accessors with validation
+    const summary = data.summary || {};
+    const strategies = Array.isArray(data.strategies) ? data.strategies : [];
+    
+    let strategiesHTML = strategies.length > 0 ? strategies.map(strat => `
         <tr>
-            <td><strong>${strat.name}</strong></td>
-            <td class="${strat.return >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
-                ${strat.return.toFixed(2)}%
+            <td><strong>${strat.name || 'Unknown'}</strong></td>
+            <td class="${(strat.return || 0) >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
+                ${(strat.return || 0).toFixed(2)}%
             </td>
-            <td>${strat.sharpe.toFixed(2)}</td>
-            <td>${strat.win_rate.toFixed(1)}%</td>
-            <td>${strat.trades}</td>
+            <td>${(strat.sharpe || 0).toFixed(2)}</td>
+            <td>${(strat.win_rate || 0).toFixed(1)}%</td>
+            <td>${strat.trades || 0}</td>
             <td>
-                <span class="badge ${strat.status === 'active' ? 'badge-success' : 'badge-warning'}">
-                    ${strat.status}
+                <span class="badge ${(strat.status || 'inactive') === 'active' ? 'badge-success' : 'badge-warning'}">
+                    ${strat.status || 'inactive'}
                 </span>
             </td>
         </tr>
-    `).join('');
+    `).join('') : '<tr><td colspan="6">No strategies available</td></tr>';
     
     container.innerHTML = `
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-title">Active Strategies</div>
-                <div class="kpi-value">${data.summary.active}</div>
+                <div class="kpi-value">${summary.active || 0}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Best Performer</div>
-                <div class="kpi-value">${data.summary.best_strategy}</div>
-                <div class="kpi-change positive">+${data.summary.best_return.toFixed(2)}%</div>
+                <div class="kpi-value">${summary.best_strategy || 'N/A'}</div>
+                <div class="kpi-change positive">+${(summary.best_return || 0).toFixed(2)}%</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Avg Sharpe</div>
-                <div class="kpi-value">${data.summary.avg_sharpe.toFixed(2)}</div>
+                <div class="kpi-value">${(summary.avg_sharpe || 0).toFixed(2)}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Total Trades</div>
-                <div class="kpi-value">${data.summary.total_trades}</div>
+                <div class="kpi-value">${summary.total_trades || 0}</div>
             </div>
         </div>
 
@@ -352,23 +394,26 @@ function renderStrategies(data) {
 function renderRisk(data) {
     const container = document.getElementById('main-container');
     
+    // ✅ Safe accessors
+    const metrics = data.metrics || {};
+    
     container.innerHTML = `
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-title">VaR (95%)</div>
-                <div class="kpi-value kpi-change negative">€${data.metrics.var_95.toFixed(2)}</div>
+                <div class="kpi-value kpi-change negative">€${(metrics.var_95 || 0).toFixed(2)}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Max Drawdown</div>
-                <div class="kpi-value kpi-change negative">${data.metrics.max_drawdown.toFixed(2)}%</div>
+                <div class="kpi-value kpi-change negative">${(metrics.max_drawdown || 0).toFixed(2)}%</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Volatility</div>
-                <div class="kpi-value">${data.metrics.volatility.toFixed(2)}%</div>
+                <div class="kpi-value">${(metrics.volatility || 0).toFixed(2)}%</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Sharpe Ratio</div>
-                <div class="kpi-value kpi-change positive">${data.metrics.sharpe.toFixed(2)}</div>
+                <div class="kpi-value kpi-change positive">${(metrics.sharpe || 0).toFixed(2)}</div>
             </div>
         </div>
 
@@ -389,49 +434,53 @@ function renderRisk(data) {
     `;
     
     setTimeout(() => {
-        createDrawdownChart(data.drawdown);
-        createVolatilityChart(data.volatility);
+        if (data.drawdown) createDrawdownChart(data.drawdown);
+        if (data.volatility) createVolatilityChart(data.volatility);
     }, 100);
 }
 
 function renderTrades(data) {
     const container = document.getElementById('main-container');
     
-    let tradesHTML = data.trades.map(trade => `
+    // ✅ Safe accessors
+    const summary = data.summary || {};
+    const trades = Array.isArray(data.trades) ? data.trades : [];
+    
+    let tradesHTML = trades.length > 0 ? trades.map(trade => `
         <tr>
-            <td>${new Date(trade.timestamp).toLocaleString()}</td>
-            <td>${trade.strategy}</td>
-            <td><strong>${trade.symbol}</strong></td>
+            <td>${trade.timestamp ? new Date(trade.timestamp).toLocaleString() : 'N/A'}</td>
+            <td>${trade.strategy || 'N/A'}</td>
+            <td><strong>${trade.symbol || 'N/A'}</strong></td>
             <td>
-                <span class="badge ${trade.action === 'BUY' ? 'badge-success' : 'badge-danger'}">
-                    ${trade.action}
+                <span class="badge ${(trade.action || 'BUY') === 'BUY' ? 'badge-success' : 'badge-danger'}">
+                    ${trade.action || 'N/A'}
                 </span>
             </td>
-            <td>${trade.quantity}</td>
-            <td>€${trade.price.toFixed(2)}</td>
-            <td class="${trade.pnl >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
-                €${trade.pnl.toFixed(2)}
+            <td>${trade.quantity || 0}</td>
+            <td>€${(trade.price || 0).toFixed(2)}</td>
+            <td class="${(trade.pnl || 0) >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
+                €${(trade.pnl || 0).toFixed(2)}
             </td>
         </tr>
-    `).join('');
+    `).join('') : '<tr><td colspan="7">No trades available</td></tr>';
     
     container.innerHTML = `
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-title">Total Trades</div>
-                <div class="kpi-value">${data.summary.total}</div>
+                <div class="kpi-value">${summary.total || 0}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Winning Trades</div>
-                <div class="kpi-value kpi-change positive">${data.summary.winning}</div>
+                <div class="kpi-value kpi-change positive">${summary.winning || 0}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Win Rate</div>
-                <div class="kpi-value">${data.summary.win_rate.toFixed(1)}%</div>
+                <div class="kpi-value">${(summary.win_rate || 0).toFixed(1)}%</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Profit Factor</div>
-                <div class="kpi-value">${data.summary.profit_factor.toFixed(2)}</div>
+                <div class="kpi-value">${(summary.profit_factor || 0).toFixed(2)}</div>
             </div>
         </div>
 
@@ -459,6 +508,10 @@ function renderTrades(data) {
 function renderSettings(data) {
     const container = document.getElementById('main-container');
     
+    // ✅ Safe accessors
+    const settings = data.settings || {};
+    const system = data.system || {};
+    
     container.innerHTML = `
         <div class="data-table">
             <h3 style="padding: 20px; color: var(--text-primary); font-weight: 600;">General Settings</h3>
@@ -473,32 +526,32 @@ function renderSettings(data) {
                 <tbody>
                     <tr>
                         <td>Trading Mode</td>
-                        <td><span class="badge ${data.settings.mode === 'paper' ? 'badge-warning' : 'badge-success'}">${data.settings.mode}</span></td>
+                        <td><span class="badge ${(settings.mode || 'paper') === 'paper' ? 'badge-warning' : 'badge-success'}">${settings.mode || 'paper'}</span></td>
                         <td>Current trading mode</td>
                     </tr>
                     <tr>
                         <td>Initial Capital</td>
-                        <td>€${data.settings.initial_capital}</td>
+                        <td>€${settings.initial_capital || 0}</td>
                         <td>Starting portfolio value</td>
                     </tr>
                     <tr>
                         <td>Max Position Size</td>
-                        <td>${data.settings.max_position_size}%</td>
+                        <td>${settings.max_position_size || 0}%</td>
                         <td>Maximum position as % of portfolio</td>
                     </tr>
                     <tr>
                         <td>Stop Loss</td>
-                        <td>${data.settings.stop_loss}%</td>
+                        <td>${settings.stop_loss || 0}%</td>
                         <td>Default stop loss percentage</td>
                     </tr>
                     <tr>
                         <td>Risk Per Trade</td>
-                        <td>${data.settings.risk_per_trade}%</td>
+                        <td>${settings.risk_per_trade || 0}%</td>
                         <td>Maximum risk per trade</td>
                     </tr>
                     <tr>
                         <td>Auto Refresh</td>
-                        <td><span class="badge badge-success">${data.settings.auto_refresh ? 'Enabled' : 'Disabled'}</span></td>
+                        <td><span class="badge badge-success">${settings.auto_refresh ? 'Enabled' : 'Disabled'}</span></td>
                         <td>Automatic data refresh</td>
                     </tr>
                 </tbody>
@@ -517,19 +570,19 @@ function renderSettings(data) {
                 <tbody>
                     <tr>
                         <td>Dashboard Version</td>
-                        <td><span class="badge badge-info">${data.system.version}</span></td>
+                        <td><span class="badge badge-info">${system.version || '4.4'}</span></td>
                     </tr>
                     <tr>
                         <td>Environment</td>
-                        <td>${data.system.environment}</td>
+                        <td>${system.environment || 'development'}</td>
                     </tr>
                     <tr>
                         <td>Uptime</td>
-                        <td>${data.system.uptime}</td>
+                        <td>${system.uptime || 'N/A'}</td>
                     </tr>
                     <tr>
                         <td>Last Update</td>
-                        <td>${data.system.last_update}</td>
+                        <td>${system.last_update || 'N/A'}</td>
                     </tr>
                 </tbody>
             </table>
@@ -540,6 +593,11 @@ function renderSettings(data) {
 // ==================== CHART CREATORS - PROFESSIONAL ====================
 
 function createEquityChart(data) {
+    if (!data || !data.timestamps || !data.equity) {
+        console.warn('Invalid equity data');
+        return;
+    }
+    
     const theme = plotlyThemes[currentTheme];
     
     const trace = {
@@ -587,6 +645,11 @@ function createEquityChart(data) {
 }
 
 function createStrategiesChart(data) {
+    if (!data || !data.names || !data.returns) {
+        console.warn('Invalid strategies data');
+        return;
+    }
+    
     const theme = plotlyThemes[currentTheme];
     const colors = data.returns.map(v => v > 0 ? theme.successcolor : theme.dangercolor);
     
@@ -623,6 +686,11 @@ function createStrategiesChart(data) {
 }
 
 function createRiskChart(data) {
+    if (!data || !data.values || !data.metrics) {
+        console.warn('Invalid risk data');
+        return;
+    }
+    
     const theme = plotlyThemes[currentTheme];
     
     const trace = {
@@ -655,6 +723,8 @@ function createRiskChart(data) {
 }
 
 function createDrawdownChart(data) {
+    if (!data || !data.timestamps || !data.drawdown) return;
+    
     const theme = plotlyThemes[currentTheme];
     
     const trace = {
@@ -684,6 +754,8 @@ function createDrawdownChart(data) {
 }
 
 function createVolatilityChart(data) {
+    if (!data || !data.timestamps || !data.volatility) return;
+    
     const theme = plotlyThemes[currentTheme];
     
     const trace = {
@@ -774,7 +846,9 @@ function setTimeFilter(period) {
 }
 
 function refreshCurrentSection() {
-    loadSection(currentSection);
+    if (currentSection) {
+        loadSection(currentSection);
+    }
 }
 
 function refreshChart(chartName) {
