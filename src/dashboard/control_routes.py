@@ -5,7 +5,7 @@ BotV2 - Control Panel API Routes v4.2
 Provides REST API endpoints for dashboard control panel.
 """
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, render_template, session, redirect, url_for
 from functools import wraps
 import logging
 import yaml
@@ -16,8 +16,18 @@ from .bot_controller import get_bot_controller
 
 logger = logging.getLogger(__name__)
 
-# Create blueprint
-control_bp = Blueprint('control', __name__, url_prefix='/api/control')
+# Create blueprint WITHOUT url_prefix for UI route
+control_bp = Blueprint('control', __name__)
+
+
+def login_required_ui(f):
+    """Decorator for UI routes requiring login"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def error_handler(f):
@@ -35,9 +45,18 @@ def error_handler(f):
     return decorated
 
 
+# ==================== UI ROUTE ====================
+
+@control_bp.route('/control', methods=['GET'])
+@login_required_ui
+def control_panel_ui():
+    """Control Panel UI page"""
+    return render_template('control.html', user=session.get('user'))
+
+
 # ==================== BOT CONTROL ENDPOINTS ====================
 
-@control_bp.route('/status', methods=['GET'])
+@control_bp.route('/api/control/status', methods=['GET'])
 @error_handler
 def get_bot_status():
     """
@@ -64,7 +83,7 @@ def get_bot_status():
     })
 
 
-@control_bp.route('/start', methods=['POST'])
+@control_bp.route('/api/control/start', methods=['POST'])
 @error_handler
 def start_bot():
     """
@@ -89,7 +108,7 @@ def start_bot():
     }), status_code
 
 
-@control_bp.route('/stop', methods=['POST'])
+@control_bp.route('/api/control/stop', methods=['POST'])
 @error_handler
 def stop_bot():
     """
@@ -111,7 +130,7 @@ def stop_bot():
     return jsonify(result), status_code
 
 
-@control_bp.route('/restart', methods=['POST'])
+@control_bp.route('/api/control/restart', methods=['POST'])
 @error_handler
 def restart_bot():
     """
@@ -132,7 +151,7 @@ def restart_bot():
     }), status_code
 
 
-@control_bp.route('/emergency-stop', methods=['POST'])
+@control_bp.route('/api/control/emergency-stop', methods=['POST'])
 @error_handler
 def emergency_stop():
     """
@@ -147,7 +166,7 @@ def emergency_stop():
     return jsonify(result)
 
 
-@control_bp.route('/pause', methods=['POST'])
+@control_bp.route('/api/control/pause', methods=['POST'])
 @error_handler
 def pause_trading():
     """
@@ -162,7 +181,7 @@ def pause_trading():
     return jsonify(result)
 
 
-@control_bp.route('/resume', methods=['POST'])
+@control_bp.route('/api/control/resume', methods=['POST'])
 @error_handler
 def resume_trading():
     """
@@ -179,7 +198,7 @@ def resume_trading():
 
 # ==================== QUICK ACTIONS ====================
 
-@control_bp.route('/close-positions', methods=['POST'])
+@control_bp.route('/api/control/close-positions', methods=['POST'])
 @error_handler
 def close_all_positions():
     """
@@ -194,7 +213,7 @@ def close_all_positions():
     return jsonify(result)
 
 
-@control_bp.route('/reduce-positions', methods=['POST'])
+@control_bp.route('/api/control/reduce-positions', methods=['POST'])
 @error_handler
 def reduce_positions():
     """
@@ -219,7 +238,7 @@ def reduce_positions():
 
 # ==================== STRATEGY MANAGEMENT ====================
 
-@control_bp.route('/strategies', methods=['GET'])
+@control_bp.route('/api/control/strategies', methods=['GET'])
 @error_handler
 def list_strategies():
     """
@@ -247,41 +266,42 @@ def list_strategies():
     strategies = []
     
     # Scan Python files in strategies directory
-    for py_file in strategies_dir.glob('*.py'):
-        if py_file.name.startswith('_') or py_file.name == 'base_strategy.py':
-            continue
-        
-        strategy_name = py_file.stem
-        
-        # Categorize based on name patterns
-        category = 'other'
-        if any(x in strategy_name for x in ['momentum', 'macd']):
-            category = 'momentum'
-        elif any(x in strategy_name for x in ['mean_reversion', 'bollinger', 'rsi']):
-            category = 'mean_reversion'
-        elif any(x in strategy_name for x in ['arb', 'stat']):
-            category = 'arbitrage'
-        elif any(x in strategy_name for x in ['regime', 'sector']):
-            category = 'macro'
-        
-        strategies.append({
-            'name': strategy_name,
-            'enabled': True,  # Default to enabled
-            'category': category,
-            'description': f'{strategy_name.replace("_", " ").title()} Strategy'
-        })
+    if strategies_dir.exists():
+        for py_file in strategies_dir.glob('*.py'):
+            if py_file.name.startswith('_') or py_file.name == 'base_strategy.py':
+                continue
+            
+            strategy_name = py_file.stem
+            
+            # Categorize based on name patterns
+            category = 'other'
+            if any(x in strategy_name for x in ['momentum', 'macd']):
+                category = 'momentum'
+            elif any(x in strategy_name for x in ['mean_reversion', 'bollinger', 'rsi']):
+                category = 'mean_reversion'
+            elif any(x in strategy_name for x in ['arb', 'stat']):
+                category = 'arbitrage'
+            elif any(x in strategy_name for x in ['regime', 'sector']):
+                category = 'macro'
+            
+            strategies.append({
+                'name': strategy_name,
+                'enabled': True,  # Default to enabled
+                'category': category,
+                'description': f'{strategy_name.replace("_", " ").title()} Strategy'
+            })
     
     return jsonify({
         'success': True,
         'data': {
             'strategies': sorted(strategies, key=lambda x: x['name']),
             'total': len(strategies),
-            'categories': list(set(s['category'] for s in strategies))
+            'categories': list(set(s['category'] for s in strategies)) if strategies else []
         }
     })
 
 
-@control_bp.route('/strategies/<strategy_name>', methods=['PUT'])
+@control_bp.route('/api/control/strategies/<strategy_name>', methods=['PUT'])
 @error_handler
 def update_strategy(strategy_name: str):
     """
@@ -312,7 +332,7 @@ def update_strategy(strategy_name: str):
 
 # ==================== CONFIG MANAGEMENT ====================
 
-@control_bp.route('/config', methods=['GET'])
+@control_bp.route('/api/control/config', methods=['GET'])
 @error_handler
 def get_config():
     """
@@ -342,7 +362,7 @@ def get_config():
     })
 
 
-@control_bp.route('/config/risk', methods=['PUT'])
+@control_bp.route('/api/control/config/risk', methods=['PUT'])
 @error_handler
 def update_risk_config():
     """
@@ -391,7 +411,7 @@ def update_risk_config():
 
 # ==================== HEALTH CHECK ====================
 
-@control_bp.route('/health', methods=['GET'])
+@control_bp.route('/api/control/health', methods=['GET'])
 def health_check():
     """
     Health check endpoint
