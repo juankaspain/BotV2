@@ -4,17 +4,19 @@
 # 🎮 MODO DEMO: Sistema completo con datos de demostración
 #
 # Características:
-#   • Trading Bot + Dashboard con datos demo
+#   • Trading Bot + Dashboard v5.1 con datos demo
 #   • NO requiere PostgreSQL ni Redis (usa memoria)
 #   • Perfecto para pruebas, desarrollo y demos
 #   • Inicio rápido (< 30 segundos)
 #   • Bajo consumo de recursos
 #   • Paper trading mode activado
+#   • OHLCV + Annotations endpoints
 #
 # Inicio rápido:
 #   cp .env.example .env
 #   docker-compose -f docker-compose.demo.yml up -d
 #   Acceso: http://localhost:8050
+#   Login: admin / admin (cambiar en producción)
 #
 # Comandos útiles:
 #   docker-compose -f docker-compose.demo.yml logs -f
@@ -76,7 +78,7 @@ services:
       - "com.botv2.version=3.3"
 
   # ==========================================================================
-  # Dashboard Container - Standalone con Demo Data
+  # Dashboard Container v5.1 - Complete Integration with Mock Data
   # ==========================================================================
   botv2-dashboard:
     container_name: botv2-dashboard
@@ -100,7 +102,7 @@ services:
       - DASHBOARD_HOST=0.0.0.0
       - DASHBOARD_PORT=8050
       
-      # Demo Mode (ENABLED)
+      # Demo Mode (ENABLED - uses mock data)
       - DEMO_MODE=true
       - INITIAL_CAPITAL=3000
       
@@ -108,12 +110,16 @@ services:
       - REDIS_HOST=${REDIS_HOST:-localhost}
       - REDIS_PORT=${REDIS_PORT:-6379}
       
-      # Authentication (auto-generated if not set)
+      # Authentication (CHANGE IN PRODUCTION!)
       - DASHBOARD_USERNAME=${DASHBOARD_USERNAME:-admin}
       - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:-admin}
       - SECRET_KEY=${SECRET_KEY:-demo-secret-key-change-in-production}
+      
+      # Database (optional - will use mock data if not available)
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///data/dashboard.db}
     
-    command: ["python", "-u", "src/dashboard/dashboard_standalone.py"]
+    # ⚠️ UPDATED: Use web_app.py v5.1 (dashboard_standalone.py was removed)
+    command: ["python", "-u", "-m", "src.dashboard.web_app"]
     
     ports:
       - "${DASHBOARD_PORT:-8050}:8050"
@@ -148,7 +154,7 @@ services:
     labels:
       - "com.botv2.mode=demo"
       - "com.botv2.service=dashboard"
-      - "com.botv2.version=3.3"
+      - "com.botv2.version=5.1"
     
     depends_on:
       botv2-app:
