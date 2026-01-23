@@ -14,7 +14,7 @@ Version: 4.3.0
 """
 
 import logging
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, request, session, render_template, redirect, url_for
 from functools import wraps
 from datetime import datetime
 from typing import Dict, Any
@@ -29,8 +29,8 @@ from .live_monitor import (
 
 logger = logging.getLogger(__name__)
 
-# Create blueprint
-monitoring_bp = Blueprint('monitoring', __name__, url_prefix='/api/monitoring')
+# Create blueprint WITHOUT url_prefix for UI route
+monitoring_bp = Blueprint('monitoring', __name__)
 
 
 # ==================== DECORATORS ====================
@@ -45,9 +45,28 @@ def login_required(f):
     return decorated_function
 
 
+def login_required_ui(f):
+    """Decorator for UI routes requiring login"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# ==================== UI ROUTE ====================
+
+@monitoring_bp.route('/monitoring', methods=['GET'])
+@login_required_ui
+def monitoring_ui():
+    """Live Monitoring UI page"""
+    return render_template('monitoring.html', user=session.get('user'))
+
+
 # ==================== ACTIVITY LOG ENDPOINTS ====================
 
-@monitoring_bp.route('/activity', methods=['GET'])
+@monitoring_bp.route('/api/monitoring/activity', methods=['GET'])
 @login_required
 def get_activity_log():
     """
@@ -90,7 +109,7 @@ def get_activity_log():
         return jsonify({'error': str(e)}), 500
 
 
-@monitoring_bp.route('/activity/clear', methods=['POST'])
+@monitoring_bp.route('/api/monitoring/activity/clear', methods=['POST'])
 @login_required
 def clear_activity_log():
     """
@@ -116,7 +135,7 @@ def clear_activity_log():
 
 # ==================== STRATEGY SIGNALS ENDPOINTS ====================
 
-@monitoring_bp.route('/signals', methods=['GET'])
+@monitoring_bp.route('/api/monitoring/signals', methods=['GET'])
 @login_required
 def get_strategy_signals():
     """
@@ -149,7 +168,7 @@ def get_strategy_signals():
         return jsonify({'error': str(e)}), 500
 
 
-@monitoring_bp.route('/signals/update', methods=['POST'])
+@monitoring_bp.route('/api/monitoring/signals/update', methods=['POST'])
 @login_required
 def update_strategy_signal():
     """
@@ -204,7 +223,7 @@ def update_strategy_signal():
         return jsonify({'error': str(e)}), 500
 
 
-@monitoring_bp.route('/signals/clear', methods=['POST'])
+@monitoring_bp.route('/api/monitoring/signals/clear', methods=['POST'])
 @login_required
 def clear_strategy_signals():
     """
@@ -230,7 +249,7 @@ def clear_strategy_signals():
 
 # ==================== POSITIONS ENDPOINTS ====================
 
-@monitoring_bp.route('/positions', methods=['GET'])
+@monitoring_bp.route('/api/monitoring/positions', methods=['GET'])
 @login_required
 def get_open_positions():
     """
@@ -265,7 +284,7 @@ def get_open_positions():
         return jsonify({'error': str(e)}), 500
 
 
-@monitoring_bp.route('/positions/update', methods=['POST'])
+@monitoring_bp.route('/api/monitoring/positions/update', methods=['POST'])
 @login_required
 def update_position():
     """
@@ -344,7 +363,7 @@ def update_position():
         return jsonify({'error': str(e)}), 500
 
 
-@monitoring_bp.route('/positions/close', methods=['POST'])
+@monitoring_bp.route('/api/monitoring/positions/close', methods=['POST'])
 @login_required
 def close_position():
     """
@@ -390,7 +409,7 @@ def close_position():
 
 # ==================== ALERTS ENDPOINTS ====================
 
-@monitoring_bp.route('/alerts', methods=['GET'])
+@monitoring_bp.route('/api/monitoring/alerts', methods=['GET'])
 @login_required
 def get_pending_alerts():
     """
@@ -425,7 +444,7 @@ def get_pending_alerts():
 
 # ==================== STATISTICS ENDPOINTS ====================
 
-@monitoring_bp.route('/stats', methods=['GET'])
+@monitoring_bp.route('/api/monitoring/stats', methods=['GET'])
 @login_required
 def get_monitoring_statistics():
     """
@@ -451,7 +470,7 @@ def get_monitoring_statistics():
         return jsonify({'error': str(e)}), 500
 
 
-@monitoring_bp.route('/stats/reset', methods=['POST'])
+@monitoring_bp.route('/api/monitoring/stats/reset', methods=['POST'])
 @login_required
 def reset_monitoring_statistics():
     """
@@ -477,7 +496,7 @@ def reset_monitoring_statistics():
 
 # ==================== HEALTH CHECK ====================
 
-@monitoring_bp.route('/health', methods=['GET'])
+@monitoring_bp.route('/api/monitoring/health', methods=['GET'])
 def monitoring_health():
     """
     Health check endpoint for monitoring system.
