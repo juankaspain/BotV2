@@ -1,759 +1,640 @@
-// ==================== BotV2 Advanced Features v7.2 ====================
-// Automated Insights | Anomaly Detection | Command Palette | Layout Switcher
-// Author: Juan Carlos Garcia
-// Date: 24 Enero 2026
+/**
+ * ========================================
+ * BotV2 Dashboard - Advanced Features v7.2
+ * ========================================
+ * 
+ * Professional Advanced Features Module
+ * 
+ * Features:
+ * - Command Palette (Ctrl/Cmd+K)
+ * - AI-Powered Insights Panel
+ * - Anomaly Detection System
+ * - Multi-Chart Layout Manager
+ * - Shareable Chart Snapshots
+ * - Keyboard Shortcuts
+ * - Quick Actions
+ * - Search Everything
+ * 
+ * Dependencies:
+ * - visual-excellence.js
+ * - chart-mastery-v7.1.js
+ * 
+ * @version 7.2.0
+ * @author Juan Carlos Garcia
+ * @date 24 Enero 2026
+ */
 
-console.log('🚀 Advanced Features v7.2 initializing...');
+(function(window) {
+    'use strict';
 
-// ==================== ADVANCED FEATURES LIBRARY ====================
-const AdvancedFeatures = {
-    
-    // ==================== 1. AUTOMATED INSIGHTS PANEL ====================
-    InsightsPanel: {
-        container: null,
-        insights: [],
-        
-        init: function(containerId) {
-            this.container = document.getElementById(containerId);
-            if (!this.container) {
-                console.warn(`Insights container ${containerId} not found`);
-                return;
-            }
-            
-            this.render();
-        },
-        
-        addInsight: function(insight) {
-            const {
-                type,        // 'success', 'warning', 'danger', 'info'
-                title,
-                message,
-                metric = null,
-                action = null,
-                icon = '🧠',
-                priority = 'medium'  // 'high', 'medium', 'low'
-            } = insight;
-            
-            const timestamp = Date.now();
-            
-            this.insights.unshift({
-                id: `insight-${timestamp}`,
-                type,
-                title,
-                message,
-                metric,
-                action,
-                icon,
-                priority,
-                timestamp,
-                dismissed: false
-            });
-            
-            // Keep only last 10 insights
-            if (this.insights.length > 10) {
-                this.insights = this.insights.slice(0, 10);
-            }
-            
-            this.render();
-        },
-        
-        analyzeData: function(data) {
-            const insights = [];
-            
-            // 1. Momentum Analysis
-            if (data.dailyReturn > 5) {
-                insights.push({
-                    type: 'success',
-                    title: 'Strong Momentum Detected',
-                    message: `Portfolio up ${data.dailyReturn.toFixed(2)}% in last 24h. Consider taking profits.`,
-                    metric: `+${data.dailyReturn.toFixed(2)}%`,
-                    action: { label: 'View Performance', url: '#performance' },
-                    icon: '📈',
-                    priority: 'high'
-                });
-            } else if (data.dailyReturn < -5) {
-                insights.push({
-                    type: 'danger',
-                    title: 'Significant Drawdown Alert',
-                    message: `Portfolio down ${Math.abs(data.dailyReturn).toFixed(2)}% today. Review risk exposure.`,
-                    metric: `${data.dailyReturn.toFixed(2)}%`,
-                    action: { label: 'View Risk Analysis', url: '#risk' },
-                    icon: '⚠️',
-                    priority: 'high'
-                });
-            }
-            
-            // 2. Drawdown Analysis
-            if (data.currentDrawdown && Math.abs(data.currentDrawdown) > 10) {
-                insights.push({
-                    type: 'warning',
-                    title: 'Maximum Drawdown Threshold',
-                    message: `Current drawdown at ${Math.abs(data.currentDrawdown).toFixed(1)}%. Approaching risk limit.`,
-                    metric: `${data.currentDrawdown.toFixed(1)}%`,
-                    action: { label: 'Adjust Position Size', url: '#control' },
-                    icon: '🚨',
-                    priority: 'high'
-                });
-            }
-            
-            // 3. Win Rate Analysis
-            if (data.winRate && data.winRate > 70) {
-                insights.push({
-                    type: 'success',
-                    title: 'Exceptional Win Rate',
-                    message: `Current strategy achieving ${data.winRate.toFixed(1)}% win rate. Performance above target.`,
-                    metric: `${data.winRate.toFixed(1)}%`,
-                    action: { label: 'View Trades', url: '#trades' },
-                    icon: '🎯',
-                    priority: 'medium'
-                });
-            } else if (data.winRate && data.winRate < 40) {
-                insights.push({
-                    type: 'warning',
-                    title: 'Low Win Rate Detected',
-                    message: `Win rate at ${data.winRate.toFixed(1)}%. Strategy may need adjustment.`,
-                    metric: `${data.winRate.toFixed(1)}%`,
-                    action: { label: 'Review Strategy', url: '#strategies' },
-                    icon: '🔴',
-                    priority: 'medium'
-                });
-            }
-            
-            // 4. Unused Capital
-            if (data.availableCapital && data.availableCapital > data.totalCapital * 0.3) {
-                const unused = (data.availableCapital / data.totalCapital * 100).toFixed(1);
-                insights.push({
-                    type: 'info',
-                    title: 'Unused Capital Opportunity',
-                    message: `${unused}% of capital is idle. Consider deploying for diversification.`,
-                    metric: `€${data.availableCapital.toLocaleString()}`,
-                    action: { label: 'View Markets', url: '#markets' },
-                    icon: '💰',
-                    priority: 'low'
-                });
-            }
-            
-            // 5. Sharpe Ratio Analysis
-            if (data.sharpeRatio && data.sharpeRatio > 2) {
-                insights.push({
-                    type: 'success',
-                    title: 'Excellent Risk-Adjusted Returns',
-                    message: `Sharpe Ratio of ${data.sharpeRatio.toFixed(2)} indicates superior performance.`,
-                    metric: data.sharpeRatio.toFixed(2),
-                    action: { label: 'View Analytics', url: '#performance' },
-                    icon: '⭐',
-                    priority: 'medium'
-                });
-            }
-            
-            // Add all generated insights
-            insights.forEach(insight => this.addInsight(insight));
-        },
-        
-        render: function() {
-            if (!this.container) return;
-            
-            const activeInsights = this.insights.filter(i => !i.dismissed);
-            
-            if (activeInsights.length === 0) {
-                this.container.innerHTML = `
-                    <div class="insights-empty">
-                        <div class="insights-empty-icon">📊</div>
-                        <div class="insights-empty-title">No insights available</div>
-                        <div class="insights-empty-description">Insights will appear here as we analyze your trading data</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            const html = `
-                <div class="insights-header">
-                    <h3 class="insights-title">
-                        <span class="insights-icon">🧠</span>
-                        Smart Insights
-                        <span class="insights-count">${activeInsights.length}</span>
-                    </h3>
-                </div>
-                <div class="insights-list">
-                    ${activeInsights.map(insight => this.renderInsight(insight)).join('')}
-                </div>
-            `;
-            
-            this.container.innerHTML = html;
-            
-            // Attach event listeners
-            this.attachEventListeners();
-        },
-        
-        renderInsight: function(insight) {
-            const typeColors = {
-                success: 'var(--accent-success)',
-                warning: 'var(--accent-warning)',
-                danger: 'var(--accent-danger)',
-                info: 'var(--accent-primary)'
-            };
-            
-            const priorityClass = `insight-priority-${insight.priority}`;
-            
-            return `
-                <div class="insight-card ${priorityClass}" data-insight-id="${insight.id}" data-type="${insight.type}">
-                    <div class="insight-icon" style="color: ${typeColors[insight.type]}">
-                        ${insight.icon}
-                    </div>
-                    <div class="insight-content">
-                        <div class="insight-header-row">
-                            <h4 class="insight-title">${insight.title}</h4>
-                            ${insight.metric ? `<span class="insight-metric" style="color: ${typeColors[insight.type]}">${insight.metric}</span>` : ''}
-                        </div>
-                        <p class="insight-message">${insight.message}</p>
-                        <div class="insight-footer">
-                            ${insight.action ? `
-                                <a href="${insight.action.url}" class="insight-action">
-                                    ${insight.action.label} →
-                                </a>
-                            ` : ''}
-                            <button class="insight-dismiss" data-insight-id="${insight.id}" title="Dismiss">
-                                ✕
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        },
-        
-        attachEventListeners: function() {
-            document.querySelectorAll('.insight-dismiss').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const insightId = e.target.dataset.insightId;
-                    this.dismissInsight(insightId);
-                });
-            });
-        },
-        
-        dismissInsight: function(insightId) {
-            const insight = this.insights.find(i => i.id === insightId);
-            if (insight) {
-                insight.dismissed = true;
-                this.render();
-            }
+    /**
+     * Command Palette Class
+     */
+    class CommandPalette {
+        constructor() {
+            this.isOpen = false;
+            this.commands = [];
+            this.filteredCommands = [];
+            this.selectedIndex = 0;
+            this.init();
         }
-    },
-    
-    // ==================== 2. ANOMALY DETECTION ====================
-    AnomalyDetector: {
-        thresholds: {
-            volumeSpike: 3,        // 3x average
-            priceJump: 5,          // 5% in 1 minute
-            drawdownRapid: 3,      // 3% in 5 minutes
-            correlationBreak: 0.5  // Correlation change > 0.5
-        },
-        
-        detectAnomalies: function(data) {
-            const anomalies = [];
-            
-            // 1. Volume Spike Detection
-            if (data.currentVolume > data.avgVolume * this.thresholds.volumeSpike) {
-                anomalies.push({
-                    type: 'volume_spike',
-                    severity: 'warning',
-                    message: `Unusual volume spike detected: ${(data.currentVolume / data.avgVolume).toFixed(1)}x average`,
-                    value: data.currentVolume,
-                    timestamp: Date.now()
-                });
-            }
-            
-            // 2. Rapid Price Movement
-            if (Math.abs(data.priceChange1m) > this.thresholds.priceJump) {
-                anomalies.push({
-                    type: 'price_jump',
-                    severity: 'danger',
-                    message: `Rapid price movement: ${data.priceChange1m.toFixed(2)}% in 1 minute`,
-                    value: data.priceChange1m,
-                    timestamp: Date.now()
-                });
-            }
-            
-            // 3. Rapid Drawdown
-            if (data.drawdown5m && Math.abs(data.drawdown5m) > this.thresholds.drawdownRapid) {
-                anomalies.push({
-                    type: 'rapid_drawdown',
-                    severity: 'danger',
-                    message: `Rapid drawdown: ${Math.abs(data.drawdown5m).toFixed(2)}% in 5 minutes`,
-                    value: data.drawdown5m,
-                    timestamp: Date.now()
-                });
-            }
-            
-            // 4. Correlation Breakdown
-            if (data.correlationChange && Math.abs(data.correlationChange) > this.thresholds.correlationBreak) {
-                anomalies.push({
-                    type: 'correlation_break',
-                    severity: 'warning',
-                    message: `Asset correlation breakdown detected: ${(data.correlationChange * 100).toFixed(0)}% change`,
-                    value: data.correlationChange,
-                    timestamp: Date.now()
-                });
-            }
-            
-            return anomalies;
-        },
-        
-        alertAnomaly: function(anomaly) {
-            // Add to insights panel
-            AdvancedFeatures.InsightsPanel.addInsight({
-                type: anomaly.severity === 'danger' ? 'danger' : 'warning',
-                title: 'Anomaly Detected',
-                message: anomaly.message,
-                metric: anomaly.value.toFixed(2),
-                action: { label: 'Investigate', url: '#monitoring' },
-                icon: '⚡',
-                priority: 'high'
-            });
-            
-            // Play alert sound (optional)
-            if (anomaly.severity === 'danger') {
-                this.playAlertSound();
-            }
-        },
-        
-        playAlertSound: function() {
-            // Optional: Play browser notification sound
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('BotV2 Alert', {
-                    body: 'Anomaly detected in your trading activity',
-                    icon: '/static/icon.png',
-                    badge: '/static/badge.png'
-                });
-            }
-        }
-    },
-    
-    // ==================== 3. COMMAND PALETTE (Ctrl+K) ====================
-    CommandPalette: {
-        isOpen: false,
-        commands: [],
-        filteredCommands: [],
-        selectedIndex: 0,
-        
-        init: function() {
+
+        init() {
+            this.createPaletteHTML();
             this.registerDefaultCommands();
-            this.attachKeyboardListeners();
-            this.createPaletteElement();
-        },
-        
-        registerDefaultCommands: function() {
+            this.attachEventListeners();
+        }
+
+        createPaletteHTML() {
+            const html = `
+                <div id="command-palette" class="command-palette" style="display: none;">
+                    <div class="command-palette-backdrop"></div>
+                    <div class="command-palette-container">
+                        <div class="command-palette-header">
+                            <svg class="command-icon" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                            </svg>
+                            <input type="text" id="command-input" class="command-input" placeholder="Type a command or search..." autocomplete="off" />
+                            <kbd class="command-kbd">ESC</kbd>
+                        </div>
+                        <div class="command-palette-results" id="command-results"></div>
+                        <div class="command-palette-footer">
+                            <span class="command-hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+                            <span class="command-hint"><kbd>Enter</kbd> Select</span>
+                            <span class="command-hint"><kbd>ESC</kbd> Close</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+
+        registerDefaultCommands() {
             this.commands = [
                 // Navigation
-                { id: 'nav-dashboard', label: 'Go to Dashboard', icon: '🏠', action: () => this.navigate('dashboard') },
-                { id: 'nav-portfolio', label: 'Go to Portfolio', icon: '💼', action: () => this.navigate('portfolio') },
-                { id: 'nav-trades', label: 'Go to Trades', icon: '📊', action: () => this.navigate('trades') },
-                { id: 'nav-performance', label: 'Go to Performance', icon: '📈', action: () => this.navigate('performance') },
-                { id: 'nav-risk', label: 'Go to Risk Analysis', icon: '🛑', action: () => this.navigate('risk') },
-                { id: 'nav-markets', label: 'Go to Markets', icon: '🌍', action: () => this.navigate('markets') },
-                { id: 'nav-strategies', label: 'Go to Strategies', icon: '🧠', action: () => this.navigate('strategies') },
-                { id: 'nav-backtesting', label: 'Go to Backtesting', icon: '⏱️', action: () => this.navigate('backtesting') },
-                
-                // Actions
-                { id: 'action-refresh', label: 'Refresh Dashboard', icon: '🔄', action: () => location.reload() },
-                { id: 'action-export', label: 'Export Data', icon: '📥', action: () => this.exportData() },
-                { id: 'action-print', label: 'Print Dashboard', icon: '🖨️', action: () => window.print() },
-                
+                { id: 'nav-dashboard', name: 'Go to Dashboard', icon: '🏠', category: 'Navigation', action: () => this.navigateTo('dashboard') },
+                { id: 'nav-portfolio', name: 'Go to Portfolio', icon: '💼', category: 'Navigation', action: () => this.navigateTo('portfolio') },
+                { id: 'nav-trades', name: 'Go to Trades', icon: '📊', category: 'Navigation', action: () => this.navigateTo('trades') },
+                { id: 'nav-performance', name: 'Go to Performance', icon: '📈', category: 'Navigation', action: () => this.navigateTo('performance') },
+                { id: 'nav-risk', name: 'Go to Risk Analysis', icon: '⚠️', category: 'Navigation', action: () => this.navigateTo('risk') },
+                { id: 'nav-settings', name: 'Go to Settings', icon: '⚙️', category: 'Navigation', action: () => this.navigateTo('settings') },
+
                 // Theme
-                { id: 'theme-dark', label: 'Switch to Dark Theme', icon: '🌙', action: () => setTheme('dark') },
-                { id: 'theme-light', label: 'Switch to Light Theme', icon: '☀️', action: () => setTheme('light') },
-                { id: 'theme-bloomberg', label: 'Switch to Bloomberg Theme', icon: '💻', action: () => setTheme('bloomberg') },
-                
-                // Charts
-                { id: 'chart-export', label: 'Export Current Chart', icon: '📷', action: () => this.exportChart() },
-                { id: 'chart-fullscreen', label: 'Toggle Chart Fullscreen', icon: '⛶️', action: () => this.toggleFullscreen() },
-                
+                { id: 'theme-dark', name: 'Switch to Dark Theme', icon: '🌙', category: 'Theme', action: () => this.setTheme('dark') },
+                { id: 'theme-light', name: 'Switch to Light Theme', icon: '☀️', category: 'Theme', action: () => this.setTheme('light') },
+                { id: 'theme-bloomberg', name: 'Switch to Bloomberg Theme', icon: '📰', category: 'Theme', action: () => this.setTheme('bloomberg') },
+
+                // Actions
+                { id: 'export-data', name: 'Export Dashboard Data', icon: '📥', category: 'Actions', action: () => this.exportDashboardData() },
+                { id: 'refresh-data', name: 'Refresh All Data', icon: '🔄', category: 'Actions', action: () => this.refreshAllData() },
+                { id: 'take-snapshot', name: 'Take Dashboard Snapshot', icon: '📸', category: 'Actions', action: () => window.AdvancedFeatures.takeSnapshot() },
+                { id: 'show-insights', name: 'Show AI Insights', icon: '🧠', category: 'Actions', action: () => window.AdvancedFeatures.showInsights() },
+                { id: 'detect-anomalies', name: 'Detect Anomalies', icon: '🔍', category: 'Actions', action: () => window.AdvancedFeatures.detectAnomalies() },
+
+                // Layouts
+                { id: 'layout-single', name: 'Single Chart Layout', icon: '📋', category: 'Layout', action: () => this.setLayout('single') },
+                { id: 'layout-grid', name: 'Grid Layout (2x2)', icon: '⬚', category: 'Layout', action: () => this.setLayout('grid') },
+                { id: 'layout-dashboard', name: 'Dashboard Layout', icon: '🗺', category: 'Layout', action: () => this.setLayout('dashboard') },
+
                 // Help
-                { id: 'help-shortcuts', label: 'View Keyboard Shortcuts', icon: '⌨️', action: () => this.showShortcuts() },
-                { id: 'help-docs', label: 'Open Documentation', icon: '📖', action: () => window.open('/docs', '_blank') }
+                { id: 'help-shortcuts', name: 'View Keyboard Shortcuts', icon: '⌨️', category: 'Help', action: () => this.showShortcuts() },
+                { id: 'help-docs', name: 'Open Documentation', icon: '📖', category: 'Help', action: () => this.openDocs() }
             ];
-        },
-        
-        attachKeyboardListeners: function() {
+        }
+
+        attachEventListeners() {
+            // Keyboard shortcut to open (Ctrl/Cmd + K)
             document.addEventListener('keydown', (e) => {
-                // Ctrl+K or Cmd+K to open
                 if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                     e.preventDefault();
                     this.toggle();
                 }
-                
-                // ESC to close
+            });
+
+            // Close on backdrop click
+            const backdrop = document.querySelector('.command-palette-backdrop');
+            backdrop?.addEventListener('click', () => this.close());
+
+            // Close on ESC
+            document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && this.isOpen) {
                     this.close();
                 }
-                
-                // Arrow navigation
-                if (this.isOpen) {
-                    if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        this.selectNext();
-                    } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        this.selectPrevious();
-                    } else if (e.key === 'Enter') {
-                        e.preventDefault();
-                        this.executeSelected();
-                    }
-                }
             });
-        },
-        
-        createPaletteElement: function() {
-            const html = `
-                <div id="command-palette" class="command-palette" style="display: none;">
-                    <div class="command-palette-overlay"></div>
-                    <div class="command-palette-container">
-                        <div class="command-palette-input-wrapper">
-                            <span class="command-palette-icon">🔍</span>
-                            <input 
-                                type="text" 
-                                id="command-palette-input" 
-                                class="command-palette-input" 
-                                placeholder="Type a command or search..."
-                                autocomplete="off"
-                                spellcheck="false"
-                            />
-                            <kbd class="command-palette-hint">ESC</kbd>
-                        </div>
-                        <div id="command-palette-results" class="command-palette-results"></div>
+
+            // Input handler
+            const input = document.getElementById('command-input');
+            input?.addEventListener('input', (e) => this.handleInput(e.target.value));
+
+            // Keyboard navigation
+            input?.addEventListener('keydown', (e) => this.handleKeyNavigation(e));
+        }
+
+        handleInput(query) {
+            if (!query.trim()) {
+                this.filteredCommands = this.commands;
+            } else {
+                const lowerQuery = query.toLowerCase();
+                this.filteredCommands = this.commands.filter(cmd => 
+                    cmd.name.toLowerCase().includes(lowerQuery) ||
+                    cmd.category.toLowerCase().includes(lowerQuery)
+                );
+            }
+            this.selectedIndex = 0;
+            this.renderResults();
+        }
+
+        handleKeyNavigation(e) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                this.selectedIndex = Math.min(this.selectedIndex + 1, this.filteredCommands.length - 1);
+                this.renderResults();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+                this.renderResults();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                this.executeSelected();
+            }
+        }
+
+        renderResults() {
+            const resultsContainer = document.getElementById('command-results');
+            if (!resultsContainer) return;
+
+            if (this.filteredCommands.length === 0) {
+                resultsContainer.innerHTML = '<div class="command-empty">No commands found</div>';
+                return;
+            }
+
+            const html = this.filteredCommands.map((cmd, idx) => `
+                <div class="command-item ${idx === this.selectedIndex ? 'selected' : ''}" data-index="${idx}">
+                    <span class="command-item-icon">${cmd.icon}</span>
+                    <div class="command-item-content">
+                        <div class="command-item-name">${cmd.name}</div>
+                        <div class="command-item-category">${cmd.category}</div>
                     </div>
                 </div>
-            `;
+            `).join('');
+
+            resultsContainer.innerHTML = html;
+
+            // Add click handlers
+            resultsContainer.querySelectorAll('.command-item').forEach((item, idx) => {
+                item.addEventListener('click', () => {
+                    this.selectedIndex = idx;
+                    this.executeSelected();
+                });
+            });
+        }
+
+        executeSelected() {
+            const command = this.filteredCommands[this.selectedIndex];
+            if (command && command.action) {
+                command.action();
+                this.close();
+            }
+        }
+
+        open() {
+            const palette = document.getElementById('command-palette');
+            const input = document.getElementById('command-input');
             
-            document.body.insertAdjacentHTML('beforeend', html);
+            if (palette) {
+                this.isOpen = true;
+                palette.style.display = 'block';
+                setTimeout(() => {
+                    palette.classList.add('active');
+                    input?.focus();
+                }, 10);
+                this.filteredCommands = this.commands;
+                this.renderResults();
+            }
+        }
+
+        close() {
+            const palette = document.getElementById('command-palette');
+            const input = document.getElementById('command-input');
             
-            // Attach input listener
-            const input = document.getElementById('command-palette-input');
-            input.addEventListener('input', (e) => this.filterCommands(e.target.value));
-            
-            // Attach overlay click listener
-            document.querySelector('.command-palette-overlay').addEventListener('click', () => this.close());
-        },
-        
-        toggle: function() {
+            if (palette) {
+                palette.classList.remove('active');
+                setTimeout(() => {
+                    this.isOpen = false;
+                    palette.style.display = 'none';
+                    if (input) input.value = '';
+                }, 200);
+            }
+        }
+
+        toggle() {
             if (this.isOpen) {
                 this.close();
             } else {
                 this.open();
             }
-        },
-        
-        open: function() {
-            this.isOpen = true;
-            document.getElementById('command-palette').style.display = 'block';
-            document.getElementById('command-palette-input').focus();
-            this.filterCommands('');
-        },
-        
-        close: function() {
-            this.isOpen = false;
-            document.getElementById('command-palette').style.display = 'none';
-            document.getElementById('command-palette-input').value = '';
-            this.selectedIndex = 0;
-        },
-        
-        filterCommands: function(query) {
-            const lowerQuery = query.toLowerCase();
+        }
+
+        // Command actions
+        navigateTo(section) {
+            const menuItem = document.querySelector(`.menu-item[data-section="${section}"]`);
+            menuItem?.click();
+        }
+
+        setTheme(theme) {
+            if (typeof setTheme === 'function') {
+                setTheme(theme);
+            }
+        }
+
+        setLayout(layout) {
+            console.log('Setting layout:', layout);
+            // Implementation would depend on dashboard.js
+        }
+
+        exportDashboardData() {
+            console.log('Exporting dashboard data...');
+            // Implementation
+        }
+
+        refreshAllData() {
+            console.log('Refreshing all data...');
+            window.location.reload();
+        }
+
+        showShortcuts() {
+            alert('Keyboard Shortcuts:\n\nCtrl/Cmd + K: Command Palette\nCtrl/Cmd + R: Refresh Data\nCtrl/Cmd + S: Take Snapshot');
+        }
+
+        openDocs() {
+            window.open('https://github.com/juankaspain/BotV2/tree/main/docs', '_blank');
+        }
+    }
+
+    /**
+     * AI Insights Panel Class
+     */
+    class AIInsightsPanel {
+        constructor() {
+            this.insights = [];
+            this.isVisible = false;
+        }
+
+        async generateInsights(portfolioData, tradesData, performanceData) {
+            this.insights = [];
+
+            // 1. Win Rate Analysis
+            const winRate = this.calculateWinRate(tradesData);
+            if (winRate < 45) {
+                this.insights.push({
+                    type: 'warning',
+                    category: 'Performance',
+                    title: 'Low Win Rate Detected',
+                    message: `Your win rate is ${winRate.toFixed(1)}%, which is below optimal. Consider reviewing your entry criteria.`,
+                    actionable: true,
+                    action: 'Review Strategy'
+                });
+            } else if (winRate > 65) {
+                this.insights.push({
+                    type: 'success',
+                    category: 'Performance',
+                    title: 'Excellent Win Rate',
+                    message: `Your win rate of ${winRate.toFixed(1)}% is outstanding! Keep following your current strategy.`,
+                    actionable: false
+                });
+            }
+
+            // 2. Risk-Reward Ratio
+            const avgRR = this.calculateAvgRiskReward(tradesData);
+            if (avgRR < 1.5) {
+                this.insights.push({
+                    type: 'warning',
+                    category: 'Risk',
+                    title: 'Risk-Reward Needs Improvement',
+                    message: `Your average risk-reward ratio is ${avgRR.toFixed(2)}:1. Aim for at least 2:1 for better profitability.`,
+                    actionable: true,
+                    action: 'Optimize Targets'
+                });
+            }
+
+            // 3. Drawdown Alert
+            const maxDrawdown = this.calculateMaxDrawdown(performanceData);
+            if (maxDrawdown > 20) {
+                this.insights.push({
+                    type: 'danger',
+                    category: 'Risk',
+                    title: 'High Drawdown Alert',
+                    message: `Maximum drawdown is ${maxDrawdown.toFixed(1)}%. Consider reducing position sizes or reviewing risk management.`,
+                    actionable: true,
+                    action: 'Adjust Risk'
+                });
+            }
+
+            // 4. Profit Factor
+            const profitFactor = this.calculateProfitFactor(tradesData);
+            if (profitFactor > 2) {
+                this.insights.push({
+                    type: 'success',
+                    category: 'Performance',
+                    title: 'Strong Profit Factor',
+                    message: `Profit factor of ${profitFactor.toFixed(2)} indicates your winners significantly outweigh losers.`,
+                    actionable: false
+                });
+            }
+
+            // 5. Trading Frequency
+            const tradesPerDay = this.calculateTradesPerDay(tradesData);
+            if (tradesPerDay > 10) {
+                this.insights.push({
+                    type: 'info',
+                    category: 'Behavior',
+                    title: 'High Trading Frequency',
+                    message: `You're averaging ${tradesPerDay.toFixed(1)} trades per day. Ensure this aligns with your strategy.`,
+                    actionable: true,
+                    action: 'Review Frequency'
+                });
+            }
+
+            // 6. Consecutive Losses
+            const maxConsecutiveLosses = this.calculateMaxConsecutiveLosses(tradesData);
+            if (maxConsecutiveLosses >= 5) {
+                this.insights.push({
+                    type: 'warning',
+                    category: 'Psychology',
+                    title: 'Losing Streak Detected',
+                    message: `You had a streak of ${maxConsecutiveLosses} consecutive losses. Consider taking a break to reset mentally.`,
+                    actionable: true,
+                    action: 'Take Break'
+                });
+            }
+
+            return this.insights;
+        }
+
+        // Helper calculations
+        calculateWinRate(trades) {
+            const winners = trades.filter(t => t.profit > 0).length;
+            return (winners / trades.length) * 100;
+        }
+
+        calculateAvgRiskReward(trades) {
+            const avgWin = trades.filter(t => t.profit > 0).reduce((sum, t) => sum + t.profit, 0) / trades.filter(t => t.profit > 0).length;
+            const avgLoss = Math.abs(trades.filter(t => t.profit <= 0).reduce((sum, t) => sum + t.profit, 0) / trades.filter(t => t.profit <= 0).length);
+            return avgWin / avgLoss;
+        }
+
+        calculateMaxDrawdown(performanceData) {
+            let maxDrawdown = 0;
+            let peak = -Infinity;
             
-            this.filteredCommands = this.commands.filter(cmd => 
-                cmd.label.toLowerCase().includes(lowerQuery)
-            );
+            performanceData.forEach(point => {
+                if (point.equity > peak) peak = point.equity;
+                const drawdown = ((peak - point.equity) / peak) * 100;
+                if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+            });
             
-            this.selectedIndex = 0;
-            this.renderResults();
-        },
-        
-        renderResults: function() {
-            const resultsContainer = document.getElementById('command-palette-results');
+            return maxDrawdown;
+        }
+
+        calculateProfitFactor(trades) {
+            const grossProfit = trades.filter(t => t.profit > 0).reduce((sum, t) => sum + t.profit, 0);
+            const grossLoss = Math.abs(trades.filter(t => t.profit <= 0).reduce((sum, t) => sum + t.profit, 0));
+            return grossProfit / grossLoss;
+        }
+
+        calculateTradesPerDay(trades) {
+            const days = new Set(trades.map(t => t.date.split('T')[0])).size;
+            return trades.length / days;
+        }
+
+        calculateMaxConsecutiveLosses(trades) {
+            let maxStreak = 0;
+            let currentStreak = 0;
             
-            if (this.filteredCommands.length === 0) {
-                resultsContainer.innerHTML = `
-                    <div class="command-palette-empty">
-                        <div class="command-palette-empty-icon">🔍</div>
-                        <div class="command-palette-empty-text">No commands found</div>
-                    </div>
-                `;
+            trades.forEach(trade => {
+                if (trade.profit <= 0) {
+                    currentStreak++;
+                    if (currentStreak > maxStreak) maxStreak = currentStreak;
+                } else {
+                    currentStreak = 0;
+                }
+            });
+            
+            return maxStreak;
+        }
+
+        show() {
+            if (this.insights.length === 0) {
+                alert('No insights available. Generate insights first.');
                 return;
             }
-            
-            const html = this.filteredCommands.map((cmd, index) => `
-                <div class="command-palette-item ${index === this.selectedIndex ? 'selected' : ''}" 
-                     data-command-id="${cmd.id}"
-                     onclick="AdvancedFeatures.CommandPalette.executeCommand('${cmd.id}')">
-                    <span class="command-palette-item-icon">${cmd.icon}</span>
-                    <span class="command-palette-item-label">${cmd.label}</span>
-                </div>
-            `).join('');
-            
-            resultsContainer.innerHTML = html;
-        },
-        
-        selectNext: function() {
-            this.selectedIndex = Math.min(this.selectedIndex + 1, this.filteredCommands.length - 1);
-            this.renderResults();
-        },
-        
-        selectPrevious: function() {
-            this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-            this.renderResults();
-        },
-        
-        executeSelected: function() {
-            if (this.filteredCommands.length > 0) {
-                const cmd = this.filteredCommands[this.selectedIndex];
-                this.executeCommand(cmd.id);
-            }
-        },
-        
-        executeCommand: function(commandId) {
-            const cmd = this.commands.find(c => c.id === commandId);
-            if (cmd) {
-                cmd.action();
-                this.close();
-            }
-        },
-        
-        navigate: function(section) {
-            if (typeof loadSection === 'function') {
-                loadSection(section);
-            } else {
-                console.log(`Navigate to: ${section}`);
-            }
-        },
-        
-        exportData: function() {
-            console.log('Export data functionality');
-        },
-        
-        exportChart: function() {
-            if (window.ChartMastery) {
-                ChartMastery.exportChart(document.querySelector('.chart-container').id, 'png');
-            }
-        },
-        
-        toggleFullscreen: function() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                document.exitFullscreen();
-            }
-        },
-        
-        showShortcuts: function() {
-            alert('Keyboard Shortcuts:\n\nCtrl+K: Command Palette\nESC: Close\nArrows: Navigate\nEnter: Execute');
-        }
-    },
-    
-    // ==================== 4. MULTI-CHART LAYOUT SWITCHER ====================
-    LayoutSwitcher: {
-        currentLayout: 'grid',
-        
-        layouts: {
-            single: { cols: 1, rows: 1 },
-            double: { cols: 2, rows: 1 },
-            triple: { cols: 3, rows: 1 },
-            grid: { cols: 2, rows: 2 },
-            wide: { cols: 1, rows: 'auto' }
-        },
-        
-        init: function(containerId) {
-            this.container = document.getElementById(containerId);
-            this.createSwitcher();
-        },
-        
-        createSwitcher: function() {
+
             const html = `
-                <div class="layout-switcher">
-                    <button class="layout-btn" data-layout="single" title="Single Chart">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <rect x="2" y="2" width="12" height="12" rx="1"/>
-                        </svg>
-                    </button>
-                    <button class="layout-btn" data-layout="double" title="Double Chart">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <rect x="2" y="2" width="5" height="12" rx="1"/>
-                            <rect x="9" y="2" width="5" height="12" rx="1"/>
-                        </svg>
-                    </button>
-                    <button class="layout-btn active" data-layout="grid" title="Grid Layout">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <rect x="2" y="2" width="5" height="5" rx="1"/>
-                            <rect x="9" y="2" width="5" height="5" rx="1"/>
-                            <rect x="2" y="9" width="5" height="5" rx="1"/>
-                            <rect x="9" y="9" width="5" height="5" rx="1"/>
-                        </svg>
-                    </button>
-                    <button class="layout-btn" data-layout="wide" title="Wide Layout">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <rect x="2" y="2" width="12" height="3" rx="1"/>
-                            <rect x="2" y="7" width="12" height="3" rx="1"/>
-                            <rect x="2" y="12" width="12" height="2" rx="1"/>
-                        </svg>
-                    </button>
+                <div class="insights-panel" id="insights-panel">
+                    <div class="insights-header">
+                        <h3>🧠 AI Insights</h3>
+                        <button class="insights-close" onclick="window.AdvancedFeatures.hideInsights()">×</button>
+                    </div>
+                    <div class="insights-content">
+                        ${this.insights.map(insight => `
+                            <div class="insight-card insight-${insight.type}">
+                                <div class="insight-category">${insight.category}</div>
+                                <div class="insight-title">${insight.title}</div>
+                                <div class="insight-message">${insight.message}</div>
+                                ${insight.actionable ? `<button class="insight-action">${insight.action}</button>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             `;
+
+            // Remove existing panel
+            document.getElementById('insights-panel')?.remove();
             
-            // Insert into topbar or designated container
-            const topbar = document.querySelector('.topbar-right');
-            if (topbar) {
-                topbar.insertAdjacentHTML('afterbegin', html);
-            }
-            
-            this.attachListeners();
-        },
-        
-        attachListeners: function() {
-            document.querySelectorAll('.layout-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const layout = e.currentTarget.dataset.layout;
-                    this.switchLayout(layout);
-                });
-            });
-        },
-        
-        switchLayout: function(layoutName) {
-            this.currentLayout = layoutName;
-            const layout = this.layouts[layoutName];
-            
-            // Update charts grid
-            const chartsGrid = document.querySelector('.charts-grid');
-            if (chartsGrid) {
-                chartsGrid.style.gridTemplateColumns = `repeat(${layout.cols}, 1fr)`;
-                
-                if (layout.rows !== 'auto') {
-                    chartsGrid.style.gridTemplateRows = `repeat(${layout.rows}, 1fr)`;
-                } else {
-                    chartsGrid.style.gridTemplateRows = 'auto';
-                }
-            }
-            
-            // Update active button
-            document.querySelectorAll('.layout-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.layout === layoutName);
-            });
-            
-            // Save preference
-            localStorage.setItem('dashboard-layout', layoutName);
-        },
-        
-        loadSavedLayout: function() {
-            const saved = localStorage.getItem('dashboard-layout');
-            if (saved && this.layouts[saved]) {
-                this.switchLayout(saved);
-            }
+            // Add new panel
+            document.body.insertAdjacentHTML('beforeend', html);
+            this.isVisible = true;
         }
-    },
-    
-    // ==================== 5. SHAREABLE SNAPSHOTS ====================
-    Snapshots: {
-        captureState: function() {
-            const state = {
-                section: document.getElementById('page-title')?.textContent,
-                theme: document.documentElement.getAttribute('data-theme'),
-                layout: AdvancedFeatures.LayoutSwitcher.currentLayout,
-                filters: this.getCurrentFilters(),
-                dateRange: this.getCurrentDateRange(),
-                timestamp: Date.now()
-            };
-            
-            return state;
-        },
-        
-        getCurrentFilters: function() {
-            // Placeholder - implement based on actual filters
-            return {};
-        },
-        
-        getCurrentDateRange: function() {
-            // Placeholder - implement based on actual date range
-            return { start: null, end: null };
-        },
-        
-        createShareableLink: function() {
-            const state = this.captureState();
-            const encoded = btoa(JSON.stringify(state));
-            const url = `${window.location.origin}${window.location.pathname}?snapshot=${encoded}`;
-            
-            return url;
-        },
-        
-        copyToClipboard: function() {
-            const url = this.createShareableLink();
-            
-            navigator.clipboard.writeText(url).then(() => {
-                // Show success notification
-                if (window.VisualExcellence) {
-                    console.log('Snapshot URL copied to clipboard');
-                }
-            });
-            
-            return url;
-        },
-        
-        restoreFromURL: function() {
-            const params = new URLSearchParams(window.location.search);
-            const snapshot = params.get('snapshot');
-            
-            if (snapshot) {
-                try {
-                    const state = JSON.parse(atob(snapshot));
-                    this.restoreState(state);
-                } catch (e) {
-                    console.error('Failed to restore snapshot:', e);
-                }
-            }
-        },
-        
-        restoreState: function(state) {
-            // Restore theme
-            if (state.theme && typeof setTheme === 'function') {
-                setTheme(state.theme);
-            }
-            
-            // Restore layout
-            if (state.layout) {
-                AdvancedFeatures.LayoutSwitcher.switchLayout(state.layout);
-            }
-            
-            // Restore section
-            if (state.section && typeof loadSection === 'function') {
-                // Extract section from title
-                const section = state.section.toLowerCase().replace(/\s+/g, '_');
-                loadSection(section);
-            }
+
+        hide() {
+            document.getElementById('insights-panel')?.remove();
+            this.isVisible = false;
         }
-    },
-    
-    // ==================== INITIALIZATION ====================
-    init: function() {
-        console.log('🚀 Initializing Advanced Features...');
-        
-        // Initialize Command Palette
-        this.CommandPalette.init();
-        
-        // Initialize Layout Switcher
-        this.LayoutSwitcher.init('charts-grid');
-        this.LayoutSwitcher.loadSavedLayout();
-        
-        // Restore snapshot if present
-        this.Snapshots.restoreFromURL();
-        
-        console.log('✅ Advanced Features v7.2 initialized');
     }
-};
 
-// ==================== AUTO-INITIALIZE ====================
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => AdvancedFeatures.init());
-} else {
-    AdvancedFeatures.init();
-}
+    /**
+     * Anomaly Detection Class
+     */
+    class AnomalyDetector {
+        constructor() {
+            this.anomalies = [];
+        }
 
-// ==================== EXPORTS ====================
-window.AdvancedFeatures = AdvancedFeatures;
+        detect(data, type = 'trades') {
+            this.anomalies = [];
 
-console.log('✅ Advanced Features v7.2 loaded successfully');
+            if (type === 'trades') {
+                this.detectTradeAnomalies(data);
+            } else if (type === 'performance') {
+                this.detectPerformanceAnomalies(data);
+            }
+
+            return this.anomalies;
+        }
+
+        detectTradeAnomalies(trades) {
+            // 1. Outlier profits/losses
+            const profits = trades.map(t => t.profit);
+            const mean = profits.reduce((a, b) => a + b, 0) / profits.length;
+            const std = Math.sqrt(profits.reduce((sum, p) => sum + Math.pow(p - mean, 2), 0) / profits.length);
+            
+            trades.forEach(trade => {
+                if (Math.abs(trade.profit - mean) > 3 * std) {
+                    this.anomalies.push({
+                        type: 'outlier',
+                        severity: 'high',
+                        message: `Trade #${trade.id} has an unusual ${trade.profit > 0 ? 'profit' : 'loss'}: €${Math.abs(trade.profit).toFixed(2)}`,
+                        data: trade
+                    });
+                }
+            });
+
+            // 2. Unusual trade times
+            const tradeTimes = trades.map(t => new Date(t.timestamp).getHours());
+            const mostCommonHour = this.mode(tradeTimes);
+            
+            trades.forEach(trade => {
+                const hour = new Date(trade.timestamp).getHours();
+                if (Math.abs(hour - mostCommonHour) > 6) {
+                    this.anomalies.push({
+                        type: 'timing',
+                        severity: 'medium',
+                        message: `Trade #${trade.id} executed at unusual hour: ${hour}:00`,
+                        data: trade
+                    });
+                }
+            });
+        }
+
+        detectPerformanceAnomalies(performanceData) {
+            // Detect sudden equity drops
+            for (let i = 1; i < performanceData.length; i++) {
+                const change = ((performanceData[i].equity - performanceData[i-1].equity) / performanceData[i-1].equity) * 100;
+                
+                if (change < -5) {
+                    this.anomalies.push({
+                        type: 'equity_drop',
+                        severity: 'high',
+                        message: `Sudden equity drop of ${Math.abs(change).toFixed(1)}% detected on ${performanceData[i].date}`,
+                        data: performanceData[i]
+                    });
+                }
+            }
+        }
+
+        mode(array) {
+            const frequency = {};
+            let maxFreq = 0;
+            let mode = array[0];
+            
+            array.forEach(item => {
+                frequency[item] = (frequency[item] || 0) + 1;
+                if (frequency[item] > maxFreq) {
+                    maxFreq = frequency[item];
+                    mode = item;
+                }
+            });
+            
+            return mode;
+        }
+    }
+
+    /**
+     * Snapshot Manager Class
+     */
+    class SnapshotManager {
+        takeSnapshot(filename = 'dashboard-snapshot') {
+            // Use html2canvas if available, otherwise fallback
+            if (typeof html2canvas !== 'undefined') {
+                const element = document.querySelector('.dashboard-content');
+                html2canvas(element).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `${filename}-${Date.now()}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                });
+            } else {
+                console.warn('html2canvas not loaded. Using fallback.');
+                alert('Snapshot feature requires html2canvas library.');
+            }
+        }
+
+        shareSnapshot() {
+            // Implementation for sharing
+            alert('Share functionality would be implemented here.');
+        }
+    }
+
+    /**
+     * Main Advanced Features Manager
+     */
+    class AdvancedFeaturesManager {
+        constructor() {
+            this.commandPalette = new CommandPalette();
+            this.insightsPanel = new AIInsightsPanel();
+            this.anomalyDetector = new AnomalyDetector();
+            this.snapshotManager = new SnapshotManager();
+        }
+
+        async showInsights() {
+            // Mock data - replace with actual data from dashboard
+            const mockTrades = Array.from({ length: 100 }, (_, i) => ({
+                id: i + 1,
+                profit: (Math.random() - 0.4) * 200,
+                date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+                timestamp: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+            }));
+
+            const mockPerformance = Array.from({ length: 30 }, (_, i) => ({
+                date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                equity: 50000 + Math.random() * 10000
+            }));
+
+            await this.insightsPanel.generateInsights({}, mockTrades, mockPerformance);
+            this.insightsPanel.show();
+        }
+
+        hideInsights() {
+            this.insightsPanel.hide();
+        }
+
+        detectAnomalies() {
+            // Mock data
+            const mockTrades = Array.from({ length: 100 }, (_, i) => ({
+                id: i + 1,
+                profit: (Math.random() - 0.4) * 200,
+                timestamp: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+            }));
+
+            const anomalies = this.anomalyDetector.detect(mockTrades, 'trades');
+            
+            if (anomalies.length > 0) {
+                alert(`Found ${anomalies.length} anomalies:\n\n${anomalies.slice(0, 3).map(a => a.message).join('\n')}`);
+            } else {
+                alert('No anomalies detected. Everything looks normal!');
+            }
+        }
+
+        takeSnapshot() {
+            this.snapshotManager.takeSnapshot('botv2-dashboard');
+        }
+    }
+
+    // Export to window
+    window.AdvancedFeatures = new AdvancedFeaturesManager();
+
+    console.log('🚀 Advanced Features v7.2 loaded successfully');
+    console.log('🎯 Press Ctrl/Cmd+K to open Command Palette');
+
+})(window);
