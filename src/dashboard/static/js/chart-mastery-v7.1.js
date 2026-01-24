@@ -1,633 +1,639 @@
-// ==================== BotV2 Chart Mastery v7.1 ====================
-// Advanced Chart Types & Annotation System
-// Author: Juan Carlos Garcia
-// Date: 24 Enero 2026
+/**
+ * ========================================
+ * BotV2 Dashboard - Chart Mastery v7.1
+ * ========================================
+ * 
+ * Advanced Trading Charts Module
+ * 
+ * Features:
+ * - Win/Loss Distribution Histogram
+ * - Correlation Matrix Heatmap
+ * - Risk-Return Scatter Plot
+ * - Trade Duration Box Plot
+ * - Real vs Expected Comparison
+ * - Chart Annotations System
+ * - Multi-timeframe Comparison
+ * 
+ * Dependencies:
+ * - Plotly.js 2.27.0+
+ * - visual-excellence.js
+ * 
+ * @version 7.1.0
+ * @author Juan Carlos Garcia
+ * @date 24 Enero 2026
+ */
 
-console.log('📊 Chart Mastery v7.1 initializing...');
+(function(window) {
+    'use strict';
 
-// ==================== CHART LIBRARY ====================
-const ChartMastery = {
-    
-    // ==================== 1. WIN/LOSS DISTRIBUTION ====================
-    createWinLossDistribution: function(containerId, data) {
-        const wins = data.wins || [];
-        const losses = data.losses || [];
-        
-        const trace1 = {
-            x: wins,
-            type: 'histogram',
-            name: 'Winning Trades',
-            marker: {
-                color: 'rgba(16, 185, 129, 0.7)',
-                line: {
-                    color: 'rgba(16, 185, 129, 1)',
-                    width: 1
-                }
-            },
-            opacity: 0.7,
-            xbins: {
-                size: (Math.max(...wins) - Math.min(...wins)) / 20
-            }
-        };
-        
-        const trace2 = {
-            x: losses,
-            type: 'histogram',
-            name: 'Losing Trades',
-            marker: {
-                color: 'rgba(248, 81, 73, 0.7)',
-                line: {
-                    color: 'rgba(248, 81, 73, 1)',
-                    width: 1
-                }
-            },
-            opacity: 0.7,
-            xbins: {
-                size: (Math.max(...losses) - Math.min(...losses)) / 20
-            }
-        };
-        
-        const layout = {
-            title: {
-                text: 'Win/Loss Distribution',
-                font: { size: 16, weight: 600, family: 'Inter' }
-            },
-            xaxis: {
-                title: 'P&L (€)',
-                gridcolor: 'rgba(255, 255, 255, 0.1)',
-                zeroline: true,
-                zerolinecolor: 'rgba(255, 255, 255, 0.3)',
-                zerolinewidth: 2
-            },
-            yaxis: {
-                title: 'Frequency',
-                gridcolor: 'rgba(255, 255, 255, 0.1)'
-            },
-            barmode: 'overlay',
-            bargap: 0.05,
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            font: { color: '#e6edf3', family: 'Inter' },
-            hovermode: 'closest',
-            showlegend: true,
-            legend: {
-                x: 0.7,
-                y: 0.95,
-                bgcolor: 'rgba(22, 27, 34, 0.8)',
-                bordercolor: 'rgba(48, 54, 61, 1)',
-                borderwidth: 1
-            },
-            annotations: [{
-                x: 0,
-                y: 0,
-                xref: 'x',
-                yref: 'paper',
-                text: 'Break-even',
-                showarrow: true,
-                arrowhead: 2,
-                arrowsize: 1,
-                arrowwidth: 2,
-                arrowcolor: 'rgba(255, 255, 255, 0.5)',
-                ax: 0,
-                ay: -40,
-                font: { size: 10, color: 'rgba(255, 255, 255, 0.7)' }
-            }]
-        };
-        
-        const config = {
-            responsive: true,
-            displayModeBar: true,
-            displaylogo: false,
-            modeBarButtonsToRemove: ['lasso2d', 'select2d']
-        };
-        
-        Plotly.newPlot(containerId, [trace1, trace2], layout, config);
-        
-        // Return stats
-        return {
-            winCount: wins.length,
-            lossCount: losses.length,
-            winRate: (wins.length / (wins.length + losses.length) * 100).toFixed(2),
-            avgWin: (wins.reduce((a, b) => a + b, 0) / wins.length).toFixed(2),
-            avgLoss: (losses.reduce((a, b) => a + b, 0) / losses.length).toFixed(2)
-        };
-    },
-    
-    // ==================== 2. CORRELATION MATRIX ====================
-    createCorrelationMatrix: function(containerId, data) {
-        const assets = data.assets || ['BTC', 'ETH', 'SPX', 'GOLD', 'EUR'];
-        const correlations = data.correlations || [
-            [1.0, 0.85, 0.45, 0.32, -0.15],
-            [0.85, 1.0, 0.52, 0.28, -0.12],
-            [0.45, 0.52, 1.0, 0.65, 0.23],
-            [0.32, 0.28, 0.65, 1.0, 0.18],
-            [-0.15, -0.12, 0.23, 0.18, 1.0]
-        ];
-        
-        const trace = {
-            z: correlations,
-            x: assets,
-            y: assets,
-            type: 'heatmap',
-            colorscale: [
-                [0, 'rgb(248, 81, 73)'],      // Negative correlation
-                [0.5, 'rgb(125, 133, 144)'],  // No correlation
-                [1, 'rgb(16, 185, 129)']      // Positive correlation
-            ],
-            zmin: -1,
-            zmax: 1,
-            hoverongaps: false,
-            hovertemplate: '<b>%{y} vs %{x}</b><br>Correlation: %{z:.3f}<extra></extra>',
-            colorbar: {
-                title: 'Correlation',
-                titleside: 'right',
-                tickmode: 'linear',
-                tick0: -1,
-                dtick: 0.5,
-                thickness: 15,
-                len: 0.7
-            }
-        };
-        
-        // Add text annotations
-        const annotations = [];
-        for (let i = 0; i < assets.length; i++) {
-            for (let j = 0; j < assets.length; j++) {
-                const textColor = Math.abs(correlations[i][j]) > 0.5 ? 'white' : '#e6edf3';
-                annotations.push({
-                    x: assets[j],
-                    y: assets[i],
-                    text: correlations[i][j].toFixed(2),
-                    font: {
-                        color: textColor,
-                        size: 11,
-                        weight: 600
-                    },
-                    showarrow: false
+    /**
+     * Default Plotly layout for all charts
+     */
+    const DEFAULT_LAYOUT = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: {
+            family: 'Inter, sans-serif',
+            size: 12,
+            color: '#e6edf3'
+        },
+        margin: { t: 40, r: 20, b: 60, l: 60 },
+        hoverlabel: {
+            bgcolor: '#21262d',
+            bordercolor: '#30363d',
+            font: { family: 'Inter, sans-serif', size: 12 }
+        },
+        showlegend: true,
+        legend: {
+            orientation: 'h',
+            yanchor: 'bottom',
+            y: 1.02,
+            xanchor: 'right',
+            x: 1,
+            bgcolor: 'rgba(0,0,0,0)'
+        }
+    };
+
+    /**
+     * Default Plotly config for all charts
+     */
+    const DEFAULT_CONFIG = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+        toImageButtonOptions: {
+            format: 'png',
+            filename: 'botv2_chart',
+            height: 800,
+            width: 1200,
+            scale: 2
+        }
+    };
+
+    /**
+     * Chart Mastery Class
+     */
+    class ChartMastery {
+        constructor() {
+            this.charts = new Map();
+            this.theme = document.documentElement.getAttribute('data-theme') || 'dark';
+            this.initThemeListener();
+        }
+
+        /**
+         * Listen for theme changes
+         */
+        initThemeListener() {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'data-theme') {
+                        this.theme = document.documentElement.getAttribute('data-theme');
+                        this.updateAllChartsTheme();
+                    }
                 });
-            }
+            });
+
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme']
+            });
         }
-        
-        const layout = {
-            title: {
-                text: 'Asset Correlation Matrix',
-                font: { size: 16, weight: 600, family: 'Inter' }
-            },
-            xaxis: {
-                side: 'top',
-                tickangle: -45
-            },
-            yaxis: {
-                autorange: 'reversed'
-            },
-            annotations: annotations,
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            font: { color: '#e6edf3', family: 'Inter' },
-            margin: { t: 100, l: 80, r: 80, b: 80 }
-        };
-        
-        const config = {
-            responsive: true,
-            displayModeBar: true,
-            displaylogo: false
-        };
-        
-        Plotly.newPlot(containerId, [trace], layout, config);
-        
-        // Return diversification score
-        const avgCorrelation = correlations.flat()
-            .filter((v, i) => i % (assets.length + 1) !== 0) // Exclude diagonal
-            .reduce((a, b) => a + Math.abs(b), 0) / (assets.length * (assets.length - 1));
-        
-        return {
-            avgCorrelation: avgCorrelation.toFixed(3),
-            diversificationScore: ((1 - avgCorrelation) * 100).toFixed(1)
-        };
-    },
-    
-    // ==================== 3. RISK-RETURN SCATTER ====================
-    createRiskReturnScatter: function(containerId, data) {
-        const strategies = data.strategies || [];
-        
-        const trace = {
-            x: strategies.map(s => s.risk),
-            y: strategies.map(s => s.return),
-            mode: 'markers+text',
-            type: 'scatter',
-            text: strategies.map(s => s.name),
-            textposition: 'top center',
-            textfont: {
-                size: 10,
-                color: '#e6edf3',
-                weight: 600
-            },
-            marker: {
-                size: strategies.map(s => (s.sharpe || 1) * 15),
-                color: strategies.map(s => s.sharpe || 1),
+
+        /**
+         * Update all charts when theme changes
+         */
+        updateAllChartsTheme() {
+            this.charts.forEach((chartData, elementId) => {
+                const element = document.getElementById(elementId);
+                if (element && chartData.updateFn) {
+                    chartData.updateFn();
+                }
+            });
+        }
+
+        /**
+         * Get theme-aware colors
+         */
+        getThemeColors() {
+            const colors = {
+                dark: {
+                    primary: '#2f81f7',
+                    success: '#3fb950',
+                    danger: '#f85149',
+                    warning: '#d29922',
+                    text: '#e6edf3',
+                    textSecondary: '#7d8590',
+                    bg: '#0d1117',
+                    bgSecondary: '#161b22',
+                    border: '#30363d',
+                    grid: '#21262d'
+                },
+                light: {
+                    primary: '#0969da',
+                    success: '#1a7f37',
+                    danger: '#cf222e',
+                    warning: '#bf8700',
+                    text: '#1f2328',
+                    textSecondary: '#656d76',
+                    bg: '#ffffff',
+                    bgSecondary: '#f6f8fa',
+                    border: '#d0d7de',
+                    grid: '#e7ecf0'
+                },
+                bloomberg: {
+                    primary: '#ff9900',
+                    success: '#00ff00',
+                    danger: '#ff0000',
+                    warning: '#ffff00',
+                    text: '#ff9900',
+                    textSecondary: '#cc7700',
+                    bg: '#000000',
+                    bgSecondary: '#0a0a0a',
+                    border: '#2a2a2a',
+                    grid: '#1a1a1a'
+                }
+            };
+
+            return colors[this.theme] || colors.dark;
+        }
+
+        /**
+         * Get themed layout
+         */
+        getThemedLayout(customLayout = {}) {
+            const colors = this.getThemeColors();
+            return {
+                ...DEFAULT_LAYOUT,
+                font: { ...DEFAULT_LAYOUT.font, color: colors.text },
+                xaxis: {
+                    gridcolor: colors.grid,
+                    zerolinecolor: colors.border,
+                    color: colors.textSecondary,
+                    ...customLayout.xaxis
+                },
+                yaxis: {
+                    gridcolor: colors.grid,
+                    zerolinecolor: colors.border,
+                    color: colors.textSecondary,
+                    ...customLayout.yaxis
+                },
+                ...customLayout
+            };
+        }
+
+        /**
+         * 1. Win/Loss Distribution Histogram
+         */
+        createWinLossDistribution(elementId, trades) {
+            const colors = this.getThemeColors();
+            
+            const winningTrades = trades.filter(t => t.profit > 0).map(t => t.profit);
+            const losingTrades = trades.filter(t => t.profit <= 0).map(t => t.profit);
+
+            const trace1 = {
+                x: winningTrades,
+                type: 'histogram',
+                name: 'Winning Trades',
+                marker: {
+                    color: colors.success,
+                    opacity: 0.7,
+                    line: { color: colors.success, width: 1 }
+                },
+                hovertemplate: 'Profit: %{x:.2f}<br>Count: %{y}<extra></extra>'
+            };
+
+            const trace2 = {
+                x: losingTrades,
+                type: 'histogram',
+                name: 'Losing Trades',
+                marker: {
+                    color: colors.danger,
+                    opacity: 0.7,
+                    line: { color: colors.danger, width: 1 }
+                },
+                hovertemplate: 'Loss: %{x:.2f}<br>Count: %{y}<extra></extra>'
+            };
+
+            const layout = this.getThemedLayout({
+                title: 'Win/Loss Distribution',
+                xaxis: { title: 'Profit/Loss (€)' },
+                yaxis: { title: 'Frequency' },
+                barmode: 'overlay',
+                bargap: 0.1
+            });
+
+            const updateFn = () => this.createWinLossDistribution(elementId, trades);
+            this.charts.set(elementId, { updateFn });
+
+            return Plotly.newPlot(elementId, [trace1, trace2], layout, DEFAULT_CONFIG);
+        }
+
+        /**
+         * 2. Correlation Matrix Heatmap
+         */
+        createCorrelationMatrix(elementId, assets, returns) {
+            const colors = this.getThemeColors();
+            
+            // Calculate correlation matrix
+            const n = assets.length;
+            const correlationMatrix = [];
+            
+            for (let i = 0; i < n; i++) {
+                const row = [];
+                for (let j = 0; j < n; j++) {
+                    row.push(this.calculateCorrelation(returns[i], returns[j]));
+                }
+                correlationMatrix.push(row);
+            }
+
+            const trace = {
+                z: correlationMatrix,
+                x: assets,
+                y: assets,
+                type: 'heatmap',
                 colorscale: [
-                    [0, 'rgb(248, 81, 73)'],
-                    [0.5, 'rgb(210, 153, 34)'],
-                    [1, 'rgb(16, 185, 129)']
+                    [0, colors.danger],
+                    [0.5, colors.bg],
+                    [1, colors.success]
                 ],
-                showscale: true,
+                zmin: -1,
+                zmax: 1,
+                hovertemplate: '%{y} vs %{x}<br>Correlation: %{z:.2f}<extra></extra>',
                 colorbar: {
-                    title: 'Sharpe Ratio',
-                    thickness: 15,
-                    len: 0.7
-                },
-                line: {
-                    color: 'rgba(255, 255, 255, 0.3)',
-                    width: 2
-                },
-                opacity: 0.8
-            },
-            hovertemplate: '<b>%{text}</b><br>' +
-                          'Risk: %{x:.2f}%<br>' +
-                          'Return: %{y:.2f}%<br>' +
-                          '<extra></extra>'
-        };
-        
-        // Efficient Frontier (simplified)
-        const efficientX = [];
-        const efficientY = [];
-        for (let risk = 5; risk <= 30; risk += 0.5) {
-            efficientX.push(risk);
-            efficientY.push(Math.sqrt(risk) * 2 - risk * 0.1); // Simplified curve
+                    title: 'Correlation',
+                    titleside: 'right'
+                }
+            };
+
+            // Add annotations with correlation values
+            const annotations = [];
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    annotations.push({
+                        x: assets[j],
+                        y: assets[i],
+                        text: correlationMatrix[i][j].toFixed(2),
+                        showarrow: false,
+                        font: {
+                            color: Math.abs(correlationMatrix[i][j]) > 0.5 ? '#ffffff' : colors.text,
+                            size: 10
+                        }
+                    });
+                }
+            }
+
+            const layout = this.getThemedLayout({
+                title: 'Asset Correlation Matrix',
+                annotations: annotations,
+                xaxis: { side: 'bottom' },
+                yaxis: { side: 'left' }
+            });
+
+            const updateFn = () => this.createCorrelationMatrix(elementId, assets, returns);
+            this.charts.set(elementId, { updateFn });
+
+            return Plotly.newPlot(elementId, [trace], layout, DEFAULT_CONFIG);
         }
-        
-        const efficientFrontier = {
-            x: efficientX,
-            y: efficientY,
-            mode: 'lines',
-            name: 'Efficient Frontier',
-            line: {
-                color: 'rgba(47, 129, 247, 0.6)',
-                width: 2,
-                dash: 'dash'
-            },
-            hoverinfo: 'skip'
-        };
-        
-        const layout = {
-            title: {
-                text: 'Risk-Return Analysis',
-                font: { size: 16, weight: 600, family: 'Inter' }
-            },
-            xaxis: {
-                title: 'Risk (Volatility %)',
-                gridcolor: 'rgba(255, 255, 255, 0.1)',
-                zeroline: false
-            },
-            yaxis: {
-                title: 'Return (%)',
-                gridcolor: 'rgba(255, 255, 255, 0.1)',
-                zeroline: true,
-                zerolinecolor: 'rgba(255, 255, 255, 0.3)',
-                zerolinewidth: 2
-            },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            font: { color: '#e6edf3', family: 'Inter' },
-            hovermode: 'closest',
-            showlegend: true,
-            legend: {
-                x: 0.02,
-                y: 0.98,
-                bgcolor: 'rgba(22, 27, 34, 0.8)',
-                bordercolor: 'rgba(48, 54, 61, 1)',
-                borderwidth: 1
-            }
-        };
-        
-        const config = {
-            responsive: true,
-            displayModeBar: true,
-            displaylogo: false
-        };
-        
-        Plotly.newPlot(containerId, [efficientFrontier, trace], layout, config);
-        
-        // Return best strategy
-        const bestStrategy = strategies.reduce((best, current) => 
-            (current.sharpe || 0) > (best.sharpe || 0) ? current : best
-        , strategies[0]);
-        
-        return {
-            bestStrategy: bestStrategy.name,
-            bestSharpe: bestStrategy.sharpe.toFixed(2),
-            avgSharpe: (strategies.reduce((sum, s) => sum + (s.sharpe || 0), 0) / strategies.length).toFixed(2)
-        };
-    },
-    
-    // ==================== 4. TRADE DURATION BOX PLOT ====================
-    createTradeDurationBoxPlot: function(containerId, data) {
-        const winDurations = data.winDurations || [];
-        const lossDurations = data.lossDurations || [];
-        
-        const trace1 = {
-            y: winDurations,
-            type: 'box',
-            name: 'Winning Trades',
-            marker: {
-                color: 'rgba(16, 185, 129, 0.7)',
-                outliercolor: 'rgba(16, 185, 129, 1)'
-            },
-            line: { color: 'rgba(16, 185, 129, 1)' },
-            boxmean: 'sd',
-            boxpoints: 'suspectedoutliers'
-        };
-        
-        const trace2 = {
-            y: lossDurations,
-            type: 'box',
-            name: 'Losing Trades',
-            marker: {
-                color: 'rgba(248, 81, 73, 0.7)',
-                outliercolor: 'rgba(248, 81, 73, 1)'
-            },
-            line: { color: 'rgba(248, 81, 73, 1)' },
-            boxmean: 'sd',
-            boxpoints: 'suspectedoutliers'
-        };
-        
-        const layout = {
-            title: {
-                text: 'Trade Duration Analysis',
-                font: { size: 16, weight: 600, family: 'Inter' }
-            },
-            yaxis: {
-                title: 'Duration (hours)',
-                gridcolor: 'rgba(255, 255, 255, 0.1)',
-                zeroline: false
-            },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            font: { color: '#e6edf3', family: 'Inter' },
-            showlegend: true,
-            legend: {
-                x: 0.02,
-                y: 0.98,
-                bgcolor: 'rgba(22, 27, 34, 0.8)',
-                bordercolor: 'rgba(48, 54, 61, 1)',
-                borderwidth: 1
-            }
-        };
-        
-        const config = {
-            responsive: true,
-            displayModeBar: true,
-            displaylogo: false
-        };
-        
-        Plotly.newPlot(containerId, [trace1, trace2], layout, config);
-        
-        // Return statistics
-        const median = arr => {
-            const sorted = arr.slice().sort((a, b) => a - b);
-            const mid = Math.floor(sorted.length / 2);
-            return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-        };
-        
-        return {
-            medianWinDuration: median(winDurations).toFixed(1),
-            medianLossDuration: median(lossDurations).toFixed(1),
-            optimalDuration: median([...winDurations, ...lossDurations]).toFixed(1)
-        };
-    },
-    
-    // ==================== 5. CHART ANNOTATIONS SYSTEM ====================
-    addAnnotation: function(chartId, annotation) {
-        const {
-            x,
-            y,
-            text,
-            type = 'point',  // point, line, range
-            color = '#2f81f7',
-            icon = '📍'
-        } = annotation;
-        
-        const update = {
-            'annotations[0]': {
-                x: x,
-                y: y,
-                xref: 'x',
-                yref: 'y',
-                text: `${icon} ${text}`,
-                showarrow: true,
-                arrowhead: 2,
-                arrowsize: 1,
-                arrowwidth: 2,
-                arrowcolor: color,
-                ax: 0,
-                ay: -40,
-                font: {
-                    size: 11,
-                    color: '#e6edf3',
-                    weight: 600
+
+        /**
+         * Calculate Pearson correlation coefficient
+         */
+        calculateCorrelation(x, y) {
+            const n = x.length;
+            const sum_x = x.reduce((a, b) => a + b, 0);
+            const sum_y = y.reduce((a, b) => a + b, 0);
+            const sum_xy = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+            const sum_x2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+            const sum_y2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+
+            const numerator = n * sum_xy - sum_x * sum_y;
+            const denominator = Math.sqrt((n * sum_x2 - sum_x * sum_x) * (n * sum_y2 - sum_y * sum_y));
+
+            return denominator === 0 ? 0 : numerator / denominator;
+        }
+
+        /**
+         * 3. Risk-Return Scatter Plot
+         */
+        createRiskReturnScatter(elementId, strategies) {
+            const colors = this.getThemeColors();
+
+            const trace = {
+                x: strategies.map(s => s.volatility),
+                y: strategies.map(s => s.return),
+                mode: 'markers+text',
+                type: 'scatter',
+                text: strategies.map(s => s.name),
+                textposition: 'top center',
+                textfont: { size: 10, color: colors.text },
+                marker: {
+                    size: strategies.map(s => s.sharpe * 10 + 10),
+                    color: strategies.map(s => s.sharpe),
+                    colorscale: [
+                        [0, colors.danger],
+                        [0.5, colors.warning],
+                        [1, colors.success]
+                    ],
+                    showscale: true,
+                    colorbar: {
+                        title: 'Sharpe Ratio',
+                        titleside: 'right'
+                    },
+                    line: { color: colors.border, width: 1 }
                 },
-                bgcolor: 'rgba(22, 27, 34, 0.9)',
-                bordercolor: color,
-                borderwidth: 2,
-                borderpad: 4,
-                opacity: 0.9
-            }
-        };
-        
-        Plotly.relayout(chartId, update);
-    },
-    
-    addEventMarker: function(chartId, event) {
-        const {
-            date,
-            title,
-            description,
-            type = 'neutral',  // success, warning, danger, neutral
-            icon = '⚡'
-        } = event;
-        
-        const colors = {
-            success: '#10b981',
-            warning: '#d29922',
-            danger: '#f85149',
-            neutral: '#2f81f7'
-        };
-        
-        const shape = {
-            type: 'line',
-            x0: date,
-            x1: date,
-            y0: 0,
-            y1: 1,
-            yref: 'paper',
-            line: {
-                color: colors[type],
-                width: 2,
-                dash: 'dash'
-            }
-        };
-        
-        const annotation = {
-            x: date,
-            y: 1,
-            yref: 'paper',
-            text: `${icon} ${title}`,
-            showarrow: true,
-            arrowhead: 2,
-            arrowcolor: colors[type],
-            ax: 0,
-            ay: -30,
-            font: { size: 10, color: colors[type], weight: 600 },
-            hovertext: description,
-            hoverlabel: {
-                bgcolor: 'rgba(22, 27, 34, 0.95)',
-                bordercolor: colors[type],
-                font: { size: 11 }
-            }
-        };
-        
-        Plotly.relayout(chartId, {
-            shapes: [shape],
-            annotations: [annotation]
-        });
-    },
-    
-    // ==================== 6. REAL COMPARISON OVERLAY ====================
-    createComparisonChart: function(containerId, data) {
-        const traces = [];
-        const datasets = data.datasets || [];
-        
-        const colors = [
-            '#2f81f7',
-            '#10b981',
-            '#d29922',
-            '#f85149',
-            '#8b5cf6'
-        ];
-        
-        datasets.forEach((dataset, index) => {
-            traces.push({
-                x: dataset.dates,
-                y: dataset.values,
+                hovertemplate: '<b>%{text}</b><br>' +
+                              'Risk (Volatility): %{x:.2f}%<br>' +
+                              'Return: %{y:.2f}%<br>' +
+                              '<extra></extra>'
+            };
+
+            const layout = this.getThemedLayout({
+                title: 'Risk-Return Analysis',
+                xaxis: { title: 'Risk (Volatility %)' },
+                yaxis: { title: 'Return (%)' },
+                showlegend: false
+            });
+
+            const updateFn = () => this.createRiskReturnScatter(elementId, strategies);
+            this.charts.set(elementId, { updateFn });
+
+            return Plotly.newPlot(elementId, [trace], layout, DEFAULT_CONFIG);
+        }
+
+        /**
+         * 4. Trade Duration Box Plot
+         */
+        createTradeDurationBoxPlot(elementId, tradesByStrategy) {
+            const colors = this.getThemeColors();
+
+            const traces = Object.keys(tradesByStrategy).map((strategy, idx) => {
+                const durations = tradesByStrategy[strategy].map(t => t.duration);
+                
+                return {
+                    y: durations,
+                    type: 'box',
+                    name: strategy,
+                    marker: { color: this.getColorByIndex(idx) },
+                    boxmean: 'sd',
+                    hovertemplate: '<b>' + strategy + '</b><br>' +
+                                  'Duration: %{y} hours<br>' +
+                                  '<extra></extra>'
+                };
+            });
+
+            const layout = this.getThemedLayout({
+                title: 'Trade Duration by Strategy',
+                yaxis: { title: 'Duration (hours)' },
+                xaxis: { title: 'Strategy' }
+            });
+
+            const updateFn = () => this.createTradeDurationBoxPlot(elementId, tradesByStrategy);
+            this.charts.set(elementId, { updateFn });
+
+            return Plotly.newPlot(elementId, traces, layout, DEFAULT_CONFIG);
+        }
+
+        /**
+         * 5. Real vs Expected Comparison Overlay
+         */
+        createComparisonOverlay(elementId, dates, realData, expectedData, metric) {
+            const colors = this.getThemeColors();
+
+            const trace1 = {
+                x: dates,
+                y: realData,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Real ' + metric,
+                line: { color: colors.primary, width: 2 },
+                marker: { size: 6 },
+                hovertemplate: '%{x}<br>Real: %{y:.2f}<extra></extra>'
+            };
+
+            const trace2 = {
+                x: dates,
+                y: expectedData,
                 type: 'scatter',
                 mode: 'lines',
-                name: dataset.name,
+                name: 'Expected ' + metric,
+                line: { color: colors.warning, width: 2, dash: 'dash' },
+                hovertemplate: '%{x}<br>Expected: %{y:.2f}<extra></extra>'
+            };
+
+            // Add shaded area showing difference
+            const trace3 = {
+                x: [...dates, ...dates.reverse()],
+                y: [...realData, ...expectedData.reverse()],
+                fill: 'toself',
+                fillcolor: 'rgba(47, 129, 247, 0.1)',
+                line: { color: 'transparent' },
+                showlegend: false,
+                hoverinfo: 'skip'
+            };
+
+            const layout = this.getThemedLayout({
+                title: `Real vs Expected ${metric}`,
+                xaxis: { title: 'Date' },
+                yaxis: { title: metric }
+            });
+
+            const updateFn = () => this.createComparisonOverlay(elementId, dates, realData, expectedData, metric);
+            this.charts.set(elementId, { updateFn });
+
+            return Plotly.newPlot(elementId, [trace3, trace1, trace2], layout, DEFAULT_CONFIG);
+        }
+
+        /**
+         * 6. Drawdown with Annotations
+         */
+        createDrawdownChart(elementId, dates, equity, drawdowns, events = []) {
+            const colors = this.getThemeColors();
+
+            const trace1 = {
+                x: dates,
+                y: equity,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Equity',
+                line: { color: colors.primary, width: 2 },
+                yaxis: 'y1',
+                hovertemplate: '%{x}<br>Equity: €%{y:,.2f}<extra></extra>'
+            };
+
+            const trace2 = {
+                x: dates,
+                y: drawdowns,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Drawdown',
+                fill: 'tozeroy',
+                fillcolor: 'rgba(248, 81, 73, 0.2)',
+                line: { color: colors.danger, width: 1 },
+                yaxis: 'y2',
+                hovertemplate: '%{x}<br>Drawdown: %{y:.2f}%<extra></extra>'
+            };
+
+            // Create annotations for important events
+            const annotations = events.map(event => ({
+                x: event.date,
+                y: event.value,
+                xref: 'x',
+                yref: 'y1',
+                text: event.label,
+                showarrow: true,
+                arrowhead: 2,
+                arrowsize: 1,
+                arrowwidth: 2,
+                arrowcolor: colors.warning,
+                ax: 0,
+                ay: -40,
+                bgcolor: colors.bgSecondary,
+                bordercolor: colors.border,
+                borderwidth: 1,
+                borderpad: 4,
+                font: { size: 10, color: colors.text }
+            }));
+
+            const layout = this.getThemedLayout({
+                title: 'Equity Curve with Drawdown',
+                xaxis: { title: 'Date' },
+                yaxis: {
+                    title: 'Equity (€)',
+                    side: 'left'
+                },
+                yaxis2: {
+                    title: 'Drawdown (%)',
+                    overlaying: 'y',
+                    side: 'right'
+                },
+                annotations: annotations
+            });
+
+            const updateFn = () => this.createDrawdownChart(elementId, dates, equity, drawdowns, events);
+            this.charts.set(elementId, { updateFn });
+
+            return Plotly.newPlot(elementId, [trace1, trace2], layout, DEFAULT_CONFIG);
+        }
+
+        /**
+         * 7. Multi-Timeframe Comparison
+         */
+        createMultiTimeframeComparison(elementId, timeframes) {
+            const colors = this.getThemeColors();
+
+            const traces = timeframes.map((tf, idx) => ({
+                x: tf.dates,
+                y: tf.returns,
+                type: 'scatter',
+                mode: 'lines',
+                name: tf.name,
                 line: {
-                    color: colors[index % colors.length],
+                    color: this.getColorByIndex(idx),
                     width: 2
                 },
-                hovertemplate: `<b>${dataset.name}</b><br>` +
-                              'Date: %{x|%Y-%m-%d}<br>' +
-                              'Value: %{y:.2f}<br>' +
+                hovertemplate: '<b>' + tf.name + '</b><br>' +
+                              '%{x}<br>' +
+                              'Return: %{y:.2f}%<br>' +
                               '<extra></extra>'
+            }));
+
+            const layout = this.getThemedLayout({
+                title: 'Performance Across Timeframes',
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Cumulative Return (%)' }
             });
-        });
-        
-        const layout = {
-            title: {
-                text: data.title || 'Strategy Comparison',
-                font: { size: 16, weight: 600, family: 'Inter' }
-            },
-            xaxis: {
-                title: 'Date',
-                gridcolor: 'rgba(255, 255, 255, 0.1)',
-                type: 'date'
-            },
-            yaxis: {
-                title: data.yAxisTitle || 'Value',
-                gridcolor: 'rgba(255, 255, 255, 0.1)',
-                zeroline: true,
-                zerolinecolor: 'rgba(255, 255, 255, 0.3)',
-                zerolinewidth: 2
-            },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            font: { color: '#e6edf3', family: 'Inter' },
-            hovermode: 'x unified',
-            showlegend: true,
-            legend: {
-                x: 0.02,
-                y: 0.98,
-                bgcolor: 'rgba(22, 27, 34, 0.8)',
-                bordercolor: 'rgba(48, 54, 61, 1)',
-                borderwidth: 1
-            }
-        };
-        
-        const config = {
-            responsive: true,
-            displayModeBar: true,
-            displaylogo: false,
-            modeBarButtonsToAdd: [{
-                name: 'Toggle Relative',
-                icon: Plotly.Icons.home,
-                click: function(gd) {
-                    // Toggle between absolute and relative values
-                    console.log('Toggle relative view');
-                }
-            }]
-        };
-        
-        Plotly.newPlot(containerId, traces, layout, config);
-        
-        // Return comparison stats
-        const bestPerformer = datasets.reduce((best, current) => {
-            const currentReturn = (current.values[current.values.length - 1] - current.values[0]) / current.values[0] * 100;
-            const bestReturn = (best.values[best.values.length - 1] - best.values[0]) / best.values[0] * 100;
-            return currentReturn > bestReturn ? current : best;
-        }, datasets[0]);
-        
-        return {
-            bestPerformer: bestPerformer.name,
-            totalDatasets: datasets.length
-        };
-    },
-    
-    // ==================== CHART UTILITIES ====================
-    updateChartTheme: function(chartId, theme) {
-        const themes = {
-            dark: {
-                paper_bgcolor: 'transparent',
-                plot_bgcolor: 'transparent',
-                font: { color: '#e6edf3' }
-            },
-            light: {
-                paper_bgcolor: '#ffffff',
-                plot_bgcolor: '#f6f8fa',
-                font: { color: '#1f2328' }
-            },
-            bloomberg: {
-                paper_bgcolor: '#000000',
-                plot_bgcolor: '#0a0a0a',
-                font: { color: '#ff9900' }
-            }
-        };
-        
-        Plotly.relayout(chartId, themes[theme] || themes.dark);
-    },
-    
-    exportChart: function(chartId, format = 'png') {
-        const filename = `botv2-chart-${Date.now()}`;
-        
-        if (format === 'png') {
-            Plotly.downloadImage(chartId, {
-                format: 'png',
-                width: 1200,
+
+            const updateFn = () => this.createMultiTimeframeComparison(elementId, timeframes);
+            this.charts.set(elementId, { updateFn });
+
+            return Plotly.newPlot(elementId, traces, layout, DEFAULT_CONFIG);
+        }
+
+        /**
+         * Helper: Get color by index
+         */
+        getColorByIndex(idx) {
+            const colors = this.getThemeColors();
+            const palette = [
+                colors.primary,
+                colors.success,
+                colors.warning,
+                colors.danger,
+                '#8b5cf6',
+                '#ec4899',
+                '#06b6d4'
+            ];
+            return palette[idx % palette.length];
+        }
+
+        /**
+         * Add custom annotation to any chart
+         */
+        addAnnotation(elementId, annotation) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const colors = this.getThemeColors();
+            const defaultAnnotation = {
+                showarrow: true,
+                arrowhead: 2,
+                arrowcolor: colors.warning,
+                bgcolor: colors.bgSecondary,
+                bordercolor: colors.border,
+                borderwidth: 1,
+                font: { color: colors.text }
+            };
+
+            const update = {
+                annotations: [{ ...defaultAnnotation, ...annotation }]
+            };
+
+            return Plotly.relayout(elementId, update);
+        }
+
+        /**
+         * Remove all annotations from a chart
+         */
+        clearAnnotations(elementId) {
+            return Plotly.relayout(elementId, { annotations: [] });
+        }
+
+        /**
+         * Export chart as image
+         */
+        exportChart(elementId, filename = 'chart', format = 'png') {
+            return Plotly.downloadImage(elementId, {
+                format: format,
+                filename: filename,
                 height: 800,
-                filename: filename
-            });
-        } else if (format === 'svg') {
-            Plotly.downloadImage(chartId, {
-                format: 'svg',
                 width: 1200,
-                height: 800,
-                filename: filename
+                scale: 2
             });
         }
+
+        /**
+         * Destroy a chart
+         */
+        destroyChart(elementId) {
+            this.charts.delete(elementId);
+            return Plotly.purge(elementId);
+        }
+
+        /**
+         * Destroy all charts
+         */
+        destroyAll() {
+            this.charts.forEach((_, elementId) => {
+                Plotly.purge(elementId);
+            });
+            this.charts.clear();
+        }
     }
-};
 
-// ==================== EXPORTS ====================
-window.ChartMastery = ChartMastery;
+    // Export to window
+    window.ChartMastery = new ChartMastery();
 
-console.log('✅ Chart Mastery v7.1 loaded with 6 chart types');
+    console.log('📊 Chart Mastery v7.1 loaded successfully');
+
+})(window);
