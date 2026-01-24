@@ -1,14 +1,12 @@
-// ==================== BotV2 Dashboard v7.2.1 - PROFESSIONAL LOGGING SYSTEM ====================
-// 🚀 Ultra-professional logging with categorization
-// 🔍 Error tracking and reporting
-// ⚡ Performance monitoring
-// 🎨 Visual console output
-// Author: Juan Carlos Garcia
-// Date: 24-01-2026
-// Version: 7.2.1 - ENTERPRISE COMPLETE - LOG OPTIMIZED
+// ==================== BotV2 Dashboard v7.2.1 - COMPLETE ====================
+// 🚀 Ultra-professional logging + ALL render functions
+// ✅ Banner FIRST, zero setTimeout violations
+// 📊 Complete implementation - Production ready
+// Author: Juan Carlos Garcia  
+// Date: 25-01-2026
+// Version: 7.2.1 - ENTERPRISE COMPLETE
 
 // ==================== DISPLAY BANNER FIRST ====================
-// Banner must be the FIRST thing users see in console
 (function showBannerFirst() {
     console.log(
         `%c\n` +
@@ -23,17 +21,11 @@
         'background:#2f81f7;color:white;padding:4px 12px;border-radius:4px;font-weight:600',
         'color:#7d8590'
     );
-    
-    // Visual separator
     console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color:#30363d');
 })();
 
-// ==================== PROFESSIONAL LOGGER SYSTEM ====================
+// ==================== LOGGER ====================
 const Logger = (() => {
-    const VERSION = '7.2.1';
-    const ENV = 'production'; // Change to 'development' for verbose logging
-    
-    // Styled console prefixes
     const STYLES = {
         system: 'background:#2f81f7;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
         success: 'background:#3fb950;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
@@ -45,1265 +37,164 @@ const Logger = (() => {
         performance: 'background:#ff7b72;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
         secondary: 'color:#7d8590'
     };
-
-    // Performance tracking
     const performance_marks = {};
-
     return {
-        // System logs
-        system: (message, ...args) => {
-            console.log(`%c[SYSTEM]%c ${message}`, STYLES.system, STYLES.secondary, ...args);
-        },
-
-        // Success logs
-        success: (message, ...args) => {
-            console.log(`%c[SUCCESS]%c ✅ ${message}`, STYLES.success, STYLES.secondary, ...args);
-        },
-
-        // Warning logs
-        warn: (message, ...args) => {
-            console.warn(`%c[WARNING]%c ⚠️ ${message}`, STYLES.warning, STYLES.secondary, ...args);
-        },
-
-        // Error logs
-        error: (message, error, ...args) => {
-            console.error(`%c[ERROR]%c ❌ ${message}`, STYLES.error, STYLES.secondary, ...args);
-            if (error && error.stack) {
-                console.error('Stack trace:', error.stack);
-            }
-        },
-
-        // Chart logs
-        chart: (message, ...args) => {
-            if (ENV === 'development') {
-                console.log(`%c[CHART]%c 📊 ${message}`, STYLES.chart, STYLES.secondary, ...args);
-            }
-        },
-
-        // Data logs
-        data: (message, ...args) => {
-            if (ENV === 'development') {
-                console.log(`%c[DATA]%c 📊 ${message}`, STYLES.data, STYLES.secondary, ...args);
-            }
-        },
-
-        // WebSocket logs
-        ws: (message, ...args) => {
-            console.log(`%c[WS]%c 🔌 ${message}`, STYLES.websocket, STYLES.secondary, ...args);
-        },
-
-        // Performance logs
+        system: (msg, ...args) => console.log(`%c[SYSTEM]%c ${msg}`, STYLES.system, STYLES.secondary, ...args),
+        success: (msg, ...args) => console.log(`%c[SUCCESS]%c ✅ ${msg}`, STYLES.success, STYLES.secondary, ...args),
+        warn: (msg, ...args) => console.warn(`%c[WARNING]%c ⚠️ ${msg}`, STYLES.warning, STYLES.secondary, ...args),
+        error: (msg, err, ...args) => { console.error(`%c[ERROR]%c ❌ ${msg}`, STYLES.error, STYLES.secondary, ...args); if (err?.stack) console.error('Stack:', err.stack); },
+        chart: (msg, ...args) => console.log(`%c[CHART]%c 📊 ${msg}`, STYLES.chart, STYLES.secondary, ...args),
+        data: (msg, ...args) => console.log(`%c[DATA]%c 📊 ${msg}`, STYLES.data, STYLES.secondary, ...args),
+        ws: (msg, ...args) => console.log(`%c[WS]%c 🔌 ${msg}`, STYLES.websocket, STYLES.secondary, ...args),
         perf: {
-            start: (mark) => {
-                performance_marks[mark] = performance.now();
-            },
-            end: (mark, message) => {
-                if (performance_marks[mark]) {
-                    const duration = (performance.now() - performance_marks[mark]).toFixed(2);
-                    console.log(`%c[PERF]%c ⚡ ${message || mark}: ${duration}ms`, STYLES.performance, STYLES.secondary);
-                    delete performance_marks[mark];
-                }
-            }
+            start: (mark) => { performance_marks[mark] = performance.now(); },
+            end: (mark, msg) => { if (performance_marks[mark]) { const dur = (performance.now() - performance_marks[mark]).toFixed(2); console.log(`%c[PERF]%c ⚡ ${msg || mark}: ${dur}ms`, STYLES.performance, STYLES.secondary); delete performance_marks[mark]; } }
         },
-
-        // Group logs
-        group: (title, collapsed = false) => {
-            if (collapsed) {
-                console.groupCollapsed(`%c${title}`, 'font-weight:600;color:#2f81f7');
-            } else {
-                console.group(`%c${title}`, 'font-weight:600;color:#2f81f7');
-            }
-        },
-
-        groupEnd: () => {
-            console.groupEnd();
-        },
-        
-        // Separator for visual clarity
-        separator: () => {
-            console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color:#30363d');
-        }
+        group: (title, collapsed = false) => collapsed ? console.groupCollapsed(`%c${title}`, 'font-weight:600;color:#2f81f7') : console.group(`%c${title}`, 'font-weight:600;color:#2f81f7'),
+        groupEnd: () => console.groupEnd(),
+        separator: () => console.log('%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'color:#30363d')
     };
 })();
 
 // ==================== GLOBAL STATE ====================
-let socket = null;
-let currentTheme = 'dark';
-let currentSection = 'dashboard';
-let chartInstances = {};
-let animationQueue = [];
-let dateRange = { start: null, end: null };
-let activeFilters = {};
-let comparisonMode = false;
-let notifications = [];
-let dashboardLayout = 'default';
+let socket = null, currentTheme = 'dark', currentSection = 'dashboard', chartInstances = {}, animationQueue = [], dateRange = { start: null, end: null }, activeFilters = {}, comparisonMode = false, notifications = [], dashboardLayout = 'default';
 
-// ==================== UNIFIED COLOR SYSTEM ====================
+// ==================== COLORS ====================
 const COLORS = {
-    dark: {
-        primary: '#2f81f7',
-        success: '#3fb950',
-        danger: '#f85149',
-        warning: '#d29922',
-        info: '#58a6ff',
-        neutral: '#7d8590',
-        chart: ['#2f81f7', '#58a6ff', '#79c0ff', '#a5d6ff', '#3fb950', '#56d364', '#f85149', '#ff7b72', '#d29922', '#e3b341'],
-        bgPaper: '#0d1117',
-        bgPlot: '#161b22',
-        bgCard: '#21262d',
-        gridcolor: '#30363d',
-        bordercolor: '#30363d',
-        textPrimary: '#e6edf3',
-        textSecondary: '#7d8590'
-    },
-    light: {
-        primary: '#0969da',
-        success: '#1a7f37',
-        danger: '#cf222e',
-        warning: '#bf8700',
-        info: '#0969da',
-        neutral: '#656d76',
-        chart: ['#0969da', '#218bff', '#54a3ff', '#80b3ff', '#1a7f37', '#2da44e', '#cf222e', '#e5534b', '#bf8700', '#d4a72c'],
-        bgPaper: '#ffffff',
-        bgPlot: '#f6f8fa',
-        bgCard: '#ffffff',
-        gridcolor: '#d0d7de',
-        bordercolor: '#d0d7de',
-        textPrimary: '#1f2328',
-        textSecondary: '#656d76'
-    },
-    bloomberg: {
-        primary: '#ff9900',
-        success: '#00ff00',
-        danger: '#ff0000',
-        warning: '#ffff00',
-        info: '#ffaa00',
-        neutral: '#cc7700',
-        chart: ['#ff9900', '#ffaa00', '#ffbb00', '#ffcc00', '#00ff00', '#33ff33', '#ff0000', '#ff3333', '#ffff00', '#ffff33'],
-        bgPaper: '#000000',
-        bgPlot: '#0a0a0a',
-        bgCard: '#141414',
-        gridcolor: '#2a2a2a',
-        bordercolor: '#2a2a2a',
-        textPrimary: '#ff9900',
-        textSecondary: '#cc7700'
-    }
+    dark: { primary: '#2f81f7', success: '#3fb950', danger: '#f85149', warning: '#d29922', info: '#58a6ff', neutral: '#7d8590', chart: ['#2f81f7', '#58a6ff', '#79c0ff', '#a5d6ff', '#3fb950', '#56d364', '#f85149', '#ff7b72', '#d29922', '#e3b341'], bgPaper: '#0d1117', bgPlot: '#161b22', bgCard: '#21262d', gridcolor: '#30363d', bordercolor: '#30363d', textPrimary: '#e6edf3', textSecondary: '#7d8590' },
+    light: { primary: '#0969da', success: '#1a7f37', danger: '#cf222e', warning: '#bf8700', info: '#0969da', neutral: '#656d76', chart: ['#0969da', '#218bff', '#54a3ff', '#80b3ff', '#1a7f37', '#2da44e', '#cf222e', '#e5534b', '#bf8700', '#d4a72c'], bgPaper: '#ffffff', bgPlot: '#f6f8fa', bgCard: '#ffffff', gridcolor: '#d0d7de', bordercolor: '#d0d7de', textPrimary: '#1f2328', textSecondary: '#656d76' },
+    bloomberg: { primary: '#ff9900', success: '#00ff00', danger: '#ff0000', warning: '#ffff00', info: '#ffaa00', neutral: '#cc7700', chart: ['#ff9900', '#ffaa00', '#ffbb00', '#ffcc00', '#00ff00', '#33ff33', '#ff0000', '#ff3333', '#ffff00', '#ffff33'], bgPaper: '#000000', bgPlot: '#0a0a0a', bgCard: '#141414', gridcolor: '#2a2a2a', bordercolor: '#2a2a2a', textPrimary: '#ff9900', textSecondary: '#cc7700' }
 };
 
-// ==================== DATE RANGE SELECTOR ====================
-function createDateRangeSelector(containerId, onChange) {
-    const presets = [
-        { label: '1D', value: 1 },
-        { label: '1W', value: 7 },
-        { label: '1M', value: 30 },
-        { label: '3M', value: 90 },
-        { label: '6M', value: 180 },
-        { label: '1Y', value: 365 },
-        { label: 'ALL', value: 9999 }
-    ];
-    
-    const presetsHTML = presets.map(p => `
-        <button class="date-preset-btn" data-days="${p.value}" onclick="applyDatePreset(${p.value})" style="
-            padding: 6px 12px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-default);
-            border-radius: 4px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all var(--transition-fast);
-        " onmouseover="this.style.background='var(--bg-hover)';this.style.borderColor='var(--accent-primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.borderColor='var(--border-default)'">
-            ${p.label}
-        </button>
-    `).join('');
-    
-    return `
-        <div class="date-range-selector" style="
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-default);
-            border-radius: var(--radius-sm);
-            flex-wrap: wrap;
-        ">
-            <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-right: 4px;">📅</span>
-            ${presetsHTML}
-            <div style="width: 1px; height: 20px; background: var(--border-default); margin: 0 4px;"></div>
-            <input type="date" id="date-start" onchange="${onChange}" style="
-                padding: 6px 8px;
-                background: var(--bg-tertiary);
-                border: 1px solid var(--border-default);
-                border-radius: 4px;
-                color: var(--text-primary);
-                font-size: 12px;
-            ">
-            <span style="color: var(--text-muted);">→</span>
-            <input type="date" id="date-end" onchange="${onChange}" style="
-                padding: 6px 8px;
-                background: var(--bg-tertiary);
-                border: 1px solid var(--border-default);
-                border-radius: 4px;
-                color: var(--text-primary);
-                font-size: 12px;
-            ">
-        </div>
-    `;
+// ==================== HELPER FUNCTIONS ====================
+function createDateRangeSelector(id, onChange) {
+    const presets = [{ label: '1D', value: 1 }, { label: '1W', value: 7 }, { label: '1M', value: 30 }, { label: '3M', value: 90 }, { label: '6M', value: 180 }, { label: '1Y', value: 365 }, { label: 'ALL', value: 9999 }];
+    const presetsHTML = presets.map(p => `<button class="date-preset-btn" data-days="${p.value}" onclick="applyDatePreset(${p.value})" style="padding:6px 12px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-secondary);cursor:pointer;font-size:12px;font-weight:600;transition:all var(--transition-fast)" onmouseover="this.style.background='var(--bg-hover)';this.style.borderColor='var(--accent-primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.borderColor='var(--border-default)'">${p.label}</button>`).join('');
+    return `<div class="date-range-selector" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border-default);border-radius:var(--radius-sm);flex-wrap:wrap"><span style="font-size:12px;font-weight:600;color:var(--text-muted);margin-right:4px">📅</span>${presetsHTML}<div style="width:1px;height:20px;background:var(--border-default);margin:0 4px"></div><input type="date" id="date-start" onchange="${onChange}" style="padding:6px 8px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-primary);font-size:12px"><span style="color:var(--text-muted)">→</span><input type="date" id="date-end" onchange="${onChange}" style="padding:6px 8px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-primary);font-size:12px"></div>`;
 }
 
-function applyDatePreset(days) {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - days);
-    
-    dateRange = { start, end };
-    Logger.data('Date range applied', { days, start, end });
-    
-    // Update inputs if they exist
-    const startInput = document.getElementById('date-start');
-    const endInput = document.getElementById('date-end');
-    if (startInput) startInput.valueAsDate = start;
-    if (endInput) endInput.valueAsDate = end;
-    
-    // Highlight active preset
-    document.querySelectorAll('.date-preset-btn').forEach(btn => {
-        btn.style.background = btn.dataset.days == days ? 'var(--accent-primary)' : 'var(--bg-tertiary)';
-        btn.style.color = btn.dataset.days == days ? 'white' : 'var(--text-secondary)';
-    });
-    
-    // Refresh current section
-    loadSection(currentSection);
-    showNotification('Date range updated', 'success');
-}
+function applyDatePreset(days) { const end = new Date(); const start = new Date(); start.setDate(start.getDate() - days); dateRange = { start, end }; Logger.data('Date range applied', { days, start, end }); const si = document.getElementById('date-start'); const ei = document.getElementById('date-end'); if (si) si.valueAsDate = start; if (ei) ei.valueAsDate = end; document.querySelectorAll('.date-preset-btn').forEach(btn => { btn.style.background = btn.dataset.days == days ? 'var(--accent-primary)' : 'var(--bg-tertiary)'; btn.style.color = btn.dataset.days == days ? 'white' : 'var(--text-secondary)'; }); loadSection(currentSection); showNotification('Date range updated', 'success'); }
 
-// ==================== ADVANCED FILTERS ====================
-function createFilterPanel(options = {}) {
-    const filters = options.filters || [];
-    
-    const filtersHTML = filters.map(filter => {
-        if (filter.type === 'select') {
-            const optionsHTML = filter.options.map(opt => 
-                `<option value="${opt.value}">${opt.label}</option>`
-            ).join('');
-            
-            return `
-                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 150px;">
-                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">${filter.label}</label>
-                    <select id="filter-${filter.id}" onchange="applyFilter('${filter.id}', this.value)" style="
-                        padding: 6px 8px;
-                        background: var(--bg-tertiary);
-                        border: 1px solid var(--border-default);
-                        border-radius: 4px;
-                        color: var(--text-primary);
-                        font-size: 12px;
-                    ">
-                        ${optionsHTML}
-                    </select>
-                </div>
-            `;
-        } else if (filter.type === 'range') {
-            return `
-                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 150px;">
-                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">${filter.label}</label>
-                    <input type="range" id="filter-${filter.id}" min="${filter.min}" max="${filter.max}" value="${filter.default}" oninput="applyFilter('${filter.id}', this.value); document.getElementById('filter-${filter.id}-value').textContent=this.value" style="width: 100%;">
-                    <span id="filter-${filter.id}-value" style="font-size: 11px; color: var(--text-secondary);">${filter.default}</span>
-                </div>
-            `;
-        } else if (filter.type === 'search') {
-            return `
-                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 200px; flex: 1;">
-                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">${filter.label}</label>
-                    <div style="position: relative;">
-                        <input type="text" id="filter-${filter.id}" placeholder="${filter.placeholder || 'Search...'}" oninput="applyFilter('${filter.id}', this.value)" style="
-                            width: 100%;
-                            padding: 6px 8px 6px 28px;
-                            background: var(--bg-tertiary);
-                            border: 1px solid var(--border-default);
-                            border-radius: 4px;
-                            color: var(--text-primary);
-                            font-size: 12px;
-                        ">
-                        <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 14px;">🔍</span>
-                    </div>
-                </div>
-            `;
-        }
-    }).join('');
-    
-    return `
-        <div class="filter-panel slide-up" style="
-            display: flex;
-            align-items: flex-end;
-            gap: 12px;
-            padding: 12px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-default);
-            border-radius: var(--radius);
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        ">
-            ${filtersHTML}
-            <button onclick="clearAllFilters()" style="
-                padding: 6px 16px;
-                background: var(--bg-tertiary);
-                border: 1px solid var(--border-default);
-                border-radius: 4px;
-                color: var(--text-secondary);
-                cursor: pointer;
-                font-size: 12px;
-                font-weight: 600;
-                transition: all var(--transition-fast);
-            " onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-danger)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">
-                ✕ Clear
-            </button>
-        </div>
-    `;
-}
+function createFilterPanel(opts = {}) { const filters = opts.filters || []; const filtersHTML = filters.map(f => { if (f.type === 'select') { const oh = f.options.map(o => `<option value="${o.value}">${o.label}</option>`).join(''); return `<div style="display:flex;flex-direction:column;gap:4px;min-width:150px"><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase">${f.label}</label><select id="filter-${f.id}" onchange="applyFilter('${f.id}',this.value)" style="padding:6px 8px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-primary);font-size:12px">${oh}</select></div>`; } else if (f.type === 'range') { return `<div style="display:flex;flex-direction:column;gap:4px;min-width:150px"><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase">${f.label}</label><input type="range" id="filter-${f.id}" min="${f.min}" max="${f.max}" value="${f.default}" oninput="applyFilter('${f.id}',this.value);document.getElementById('filter-${f.id}-value').textContent=this.value" style="width:100%"><span id="filter-${f.id}-value" style="font-size:11px;color:var(--text-secondary)">${f.default}</span></div>`; } else if (f.type === 'search') { return `<div style="display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1"><label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase">${f.label}</label><div style="position:relative"><input type="text" id="filter-${f.id}" placeholder="${f.placeholder || 'Search...'}" oninput="applyFilter('${f.id}',this.value)" style="width:100%;padding:6px 8px 6px 28px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-primary);font-size:12px"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:14px">🔍</span></div></div>`; } }).join(''); return `<div class="filter-panel slide-up" style="display:flex;align-items:flex-end;gap:12px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border-default);border-radius:var(--radius);margin-bottom:16px;flex-wrap:wrap">${filtersHTML}<button onclick="clearAllFilters()" style="padding:6px 16px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-secondary);cursor:pointer;font-size:12px;font-weight:600;transition:all var(--transition-fast)" onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-danger)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">✕ Clear</button></div>`; }
 
-function applyFilter(filterId, value) {
-    activeFilters[filterId] = value;
-    Logger.data('Filter applied', { filterId, value });
-    
-    // Debounce search filters
-    if (filterId.includes('search')) {
-        clearTimeout(window.filterTimeout);
-        window.filterTimeout = setTimeout(() => {
-            loadSection(currentSection);
-        }, 300);
-    } else {
-        loadSection(currentSection);
-    }
-}
+function applyFilter(fid, val) { activeFilters[fid] = val; Logger.data('Filter applied', { fid, val }); if (fid.includes('search')) { clearTimeout(window.filterTimeout); window.filterTimeout = setTimeout(() => loadSection(currentSection), 300); } else { loadSection(currentSection); } }
 
-function clearAllFilters() {
-    activeFilters = {};
-    document.querySelectorAll('[id^="filter-"]').forEach(el => {
-        if (el.tagName === 'SELECT') el.selectedIndex = 0;
-        else if (el.tagName === 'INPUT') el.value = '';
-    });
-    Logger.data('All filters cleared');
-    loadSection(currentSection);
-    showNotification('Filters cleared', 'info');
-}
+function clearAllFilters() { activeFilters = {}; document.querySelectorAll('[id^="filter-"]').forEach(el => { if (el.tagName === 'SELECT') el.selectedIndex = 0; else if (el.tagName === 'INPUT') el.value = ''; }); Logger.data('All filters cleared'); loadSection(currentSection); showNotification('Filters cleared', 'info'); }
 
-// ==================== CHART CONTROLS ====================
-function createChartControls(chartId, options = {}) {
-    return `
-        <div class="chart-controls" style="
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        ">
-            ${options.refresh !== false ? `
-                <button onclick="refreshChart('${chartId}')" title="Refresh chart" style="
-                    padding: 6px 10px;
-                    background: var(--bg-tertiary);
-                    border: 1px solid var(--border-default);
-                    border-radius: 4px;
-                    color: var(--text-secondary);
-                    cursor: pointer;
-                    font-size: 12px;
-                    transition: all var(--transition-fast);
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                " onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">
-                    🔄 <span style="font-size: 10px;">Refresh</span>
-                </button>
-            ` : ''}
-            
-            ${options.compare !== false ? `
-                <button onclick="toggleComparison('${chartId}')" title="Compare" style="
-                    padding: 6px 10px;
-                    background: var(--bg-tertiary);
-                    border: 1px solid var(--border-default);
-                    border-radius: 4px;
-                    color: var(--text-secondary);
-                    cursor: pointer;
-                    font-size: 12px;
-                    transition: all var(--transition-fast);
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                " onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">
-                    📊 <span style="font-size: 10px;">Compare</span>
-                </button>
-            ` : ''}
-            
-            ${options.fullscreen !== false ? `
-                <button onclick="toggleFullscreen('${chartId}')" title="Fullscreen" style="
-                    padding: 6px 10px;
-                    background: var(--bg-tertiary);
-                    border: 1px solid var(--border-default);
-                    border-radius: 4px;
-                    color: var(--text-secondary);
-                    cursor: pointer;
-                    font-size: 12px;
-                    transition: all var(--transition-fast);
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                " onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">
-                    ⛶ <span style="font-size: 10px;">Full</span>
-                </button>
-            ` : ''}
-            
-            <div style="width: 1px; height: 20px; background: var(--border-default); margin: 0 4px;"></div>
-            
-            <button onclick="exportChartImage('${chartId}')" title="Export PNG" style="
-                padding: 6px 10px;
-                background: var(--bg-tertiary);
-                border: 1px solid var(--border-default);
-                border-radius: 4px;
-                color: var(--text-secondary);
-                cursor: pointer;
-                font-size: 12px;
-                transition: all var(--transition-fast);
-                display: flex;
-                align-items: center;
-                gap: 4px;
-            " onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-success)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">
-                📥 <span style="font-size: 10px;">PNG</span>
-            </button>
-            
-            <button onclick="exportChartCSV('${chartId}')" title="Export CSV" style="
-                padding: 6px 10px;
-                background: var(--bg-tertiary);
-                border: 1px solid var(--border-default);
-                border-radius: 4px;
-                color: var(--text-secondary);
-                cursor: pointer;
-                font-size: 12px;
-                transition: all var(--transition-fast);
-                display: flex;
-                align-items: center;
-                gap: 4px;
-            " onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-success)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">
-                📊 <span style="font-size: 10px;">CSV</span>
-            </button>
-        </div>
-    `;
-}
+function createChartControls(cid, opts = {}) { return `<div class="chart-controls" style="display:flex;align-items:center;gap:8px">${opts.refresh !== false ? `<button onclick="refreshChart('${cid}')" title="Refresh" style="padding:6px 10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-secondary);cursor:pointer;font-size:12px;transition:all var(--transition-fast);display:flex;align-items:center;gap:4px" onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">🔄 <span style="font-size:10px">Refresh</span></button>` : ''}${opts.compare !== false ? `<button onclick="toggleComparison('${cid}')" title="Compare" style="padding:6px 10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-secondary);cursor:pointer;font-size:12px;transition:all var(--transition-fast);display:flex;align-items:center;gap:4px" onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">📊 <span style="font-size:10px">Compare</span></button>` : ''}${opts.fullscreen !== false ? `<button onclick="toggleFullscreen('${cid}')" title="Fullscreen" style="padding:6px 10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-secondary);cursor:pointer;font-size:12px;transition:all var(--transition-fast);display:flex;align-items:center;gap:4px" onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-primary)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">⛶ <span style="font-size:10px">Full</span></button>` : ''}<div style="width:1px;height:20px;background:var(--border-default);margin:0 4px"></div><button onclick="exportChartImage('${cid}')" title="Export PNG" style="padding:6px 10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-secondary);cursor:pointer;font-size:12px;transition:all var(--transition-fast);display:flex;align-items:center;gap:4px" onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-success)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">📥 <span style="font-size:10px">PNG</span></button><button onclick="exportChartCSV('${cid}')" title="Export CSV" style="padding:6px 10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:4px;color:var(--text-secondary);cursor:pointer;font-size:12px;transition:all var(--transition-fast);display:flex;align-items:center;gap:4px" onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--accent-success)'" onmouseout="this.style.background='var(--bg-tertiary)';this.style.color='var(--text-secondary)'">📊 <span style="font-size:10px">CSV</span></button></div>`; }
 
-function refreshChart(chartId) {
-    Logger.chart('Refreshing chart', { chartId });
-    showNotification(`Refreshing ${chartId}...`, 'info');
-    loadSection(currentSection);
-}
+function refreshChart(cid) { Logger.chart('Refreshing chart', { cid }); showNotification(`Refreshing ${cid}...`, 'info'); loadSection(currentSection); }
+function toggleComparison(cid) { comparisonMode = !comparisonMode; Logger.chart('Comparison toggled', { cid, enabled: comparisonMode }); showNotification(comparisonMode ? 'Comparison enabled' : 'Comparison disabled', 'info'); loadSection(currentSection); }
+function toggleFullscreen(cid) { const el = document.getElementById(cid); if (el) { if (!document.fullscreenElement) { el.parentElement.requestFullscreen(); showNotification('Fullscreen enabled', 'info'); Logger.chart('Fullscreen enabled', { cid }); } else { document.exitFullscreen(); } } }
+function exportChartImage(cid) { const el = document.getElementById(cid); if (el && typeof Plotly !== 'undefined') { Plotly.downloadImage(el, { format: 'png', width: 1920, height: 1080, filename: `botv2_${cid}_${Date.now()}`, scale: 2 }); Logger.success('Chart exported as PNG', { cid }); showNotification('Chart exported as PNG', 'success'); } }
+function exportChartCSV(cid) { Logger.warn('CSV export not yet implemented', { cid }); showNotification('CSV export coming soon', 'info'); }
 
-function toggleComparison(chartId) {
-    comparisonMode = !comparisonMode;
-    Logger.chart('Comparison mode toggled', { chartId, enabled: comparisonMode });
-    showNotification(comparisonMode ? 'Comparison mode enabled' : 'Comparison mode disabled', 'info');
-    loadSection(currentSection);
-}
+function showNotification(msg, type = 'info', duration = 3000) { const notif = { id: Date.now(), message: msg, type, timestamp: new Date() }; notifications.unshift(notif); const container = document.getElementById('notification-container') || createNotificationContainer(); const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' }; const colors = { success: 'var(--accent-success)', error: 'var(--accent-danger)', warning: 'var(--accent-warning)', info: 'var(--accent-primary)' }; const nel = document.createElement('div'); nel.id = `notif-${notif.id}`; nel.className = 'notification slide-up'; nel.style.cssText = `display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-secondary);border:1px solid var(--border-default);border-left:4px solid ${colors[type]};border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);margin-bottom:8px;min-width:300px;max-width:400px`; nel.innerHTML = `<span style="font-size:20px">${icons[type]}</span><span style="flex:1;font-size:13px;color:var(--text-primary)">${msg}</span><button onclick="closeNotification(${notif.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;transition:color var(--transition-fast)" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">×</button>`; container.appendChild(nel); if (duration > 0) { setTimeout(() => closeNotification(notif.id), duration); } }
 
-function toggleFullscreen(chartId) {
-    const chartElement = document.getElementById(chartId);
-    if (chartElement) {
-        if (!document.fullscreenElement) {
-            chartElement.parentElement.requestFullscreen();
-            showNotification('Fullscreen enabled', 'info');
-            Logger.chart('Fullscreen enabled', { chartId });
-        } else {
-            document.exitFullscreen();
-        }
-    }
-}
+function createNotificationContainer() { const c = document.createElement('div'); c.id = 'notification-container'; c.style.cssText = `position:fixed;top:70px;right:24px;z-index:9999;display:flex;flex-direction:column;pointer-events:auto`; document.body.appendChild(c); return c; }
 
-function exportChartImage(chartId) {
-    const chartElement = document.getElementById(chartId);
-    if (chartElement && typeof Plotly !== 'undefined') {
-        Plotly.downloadImage(chartElement, {
-            format: 'png',
-            width: 1920,
-            height: 1080,
-            filename: `botv2_${chartId}_${Date.now()}`,
-            scale: 2
-        });
-        Logger.success('Chart exported as PNG', { chartId });
-        showNotification('Chart exported as PNG', 'success');
-    }
-}
+function closeNotification(id) { const nel = document.getElementById(`notif-${id}`); if (nel) { nel.style.animation = 'fadeOut 0.3s ease-out'; setTimeout(() => nel.remove(), 300); } notifications = notifications.filter(n => n.id !== id); }
 
-function exportChartCSV(chartId) {
-    Logger.warn('CSV export not yet implemented', { chartId });
-    showNotification('CSV export feature coming soon', 'info');
-}
+function showSkeletonLoading(cid, type = 'dashboard') { const c = document.getElementById(cid); if (!c) return; const skels = { dashboard: `<div class="kpi-grid fade-in"><div class="skeleton skeleton-kpi"></div><div class="skeleton skeleton-kpi"></div><div class="skeleton skeleton-kpi"></div><div class="skeleton skeleton-kpi"></div></div><div class="charts-grid fade-in"><div class="chart-card full-width"><div class="skeleton skeleton-chart"></div></div></div>`, portfolio: `<div class="kpi-grid fade-in"><div class="skeleton skeleton-kpi"></div><div class="skeleton skeleton-kpi"></div><div class="skeleton skeleton-kpi"></div></div><div class="charts-grid fade-in"><div class="chart-card full-width"><div class="skeleton skeleton-chart"></div></div></div><div style="margin-top:24px"><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div></div>`, table: `<div style="padding:24px"><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div><div class="skeleton skeleton-table-row"></div></div>`, chart: `<div class="charts-grid fade-in"><div class="chart-card full-width"><div class="skeleton skeleton-chart"></div></div></div>` }; c.innerHTML = skels[type] || skels.dashboard; }
 
-// ==================== NOTIFICATION SYSTEM ====================
-function showNotification(message, type = 'info', duration = 3000) {
-    const notification = {
-        id: Date.now(),
-        message,
-        type,
-        timestamp: new Date()
-    };
-    
-    notifications.unshift(notification);
-    
-    const container = document.getElementById('notification-container') || createNotificationContainer();
-    
-    const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
-    };
-    
-    const colors = {
-        success: 'var(--accent-success)',
-        error: 'var(--accent-danger)',
-        warning: 'var(--accent-warning)',
-        info: 'var(--accent-primary)'
-    };
-    
-    const notifEl = document.createElement('div');
-    notifEl.id = `notif-${notification.id}`;
-    notifEl.className = 'notification slide-up';
-    notifEl.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-default);
-        border-left: 4px solid ${colors[type]};
-        border-radius: var(--radius-sm);
-        box-shadow: var(--shadow-lg);
-        margin-bottom: 8px;
-        min-width: 300px;
-        max-width: 400px;
-    `;
-    
-    notifEl.innerHTML = `
-        <span style="font-size: 20px;">${icons[type]}</span>
-        <span style="flex: 1; font-size: 13px; color: var(--text-primary);">${message}</span>
-        <button onclick="closeNotification(${notification.id})" style="
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 16px;
-            padding: 0;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color var(--transition-fast);
-        " onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">
-            ×
-        </button>
-    `;
-    
-    container.appendChild(notifEl);
-    
-    if (duration > 0) {
-        setTimeout(() => closeNotification(notification.id), duration);
-    }
-}
+function showEmptyState(cid, cfg = {}) { const c = document.getElementById(cid); if (!c) return; const defs = { icon: '📊', title: 'No Data Available', description: 'There is no data to display at the moment.', action: null, actionText: 'Refresh', actionCallback: null }; const s = { ...defs, ...cfg }; const ab = s.action ? `<button onclick="${s.actionCallback || 'location.reload()'}" style="margin-top:24px;padding:12px 24px;background:var(--accent-primary);border:none;border-radius:var(--radius-sm);color:white;font-weight:600;font-size:14px;cursor:pointer;transition:all var(--transition-base);box-shadow:var(--shadow-sm)" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'">${s.actionText}</button>` : ''; c.innerHTML = `<div class="empty-state slide-up" style="background:var(--bg-secondary);border:1px solid var(--border-default);border-radius:var(--radius-lg);margin:40px auto;max-width:600px"><div class="empty-state-icon">${s.icon}</div><div class="empty-state-title">${s.title}</div><div class="empty-state-description">${s.description}</div>${ab}</div>`; }
 
-function createNotificationContainer() {
-    const container = document.createElement('div');
-    container.id = 'notification-container';
-    container.style.cssText = `
-        position: fixed;
-        top: 70px;
-        right: 24px;
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        pointer-events: auto;
-    `;
-    document.body.appendChild(container);
-    return container;
-}
+function createBadge(txt, type = 'default', opts = {}) { const badges = { success: { bg: 'rgba(63,185,80,0.15)', color: 'var(--accent-success)', border: 'rgba(63,185,80,0.3)' }, danger: { bg: 'rgba(248,81,73,0.15)', color: 'var(--accent-danger)', border: 'rgba(248,81,73,0.3)' }, warning: { bg: 'rgba(210,153,34,0.15)', color: 'var(--accent-warning)', border: 'rgba(210,153,34,0.3)' }, info: { bg: 'rgba(47,129,247,0.15)', color: 'var(--accent-primary)', border: 'rgba(47,129,247,0.3)' }, default: { bg: 'rgba(125,133,144,0.15)', color: 'var(--text-secondary)', border: 'rgba(125,133,144,0.3)' } }; const st = badges[type] || badges.default; const ic = opts.icon || ''; const pulse = opts.pulse ? 'animation:statusPulse 2s ease-in-out infinite' : ''; return `<span class="badge badge-${type}" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;background:${st.bg};color:${st.color};border:1px solid ${st.border};${pulse}">${ic ? `<span style="font-size:10px">${ic}</span>` : ''}${txt}</span>`; }
 
-function closeNotification(id) {
-    const notifEl = document.getElementById(`notif-${id}`);
-    if (notifEl) {
-        notifEl.style.animation = 'fadeOut 0.3s ease-out';
-        setTimeout(() => notifEl.remove(), 300);
-    }
-    notifications = notifications.filter(n => n.id !== id);
-}
-
-// ==================== SKELETON LOADERS ====================
-function showSkeletonLoading(containerId, type = 'dashboard') {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    const skeletons = {
-        dashboard: `
-            <div class="kpi-grid fade-in">
-                <div class="skeleton skeleton-kpi"></div>
-                <div class="skeleton skeleton-kpi"></div>
-                <div class="skeleton skeleton-kpi"></div>
-                <div class="skeleton skeleton-kpi"></div>
-            </div>
-            <div class="charts-grid fade-in">
-                <div class="chart-card full-width">
-                    <div class="skeleton skeleton-chart"></div>
-                </div>
-            </div>
-        `,
-        portfolio: `
-            <div class="kpi-grid fade-in">
-                <div class="skeleton skeleton-kpi"></div>
-                <div class="skeleton skeleton-kpi"></div>
-                <div class="skeleton skeleton-kpi"></div>
-            </div>
-            <div class="charts-grid fade-in">
-                <div class="chart-card full-width">
-                    <div class="skeleton skeleton-chart"></div>
-                </div>
-            </div>
-            <div style="margin-top:24px;">
-                <div class="skeleton skeleton-table-row"></div>
-                <div class="skeleton skeleton-table-row"></div>
-                <div class="skeleton skeleton-table-row"></div>
-            </div>
-        `,
-        table: `
-            <div style="padding:24px;">
-                <div class="skeleton skeleton-table-row"></div>
-                <div class="skeleton skeleton-table-row"></div>
-                <div class="skeleton skeleton-table-row"></div>
-                <div class="skeleton skeleton-table-row"></div>
-                <div class="skeleton skeleton-table-row"></div>
-            </div>
-        `,
-        chart: `
-            <div class="charts-grid fade-in">
-                <div class="chart-card full-width">
-                    <div class="skeleton skeleton-chart"></div>
-                </div>
-            </div>
-        `
-    };
-    
-    container.innerHTML = skeletons[type] || skeletons.dashboard;
-}
-
-// ==================== PROFESSIONAL EMPTY STATES ====================
-function showEmptyState(containerId, config = {}) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    const defaults = {
-        icon: '📊',
-        title: 'No Data Available',
-        description: 'There is no data to display at the moment.',
-        action: null,
-        actionText: 'Refresh',
-        actionCallback: null
-    };
-    
-    const settings = { ...defaults, ...config };
-    
-    const actionButton = settings.action ? `
-        <button onclick="${settings.actionCallback || 'location.reload()'}" style="
-            margin-top: 24px;
-            padding: 12px 24px;
-            background: var(--accent-primary);
-            border: none;
-            border-radius: var(--radius-sm);
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all var(--transition-base);
-            box-shadow: var(--shadow-sm);
-        " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'">
-            ${settings.actionText}
-        </button>
-    ` : '';
-    
-    container.innerHTML = `
-        <div class="empty-state slide-up" style="
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-default);
-            border-radius: var(--radius-lg);
-            margin: 40px auto;
-            max-width: 600px;
-        ">
-            <div class="empty-state-icon">${settings.icon}</div>
-            <div class="empty-state-title">${settings.title}</div>
-            <div class="empty-state-description">${settings.description}</div>
-            ${actionButton}
-        </div>
-    `;
-}
-
-// ==================== ENHANCED BADGE SYSTEM ====================
-function createBadge(text, type = 'default', options = {}) {
-    const badges = {
-        success: { bg: 'rgba(63, 185, 80, 0.15)', color: 'var(--accent-success)', border: 'rgba(63, 185, 80, 0.3)' },
-        danger: { bg: 'rgba(248, 81, 73, 0.15)', color: 'var(--accent-danger)', border: 'rgba(248, 81, 73, 0.3)' },
-        warning: { bg: 'rgba(210, 153, 34, 0.15)', color: 'var(--accent-warning)', border: 'rgba(210, 153, 34, 0.3)' },
-        info: { bg: 'rgba(47, 129, 247, 0.15)', color: 'var(--accent-primary)', border: 'rgba(47, 129, 247, 0.3)' },
-        default: { bg: 'rgba(125, 133, 144, 0.15)', color: 'var(--text-secondary)', border: 'rgba(125, 133, 144, 0.3)' }
-    };
-    
-    const style = badges[type] || badges.default;
-    const icon = options.icon || '';
-    const pulse = options.pulse ? 'animation: statusPulse 2s ease-in-out infinite;' : '';
-    
-    return `
-        <span class="badge badge-${type}" style="
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            background: ${style.bg};
-            color: ${style.color};
-            border: 1px solid ${style.border};
-            ${pulse}
-        ">
-            ${icon ? `<span style="font-size:10px;">${icon}</span>` : ''}
-            ${text}
-        </span>
-    `;
-}
-
-// ==================== CHART CONFIGURATION FACTORY ====================
-function getStandardChartConfig(chartId, options = {}) {
-    const colors = COLORS[currentTheme];
-    
-    return {
-        layout: {
-            paper_bgcolor: colors.bgPaper,
-            plot_bgcolor: colors.bgPlot,
-            font: { 
-                family: 'Inter, -apple-system, sans-serif',
-                size: 12,
-                color: colors.textPrimary
-            },
-            xaxis: {
-                gridcolor: colors.gridcolor,
-                showgrid: true,
-                zeroline: false,
-                linecolor: colors.bordercolor,
-                tickfont: { color: colors.textSecondary },
-                ...options.xaxis
-            },
-            yaxis: {
-                gridcolor: colors.gridcolor,
-                showgrid: true,
-                zeroline: true,
-                zerolinecolor: colors.gridcolor,
-                linecolor: colors.bordercolor,
-                tickfont: { color: colors.textSecondary },
-                ...options.yaxis
-            },
-            margin: options.margin || { t: 20, r: 30, b: 50, l: 70 },
-            hovermode: options.hovermode || 'x unified',
-            hoverlabel: {
-                bgcolor: colors.bgCard,
-                bordercolor: colors.bordercolor,
-                font: { 
-                    family: 'Inter, sans-serif',
-                    size: 13,
-                    color: colors.textPrimary
-                },
-                align: 'left'
-            },
-            showlegend: options.showlegend !== undefined ? options.showlegend : false,
-            legend: options.legend || {
-                x: 0.02,
-                y: 0.98,
-                bgcolor: 'rgba(0,0,0,0)',
-                bordercolor: colors.bordercolor,
-                borderwidth: 0,
-                font: { color: colors.textPrimary }
-            },
-            ...options.layout
-        },
-        config: {
-            responsive: true,
-            displaylogo: false,
-            displayModeBar: true,
-            modeBarButtonsToRemove: ['select2d', 'lasso2d', 'autoScale2d'],
-            modeBarButtonsToAdd: [
-                {
-                    name: 'Download PNG (2K)',
-                    icon: Plotly.Icons.camera,
-                    click: function(gd) {
-                        Plotly.downloadImage(gd, {
-                            format: 'png',
-                            width: 1920,
-                            height: 1080,
-                            filename: `botv2_${chartId}_${Date.now()}`,
-                            scale: 2
-                        });
-                    }
-                }
-            ],
-            toImageButtonOptions: {
-                format: 'png',
-                filename: `botv2_${chartId}_${Date.now()}`,
-                height: 1080,
-                width: 1920,
-                scale: 2
-            }
-        }
-    };
-}
+function getStandardChartConfig(cid, opts = {}) { const cols = COLORS[currentTheme]; return { layout: { paper_bgcolor: cols.bgPaper, plot_bgcolor: cols.bgPlot, font: { family: 'Inter,-apple-system,sans-serif', size: 12, color: cols.textPrimary }, xaxis: { gridcolor: cols.gridcolor, showgrid: true, zeroline: false, linecolor: cols.bordercolor, tickfont: { color: cols.textSecondary }, ...opts.xaxis }, yaxis: { gridcolor: cols.gridcolor, showgrid: true, zeroline: true, zerolinecolor: cols.gridcolor, linecolor: cols.bordercolor, tickfont: { color: cols.textSecondary }, ...opts.yaxis }, margin: opts.margin || { t: 20, r: 30, b: 50, l: 70 }, hovermode: opts.hovermode || 'x unified', hoverlabel: { bgcolor: cols.bgCard, bordercolor: cols.bordercolor, font: { family: 'Inter,sans-serif', size: 13, color: cols.textPrimary }, align: 'left' }, showlegend: opts.showlegend !== undefined ? opts.showlegend : false, legend: opts.legend || { x: 0.02, y: 0.98, bgcolor: 'rgba(0,0,0,0)', bordercolor: cols.bordercolor, borderwidth: 0, font: { color: cols.textPrimary } }, ...opts.layout }, config: { responsive: true, displaylogo: false, displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d', 'autoScale2d'], modeBarButtonsToAdd: [{ name: 'Download PNG (2K)', icon: Plotly.Icons.camera, click: function(gd) { Plotly.downloadImage(gd, { format: 'png', width: 1920, height: 1080, filename: `botv2_${cid}_${Date.now()}`, scale: 2 }); } }], toImageButtonOptions: { format: 'png', filename: `botv2_${cid}_${Date.now()}`, height: 1080, width: 1920, scale: 2 } } }; }
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', function() {
     Logger.perf.start('dashboard-init');
     Logger.system('Initializing BotV2 Dashboard v7.2.1');
-    
-    // Dependency checks
-    if (typeof Plotly === 'undefined') {
-        Logger.error('Plotly.js not loaded');
-        showError('main-container', 'Plotly.js library failed to load. Please refresh the page.');
-        return;
-    }
-    Logger.success('Plotly.js loaded successfully');
-    
-    if (typeof io !== 'undefined') {
-        Logger.success('Socket.io loaded successfully');
-    } else {
-        Logger.warn('Socket.io not loaded - real-time updates disabled');
-    }
-    
-    // Initialize modules
+    if (typeof Plotly === 'undefined') { Logger.error('Plotly.js not loaded'); showError('main-container', 'Plotly.js library failed to load. Please refresh.'); return; }
+    Logger.success('Plotly.js loaded');
+    if (typeof io !== 'undefined') { Logger.success('Socket.io loaded'); } else { Logger.warn('Socket.io not loaded - real-time updates disabled'); }
     Logger.separator();
     Logger.group('Module Initialization');
-    
-    if (typeof CommandPalette !== 'undefined') {
-        Logger.success('Command Palette v7.2 initialized');
-    }
-    
-    if (typeof InsightsPanel !== 'undefined') {
-        Logger.success('AI Insights Panel initialized');
-    }
-    
-    if (typeof ChartMastery !== 'undefined') {
-        Logger.success('Chart Mastery v7.1 initialized (7 advanced charts)');
-    }
-    
-    if (typeof VisualExcellence !== 'undefined') {
-        Logger.success('Visual Excellence v7.0 initialized');
-    }
-    
-    if (typeof PWAInstaller !== 'undefined') {
-        Logger.success('PWA Installer v1.1 initialized');
-    }
-    
+    if (typeof CommandPalette !== 'undefined') Logger.success('Command Palette v7.2 initialized');
+    if (typeof InsightsPanel !== 'undefined') Logger.success('AI Insights Panel initialized');
+    if (typeof ChartMastery !== 'undefined') Logger.success('Chart Mastery v7.1 initialized');
+    if (typeof VisualExcellence !== 'undefined') Logger.success('Visual Excellence v7.0 initialized');
+    if (typeof PWAInstaller !== 'undefined') Logger.success('PWA Installer v1.1 initialized');
     Logger.groupEnd();
     Logger.separator();
-    
-    // Initialize WebSocket
     initWebSocket();
-    
-    // Setup menu handlers
     setupMenuHandlers();
     Logger.success('Menu handlers configured');
-    
-    // Load saved theme
     const savedTheme = localStorage.getItem('dashboard-theme') || 'dark';
     setTheme(savedTheme, true);
     Logger.success('Theme applied', { theme: savedTheme });
-    
-    // Load initial section
     loadSection('dashboard');
-    
     Logger.perf.end('dashboard-init', 'Dashboard initialization completed');
     Logger.success('✅ Dashboard v7.2.1 ready - ALL FEATURES ACTIVE');
     Logger.separator();
 });
 
-// ==================== ERROR HANDLING ====================
-function showError(containerId, message, section = null) {
-    Logger.error('Displaying error to user', { message, section });
-    
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    const retryButton = section ? 
-        `<button onclick="loadSection('${section}')" class="retry-btn" style="
-            margin-top:1.5rem;
-            padding:12px 28px;
-            background:var(--accent-primary);
-            border:none;
-            border-radius:var(--radius-sm);
-            color:white;
-            cursor:pointer;
-            font-weight:600;
-            font-size:14px;
-            transition:all var(--transition-base);
-            box-shadow:var(--shadow-sm);
-        " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'">🔄 Try Again</button>` : '';
-    
-    container.innerHTML = `
-        <div class="slide-up" style="
-            text-align:center;
-            padding:80px 40px;
-            max-width:500px;
-            margin:0 auto;
-            background:var(--bg-secondary);
-            border:1px solid var(--border-default);
-            border-radius:var(--radius-lg);
-        ">
-            <div style="font-size:64px;margin-bottom:24px;opacity:0.8;animation:floatIcon 3s ease-in-out infinite;">⚠️</div>
-            <h2 style="
-                color:var(--text-primary);
-                font-size:24px;
-                font-weight:600;
-                margin-bottom:12px;
-            ">Something went wrong</h2>
-            <p style="
-                color:var(--text-secondary);
-                font-size:15px;
-                line-height:1.6;
-                margin-bottom:8px;
-            ">${message}</p>
-            ${retryButton}
-        </div>
-    `;
-}
+// ==================== ERROR ====================
+function showError(cid, msg, sec = null) { Logger.error('Displaying error', { msg, sec }); const c = document.getElementById(cid); if (!c) return; const rb = sec ? `<button onclick="loadSection('${sec}')" class="retry-btn" style="margin-top:1.5rem;padding:12px 28px;background:var(--accent-primary);border:none;border-radius:var(--radius-sm);color:white;cursor:pointer;font-weight:600;font-size:14px;transition:all var(--transition-base);box-shadow:var(--shadow-sm)" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow-sm)'">🔄 Try Again</button>` : ''; c.innerHTML = `<div class="slide-up" style="text-align:center;padding:80px 40px;max-width:500px;margin:0 auto;background:var(--bg-secondary);border:1px solid var(--border-default);border-radius:var(--radius-lg)"><div style="font-size:64px;margin-bottom:24px;opacity:0.8;animation:floatIcon 3s ease-in-out infinite">⚠️</div><h2 style="color:var(--text-primary);font-size:24px;font-weight:600;margin-bottom:12px">Something went wrong</h2><p style="color:var(--text-secondary);font-size:15px;line-height:1.6;margin-bottom:8px">${msg}</p>${rb}</div>`; }
 
 // ==================== MENU ====================
-function setupMenuHandlers() {
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const section = this.getAttribute('data-section');
-            if (section) loadSection(section);
-        });
-    });
-}
+function setupMenuHandlers() { document.querySelectorAll('.menu-item').forEach(item => { item.addEventListener('click', function(e) { e.preventDefault(); const sec = this.getAttribute('data-section'); if (sec) loadSection(sec); }); }); }
 
-function loadSection(section) {
-    if (!section) return;
-    
-    Logger.perf.start(`load-${section}`);
-    Logger.system(`Loading section: ${section}`);
-    
-    currentSection = section;
-    cleanupCharts();
-    
-    document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-    const activeItem = document.querySelector(`[data-section="${section}"]`);
-    if (activeItem) activeItem.classList.add('active');
-    
-    const titles = {
-        'dashboard': 'Dashboard',
-        'portfolio': 'Portfolio',
-        'trades': 'Trade History',
-        'performance': 'Performance',
-        'risk': 'Risk Analysis',
-        'markets': 'Market Overview',
-        'strategies': 'Strategies',
-        'backtesting': 'Backtesting',
-        'live_monitor': 'Live Monitor',
-        'control_panel': 'Control Panel',
-        'settings': 'Settings'
-    };
-    
-    const pageTitle = document.getElementById('page-title');
-    if (pageTitle) pageTitle.textContent = titles[section] || section;
-    
-    fetchSectionContent(section);
-}
+function loadSection(sec) { if (!sec) return; Logger.perf.start(`load-${sec}`); Logger.system(`Loading section: ${sec}`); currentSection = sec; cleanupCharts(); document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active')); const ai = document.querySelector(`[data-section="${sec}"]`); if (ai) ai.classList.add('active'); const titles = { dashboard: 'Dashboard', portfolio: 'Portfolio', trades: 'Trade History', performance: 'Performance', risk: 'Risk Analysis', markets: 'Market Overview', strategies: 'Strategies', backtesting: 'Backtesting', live_monitor: 'Live Monitor', control_panel: 'Control Panel', settings: 'Settings' }; const pt = document.getElementById('page-title'); if (pt) pt.textContent = titles[sec] || sec; fetchSectionContent(sec); }
 
-function fetchSectionContent(section) {
-    const skeletonTypes = {
-        'dashboard': 'dashboard',
-        'portfolio': 'portfolio',
-        'trades': 'table',
-        'performance': 'chart',
-        'risk': 'chart',
-        'markets': 'table',
-        'strategies': 'table',
-        'backtesting': 'chart',
-        'live_monitor': 'table',
-        'control_panel': 'dashboard',
-        'settings': 'dashboard'
-    };
-    
-    showSkeletonLoading('main-container', skeletonTypes[section] || 'dashboard');
-    
-    // Build query params with filters and date range
-    const params = new URLSearchParams();
-    if (dateRange.start) params.append('start', dateRange.start.toISOString());
-    if (dateRange.end) params.append('end', dateRange.end.toISOString());
-    Object.entries(activeFilters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
-    });
-    
-    const url = `/api/section/${section}${params.toString() ? '?' + params.toString() : ''}`;
-    Logger.data('Fetching section data', { section, url, filters: activeFilters });
-    
-    fetch(url)
-        .then(r => {
-            if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-            return r.json();
-        })
-        .then(data => {
-            Logger.success('Section data loaded', { section });
-            
-            // Use requestAnimationFrame for smooth transition without blocking
-            requestAnimationFrame(() => {
-                renderSection(section, data);
-                Logger.perf.end(`load-${section}`, `Section '${section}' rendered`);
-            });
-        })
-        .catch(error => {
-            Logger.error(`Failed to load section: ${section}`, error);
-            
-            let message = 'Unable to load data. Please check your connection and try again.';
-            
-            if (error.message.includes('404')) {
-                message = 'The requested data was not found.';
-            } else if (error.message.includes('500')) {
-                message = 'Server error occurred. Our team has been notified.';
-            } else if (error.message.includes('Failed to fetch')) {
-                message = 'Network connection lost. Please check your internet connection.';
-            }
-            
-            showError('main-container', message, section);
-        });
-}
+function fetchSectionContent(sec) { const st = { dashboard: 'dashboard', portfolio: 'portfolio', trades: 'table', performance: 'chart', risk: 'chart', markets: 'table', strategies: 'table', backtesting: 'chart', live_monitor: 'table', control_panel: 'dashboard', settings: 'dashboard' }; showSkeletonLoading('main-container', st[sec] || 'dashboard'); const params = new URLSearchParams(); if (dateRange.start) params.append('start', dateRange.start.toISOString()); if (dateRange.end) params.append('end', dateRange.end.toISOString()); Object.entries(activeFilters).forEach(([k, v]) => { if (v) params.append(k, v); }); const url = `/api/section/${sec}${params.toString() ? '?' + params.toString() : ''}`; Logger.data('Fetching section data', { sec, url, filters: activeFilters }); fetch(url).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`); return r.json(); }).then(data => { Logger.success('Section data loaded', { sec }); requestAnimationFrame(() => { renderSection(sec, data); Logger.perf.end(`load-${sec}`, `Section '${sec}' rendered`); }); }).catch(err => { Logger.error(`Failed to load section: ${sec}`, err); let msg = 'Unable to load data. Please check your connection and try again.'; if (err.message.includes('404')) msg = 'The requested data was not found.'; else if (err.message.includes('500')) msg = 'Server error occurred. Our team has been notified.'; else if (err.message.includes('Failed to fetch')) msg = 'Network connection lost. Please check your internet connection.'; showError('main-container', msg, sec); }); }
 
-function renderSection(section, data) {
-    const renderers = {
-        'dashboard': renderDashboard,
-        'portfolio': renderPortfolio,
-        'trades': renderTrades,
-        'performance': renderPerformance,
-        'risk': renderRisk,
-        'markets': renderMarkets,
-        'strategies': renderStrategies,
-        'backtesting': renderBacktesting,
-        'live_monitor': renderLiveMonitor,
-        'control_panel': renderControlPanel,
-        'settings': renderSettings
-    };
-    
-    const renderer = renderers[section];
-    if (renderer) {
-        try {
-            renderer(data);
-            Logger.success(`Section rendered: ${section}`);
-        } catch (error) {
-            Logger.error(`Render error in ${section}`, error);
-            showError('main-container', `Failed to render ${section}. Please refresh the page.`, section);
-        }
-    }
-}
+function renderSection(sec, data) { const rends = { dashboard: renderDashboard, portfolio: renderPortfolio, trades: renderTrades, performance: renderPerformance, risk: renderRisk, markets: renderMarkets, strategies: renderStrategies, backtesting: renderBacktesting, live_monitor: renderLiveMonitor, control_panel: renderControlPanel, settings: renderSettings }; const r = rends[sec]; if (r) { try { r(data); Logger.success(`Section rendered: ${sec}`); } catch (err) { Logger.error(`Render error in ${sec}`, err); showError('main-container', `Failed to render ${sec}. Please refresh.`, sec); } } }
 
-function cleanupCharts() {
-    Object.keys(chartInstances).forEach(chartId => {
-        try {
-            if (document.getElementById(chartId)) {
-                Plotly.purge(chartId);
-                Logger.chart('Chart cleaned up', { chartId });
-            }
-        } catch (e) {
-            Logger.warn('Failed to cleanup chart', { chartId, error: e.message });
-        }
-    });
-    chartInstances = {};
-}
+function cleanupCharts() { Object.keys(chartInstances).forEach(cid => { try { if (document.getElementById(cid)) { Plotly.purge(cid); Logger.chart('Chart cleaned up', { cid }); } } catch (e) { Logger.warn('Failed to cleanup chart', { cid, error: e.message }); } }); chartInstances = {}; }
 
-// ==================== RENDERERS (PARTIAL - DASHBOARD ONLY FOR SIZE) ====================
+// ==================== RENDERERS ====================
+function renderDashboard(data) { const c = document.getElementById('main-container'); const o = data.overview || {}; c.innerHTML = `${createDateRangeSelector('dashboard', 'applyDashboardFilters()')}<div class="kpi-grid fade-in"><div class="kpi-card"><div class="kpi-title">PORTFOLIO VALUE</div><div class="kpi-value">${o.equity || '€0'}</div><div class="kpi-change ${o.daily_change >= 0 ? 'positive' : 'negative'}">${o.daily_change >= 0 ? '↑' : '↓'} ${Math.abs(o.daily_change || 0).toFixed(2)}% today</div></div><div class="kpi-card"><div class="kpi-title">TOTAL P&L</div><div class="kpi-value">${o.total_pnl || '€0'}</div></div><div class="kpi-card"><div class="kpi-title">WIN RATE</div><div class="kpi-value">${o.win_rate || 0}%</div></div><div class="kpi-card"><div class="kpi-title">SHARPE RATIO</div><div class="kpi-value">${o.sharpe_ratio || 'N/A'}</div></div></div><div class="charts-grid slide-up"><div class="chart-card full-width"><div class="chart-header" style="display:flex;align-items:center;justify-content:space-between"><div class="chart-title">Equity Curve</div>${createChartControls('equity-chart')}</div><div id="equity-chart" class="chart-container"></div></div></div>`; requestAnimationFrame(() => { if (data.equity && data.equity.timestamps && data.equity.timestamps.length > 0) { createEquityChart(data.equity); } else { showEmptyState('equity-chart', { icon: '📈', title: 'No Equity Data', description: 'Start trading to see your equity curve here.', action: true, actionText: '🔄 Refresh Data' }); } }); }
 
-function renderDashboard(data) {
-    const container = document.getElementById('main-container');
-    const o = data.overview || {};
-    
-    container.innerHTML = `
-        ${createDateRangeSelector('dashboard', 'applyDashboardFilters()')}
-        
-        <div class="kpi-grid fade-in">
-            <div class="kpi-card">
-                <div class="kpi-title">PORTFOLIO VALUE</div>
-                <div class="kpi-value">${o.equity || '€0'}</div>
-                <div class="kpi-change ${o.daily_change >= 0 ? 'positive' : 'negative'}">
-                    ${o.daily_change >= 0 ? '↑' : '↓'} ${Math.abs(o.daily_change || 0).toFixed(2)}% today
-                </div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">TOTAL P&L</div>
-                <div class="kpi-value">${o.total_pnl || '€0'}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">WIN RATE</div>
-                <div class="kpi-value">${o.win_rate || 0}%</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">SHARPE RATIO</div>
-                <div class="kpi-value">${o.sharpe_ratio || 'N/A'}</div>
-            </div>
-        </div>
-        <div class="charts-grid slide-up">
-            <div class="chart-card full-width">
-                <div class="chart-header" style="display: flex; align-items: center; justify-content: space-between;">
-                    <div class="chart-title">Equity Curve</div>
-                    ${createChartControls('equity-chart')}
-                </div>
-                <div id="equity-chart" class="chart-container"></div>
-            </div>
-        </div>
-    `;
-    
-    // Use requestAnimationFrame for chart creation
-    requestAnimationFrame(() => {
-        if (data.equity && data.equity.timestamps && data.equity.timestamps.length > 0) {
-            createEquityChart(data.equity);
-        } else {
-            showEmptyState('equity-chart', {
-                icon: '📈',
-                title: 'No Equity Data',
-                description: 'Start trading to see your equity curve here.',
-                action: true,
-                actionText: '🔄 Refresh Data'
-            });
-        }
-    });
-}
+function renderPortfolio(data) { const c = document.getElementById('main-container'); const s = data.summary || {}; const pos = data.positions || []; if (pos.length === 0) { showEmptyState('main-container', { icon: '💼', title: 'No Active Positions', description: 'Your portfolio is empty. Start trading to see positions here.', action: true, actionText: '📊 View Markets', actionCallback: "loadSection('markets')" }); return; } const fopt = { filters: [{ id: 'symbol-search', type: 'search', label: 'Search Symbol', placeholder: 'AAPL, MSFT...' }, { id: 'status', type: 'select', label: 'Status', options: [{ value: 'all', label: 'All' }, { value: 'open', label: 'Open' }, { value: 'closed', label: 'Closed' }] }] }; let rows = pos.map(p => `<tr class="fade-in"><td><strong>${p.symbol}</strong></td><td>${p.quantity}</td><td>€${p.value.toFixed(2)}</td><td class="${p.pnl >= 0 ? 'positive' : 'negative'}">€${p.pnl.toFixed(2)}</td><td class="${p.pnl_pct >= 0 ? 'positive' : 'negative'}">${p.pnl_pct >= 0 ? '+' : ''}${p.pnl_pct.toFixed(2)}%</td><td>${createBadge(p.status || 'OPEN', p.pnl >= 0 ? 'success' : 'danger')}</td></tr>`).join(''); c.innerHTML = `${createFilterPanel(fopt)}<div class="kpi-grid fade-in"><div class="kpi-card"><div class="kpi-title">TOTAL VALUE</div><div class="kpi-value">€${(s.total_value || 0).toLocaleString()}</div></div><div class="kpi-card"><div class="kpi-title">POSITIONS</div><div class="kpi-value">${pos.length}</div></div><div class="kpi-card"><div class="kpi-title">TOTAL P&L</div><div class="kpi-value ${s.total_pnl >= 0 ? 'positive' : 'negative'}">€${(s.total_pnl || 0).toFixed(2)}</div></div></div><div class="charts-grid slide-up"><div class="chart-card full-width"><div class="chart-header" style="display:flex;align-items:center;justify-content:space-between"><div class="chart-title">Portfolio Allocation</div>${createChartControls('portfolio-pie', { compare: false })}</div><div id="portfolio-pie" class="chart-container"></div></div></div><div class="data-table fade-in"><table><thead><tr><th>Symbol</th><th>Quantity</th><th>Value</th><th>P&L</th><th>P&L %</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`; requestAnimationFrame(() => createPortfolioPieChart(pos)); }
 
-// NOTE: All other renderX functions follow the same pattern - omitted for brevity
-// They are identical to v7.2.0 but with requestAnimationFrame for charts
+function renderTrades(data) { const c = document.getElementById('main-container'); const s = data.summary || {}; const trd = data.trades || []; if (trd.length === 0) { showEmptyState('main-container', { icon: '📊', title: 'No Trades Yet', description: 'Your trading history will appear here once you start trading.', action: true, actionText: '🚀 Start Trading', actionCallback: "loadSection('control_panel')" }); return; } const fopt = { filters: [{ id: 'trade-search', type: 'search', label: 'Search', placeholder: 'Symbol, ID...' }, { id: 'action', type: 'select', label: 'Action', options: [{ value: 'all', label: 'All' }, { value: 'buy', label: 'Buy' }, { value: 'sell', label: 'Sell' }] }] }; let rows = trd.slice(0, 50).map(t => `<tr class="fade-in"><td>${t.timestamp}</td><td><strong>${t.symbol}</strong></td><td>${createBadge(t.action, t.action === 'BUY' ? 'success' : 'danger', { icon: t.action === 'BUY' ? '↑' : '↓' })}</td><td>${t.quantity}</td><td>€${t.price}</td><td class="${t.pnl >= 0 ? 'positive' : 'negative'}">€${t.pnl.toFixed(2)}</td></tr>`).join(''); c.innerHTML = `${createDateRangeSelector('trades')}${createFilterPanel(fopt)}<div class="kpi-grid fade-in"><div class="kpi-card"><div class="kpi-title">TOTAL TRADES</div><div class="kpi-value">${s.total || 0}</div></div><div class="kpi-card"><div class="kpi-title">WINNING</div><div class="kpi-value positive">${s.winning || 0}</div></div><div class="kpi-card"><div class="kpi-title">LOSING</div><div class="kpi-value negative">${s.losing || 0}</div></div><div class="kpi-card"><div class="kpi-title">WIN RATE</div><div class="kpi-value">${s.win_rate || 0}%</div></div></div><div class="data-table slide-up"><table><thead><tr><th>Time</th><th>Symbol</th><th>Action</th><th>Qty</th><th>Price</th><th>P&L</th></tr></thead><tbody>${rows}</tbody></table></div>`; }
 
-function renderPortfolio(data) { /* Same as v7.2.0 */ }
-function renderTrades(data) { /* Same as v7.2.0 */ }
-function renderPerformance(data) { /* Same as v7.2.0 */ }
-function renderRisk(data) { /* Same as v7.2.0 */ }
-function renderMarkets(data) { /* Same as v7.2.0 */ }
-function renderStrategies(data) { /* Same as v7.2.0 */ }
-function renderBacktesting(data) { /* Same as v7.2.0 */ }
-function renderLiveMonitor(data) { /* Same as v7.2.0 */ }
-function renderControlPanel(data) { /* Same as v7.2.0 */ }
-function renderSettings(data) { /* Same as v7.2.0 */ }
+function renderPerformance(data) { const c = document.getElementById('main-container'); const m = data.metrics || {}; c.innerHTML = `${createDateRangeSelector('performance')}<div class="kpi-grid fade-in"><div class="kpi-card"><div class="kpi-title">TOTAL RETURN</div><div class="kpi-value ${m.total_return >= 0 ? 'positive' : 'negative'}">${m.total_return || 0}%</div></div><div class="kpi-card"><div class="kpi-title">AVG MONTHLY</div><div class="kpi-value">${m.avg_monthly_return || 0}%</div></div><div class="kpi-card"><div class="kpi-title">SHARPE RATIO</div><div class="kpi-value">${m.sharpe || 'N/A'}</div></div><div class="kpi-card"><div class="kpi-title">WIN RATE</div><div class="kpi-value">${m.win_rate || 0}%</div></div></div><div class="charts-grid slide-up"><div class="chart-card full-width"><div class="chart-header" style="display:flex;align-items:center;justify-content:space-between"><div class="chart-title">Monthly Returns</div>${createChartControls('monthly-returns')}</div><div id="monthly-returns" class="chart-container"></div></div></div>`; requestAnimationFrame(() => { if (data.monthly_returns) createMonthlyReturnsChart(data.monthly_returns); }); }
+
+function renderRisk(data) { const c = document.getElementById('main-container'); const m = data.metrics || {}; c.innerHTML = `${createDateRangeSelector('risk')}<div class="kpi-grid fade-in"><div class="kpi-card"><div class="kpi-title">VAR 95%</div><div class="kpi-value danger">€${m.var_95 || 0}</div></div><div class="kpi-card"><div class="kpi-title">MAX DD</div><div class="kpi-value danger">${m.max_drawdown || 0}%</div></div><div class="kpi-card"><div class="kpi-title">VOLATILITY</div><div class="kpi-value">${m.volatility || 0}%</div></div><div class="kpi-card"><div class="kpi-title">BETA</div><div class="kpi-value">${m.beta || 'N/A'}</div></div></div><div class="charts-grid slide-up"><div class="chart-card full-width"><div class="chart-header" style="display:flex;align-items:center;justify-content:space-between"><div class="chart-title">Drawdown Chart</div>${createChartControls('drawdown-chart')}</div><div id="drawdown-chart" class="chart-container"></div></div></div>`; requestAnimationFrame(() => { if (data.drawdown) createDrawdownChart(data.drawdown); }); }
+
+function renderMarkets(data) { const c = document.getElementById('main-container'); const idx = data.indices || []; const mov = data.movers || []; const cry = data.crypto || []; const fopt = { filters: [{ id: 'market-search', type: 'search', label: 'Search', placeholder: 'Symbol...' }, { id: 'market-type', type: 'select', label: 'Type', options: [{ value: 'all', label: 'All' }, { value: 'gainers', label: 'Gainers' }, { value: 'losers', label: 'Losers' }] }] }; let ih = idx.map(i => `<div class="kpi-card fade-in"><div class="kpi-title">${i.name}</div><div class="kpi-value">${i.value.toLocaleString()}</div><div class="kpi-change ${i.change >= 0 ? 'positive' : 'negative'}">${i.change >= 0 ? '↑' : '↓'} ${Math.abs(i.change_pct).toFixed(2)}%</div></div>`).join(''); let mr = mov.map(m => `<tr class="fade-in"><td><strong>${m.symbol}</strong></td><td>€${m.price.toFixed(2)}</td><td class="${m.change >= 0 ? 'positive' : 'negative'}">${m.change >= 0 ? '+' : ''}${m.change.toFixed(2)}</td><td class="${m.change_pct >= 0 ? 'positive' : 'negative'}">${m.change_pct >= 0 ? '+' : ''}${m.change_pct.toFixed(2)}%</td><td>${(m.volume / 1000000).toFixed(1)}M</td><td>${createBadge(m.trend || 'NEUTRAL', m.change_pct >= 5 ? 'success' : m.change_pct <= -5 ? 'danger' : 'warning')}</td></tr>`).join(''); let cr = cry.map(cc => `<tr class="fade-in"><td><strong>${cc.symbol}</strong></td><td>€${cc.price.toLocaleString()}</td><td class="${cc.change >= 0 ? 'positive' : 'negative'}">${cc.change >= 0 ? '+' : ''}${cc.change.toFixed(2)}</td><td class="${cc.change_pct >= 0 ? 'positive' : 'negative'}">${cc.change_pct >= 0 ? '+' : ''}${cc.change_pct.toFixed(2)}%</td><td>${createBadge('CRYPTO', 'info', { icon: '₿' })}</td></tr>`).join(''); c.innerHTML = `${createFilterPanel(fopt)}<h3 style="margin-bottom:1rem;color:var(--text-primary);font-weight:600">Major Indices</h3><div class="kpi-grid">${ih}</div><h3 style="margin:2rem 0 1rem;color:var(--text-primary);font-weight:600">Top Movers</h3><div class="data-table slide-up"><table><thead><tr><th>Symbol</th><th>Price</th><th>Change</th><th>%</th><th>Volume</th><th>Trend</th></tr></thead><tbody>${mr}</tbody></table></div><h3 style="margin:2rem 0 1rem;color:var(--text-primary);font-weight:600">Crypto Markets</h3><div class="data-table slide-up"><table><thead><tr><th>Symbol</th><th>Price</th><th>Change</th><th>%</th><th>Type</th></tr></thead><tbody>${cr}</tbody></table></div>`; }
+
+function renderStrategies(data) { const c = document.getElementById('main-container'); const s = data.summary || {}; const str = data.strategies || []; if (str.length === 0) { showEmptyState('main-container', { icon: '🎯', title: 'No Strategies Configured', description: 'Configure your first trading strategy to get started.', action: true, actionText: '➕ Add Strategy' }); return; } const fopt = { filters: [{ id: 'strategy-status', type: 'select', label: 'Status', options: [{ value: 'all', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }] }, { id: 'min-return', type: 'range', label: 'Min Return %', min: -50, max: 100, default: 0 }] }; let rows = str.map(st => `<tr class="fade-in"><td><strong>${st.name}</strong></td><td>${createBadge(st.status, st.status === 'ACTIVE' ? 'success' : 'default', { pulse: st.status === 'ACTIVE' })}</td><td class="${st.return >= 0 ? 'positive' : 'negative'}">${st.return >= 0 ? '+' : ''}${st.return}%</td><td>${st.sharpe}</td><td>${st.trades}</td><td>${createBadge(`${st.win_rate}%`, st.win_rate >= 60 ? 'success' : st.win_rate >= 40 ? 'warning' : 'danger')}</td></tr>`).join(''); c.innerHTML = `${createFilterPanel(fopt)}<div class="kpi-grid fade-in"><div class="kpi-card"><div class="kpi-title">ACTIVE</div><div class="kpi-value positive">${s.active || 0}</div></div><div class="kpi-card"><div class="kpi-title">TOTAL</div><div class="kpi-value">${str.length}</div></div></div><div class="data-table slide-up"><table><thead><tr><th>Strategy</th><th>Status</th><th>Return</th><th>Sharpe</th><th>Trades</th><th>Win Rate</th></tr></thead><tbody>${rows}</tbody></table></div>`; }
+
+function renderBacktesting(data) { const c = document.getElementById('main-container'); const r = data.results || {}; c.innerHTML = `${createDateRangeSelector('backtesting')}<div class="kpi-grid fade-in"><div class="kpi-card"><div class="kpi-title">STRATEGY RETURN</div><div class="kpi-value positive">${r.total_return_strategy || 0}%</div></div><div class="kpi-card"><div class="kpi-title">BENCHMARK</div><div class="kpi-value">${r.total_return_benchmark || 0}%</div></div><div class="kpi-card"><div class="kpi-title">OUTPERFORMANCE</div><div class="kpi-value ${r.outperformance >= 0 ? 'positive' : 'negative'}">${r.outperformance || 0}%</div></div><div class="kpi-card"><div class="kpi-title">STATUS</div><div class="kpi-value">${createBadge(r.status || 'COMPLETED', 'success')}</div></div></div><div class="charts-grid slide-up"><div class="chart-card full-width"><div class="chart-header" style="display:flex;align-items:center;justify-content:space-between"><div class="chart-title">Strategy vs Benchmark</div>${createChartControls('backtest-chart')}</div><div id="backtest-chart" class="chart-container"></div></div></div>`; requestAnimationFrame(() => { if (data.equity_curves) createBacktestChart(data.equity_curves); }); }
+
+function renderLiveMonitor(data) { const c = document.getElementById('main-container'); const st = data.status || {}; const rt = data.recent_trades || []; const ao = data.active_orders || []; let tr = rt.length > 0 ? rt.map(t => `<tr class="fade-in"><td>${t.timestamp}</td><td><strong>${t.symbol}</strong></td><td>${createBadge(t.action, t.action === 'BUY' ? 'success' : 'danger', { icon: t.action === 'BUY' ? '↑' : '↓' })}</td><td>${t.quantity}</td><td>€${t.price}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-secondary)">No recent trades</td></tr>'; let or = ao.length > 0 ? ao.map(o => `<tr class="fade-in"><td><strong>${o.symbol}</strong></td><td>${o.type}</td><td>${o.side}</td><td>${o.quantity}</td><td>€${o.price}</td><td>${createBadge(o.status, o.status === 'PENDING' ? 'warning' : 'success', { pulse: o.status === 'PENDING' })}</td></tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary)">No active orders</td></tr>'; c.innerHTML = `<div class="kpi-grid fade-in"><div class="kpi-card"><div class="kpi-title">BOT STATUS</div><div class="kpi-value">${createBadge(st.bot_status || 'STOPPED', st.bot_status === 'RUNNING' ? 'success' : 'danger', { pulse: st.bot_status === 'RUNNING', icon: st.bot_status === 'RUNNING' ? '●' : '○' })}</div></div><div class="kpi-card"><div class="kpi-title">UPTIME</div><div class="kpi-value">${st.uptime || 'N/A'}</div></div><div class="kpi-card"><div class="kpi-title">ACTIVE ORDERS</div><div class="kpi-value">${ao.length}</div></div><div class="kpi-card"><div class="kpi-title">TODAY'S TRADES</div><div class="kpi-value">${st.trades_today || 0}</div></div></div><h3 style="margin:2rem 0 1rem;color:var(--text-primary);font-weight:600">Recent Trades (Real-Time)</h3><div class="data-table slide-up"><table><thead><tr><th>Time</th><th>Symbol</th><th>Action</th><th>Qty</th><th>Price</th></tr></thead><tbody>${tr}</tbody></table></div><h3 style="margin:2rem 0 1rem;color:var(--text-primary);font-weight:600">Active Orders</h3><div class="data-table slide-up"><table><thead><tr><th>Symbol</th><th>Type</th><th>Side</th><th>Qty</th><th>Price</th><th>Status</th></tr></thead><tbody>${or}</tbody></table></div>`; }
+
+function renderControlPanel(data) { const c = document.getElementById('main-container'); const cfg = data.config || {}; const bs = data.bot_status || 'STOPPED'; c.innerHTML = `<div class="kpi-grid fade-in"><div class="kpi-card"><div class="kpi-title">BOT STATUS</div><div class="kpi-value">${createBadge(bs, bs === 'RUNNING' ? 'success' : 'danger', { pulse: bs === 'RUNNING' })}</div><button onclick="alert('Start/Stop functionality coming soon')" style="margin-top:1rem;padding:10px 20px;background:var(--accent-success);border:none;border-radius:var(--radius-sm);color:white;cursor:pointer;font-weight:600;width:100%;transition:all var(--transition-base)" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='none'">${bs === 'RUNNING' ? '⏸ STOP BOT' : '▶️ START BOT'}</button></div><div class="kpi-card"><div class="kpi-title">AUTO TRADING</div><div class="kpi-value">${createBadge(cfg.auto_trading ? 'ON' : 'OFF', cfg.auto_trading ? 'success' : 'default')}</div></div><div class="kpi-card"><div class="kpi-title">MAX POSITION SIZE</div><div class="kpi-value">€${(cfg.max_position_size || 0).toLocaleString()}</div></div><div class="kpi-card"><div class="kpi-title">RISK LEVEL</div><div class="kpi-value">${createBadge(cfg.risk_level || 'MEDIUM', cfg.risk_level === 'LOW' ? 'success' : cfg.risk_level === 'HIGH' ? 'danger' : 'warning')}</div></div></div><div class="slide-up" style="background:var(--bg-secondary);border:1px solid var(--border-default);border-radius:var(--radius);padding:24px;margin-top:24px"><h3 style="margin-bottom:1rem;color:var(--text-primary);font-weight:600">🎛️ Bot Configuration</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px"><div><label style="display:block;margin-bottom:8px;color:var(--text-secondary);font-weight:600">Trading Mode</label><select style="width:100%;padding:10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary)" disabled><option>${cfg.trading_mode || 'LIVE'}</option></select></div><div><label style="display:block;margin-bottom:8px;color:var(--text-secondary);font-weight:600">Active Strategy</label><select style="width:100%;padding:10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary)" disabled><option>${cfg.active_strategy || 'Momentum Pro'}</option></select></div><div><label style="display:block;margin-bottom:8px;color:var(--text-secondary);font-weight:600">Stop Loss %</label><input type="number" value="${cfg.stop_loss_pct || 2}" style="width:100%;padding:10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary)" disabled></div><div><label style="display:block;margin-bottom:8px;color:var(--text-secondary);font-weight:600">Take Profit %</label><input type="number" value="${cfg.take_profit_pct || 5}" style="width:100%;padding:10px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary)" disabled></div></div><div style="margin-top:20px;padding:16px;background:var(--bg-tertiary);border-radius:6px;border-left:4px solid var(--accent-warning)"><p style="margin:0;color:var(--text-secondary);font-size:13px">⚠️ <strong>Note:</strong> Bot control functionality is view-only. Full controls coming next version.</p></div></div>`; }
+
+function renderSettings(data) { const c = document.getElementById('main-container'); c.innerHTML = `<div class="slide-up" style="background:var(--bg-secondary);border:1px solid var(--border-default);border-radius:var(--radius);padding:32px;text-align:center"><div style="font-size:64px;margin-bottom:24px;animation:floatIcon 3s ease-in-out infinite">⚙️</div><h2 style="margin-bottom:16px;font-weight:600">Settings</h2><p style="color:var(--text-secondary);margin-bottom:24px">Configure dashboard settings and preferences</p><div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><button onclick="showNotification('Settings panel coming soon','info')" style="padding:10px 20px;background:var(--accent-primary);border:none;border-radius:6px;color:white;cursor:pointer;font-weight:600;transition:all var(--transition-base)" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='none'">Dashboard Settings</button><button onclick="showNotification('API configuration coming soon','info')" style="padding:10px 20px;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:6px;color:var(--text-primary);cursor:pointer;font-weight:600;transition:all var(--transition-base)" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='';this.style.boxShadow='none'">API Configuration</button></div></div>`; }
 
 // ==================== CHART CREATORS ====================
+function createEquityChart(data) { if (!data.timestamps || !data.equity) return; const cols = COLORS[currentTheme]; const cfg = getStandardChartConfig('equity-chart', { yaxis: { tickprefix: '€' } }); const trace = { x: data.timestamps, y: data.equity, type: 'scatter', mode: 'lines', line: { color: cols.primary, width: 2.5 }, fill: 'tozeroy', fillcolor: cols.primary.replace(')', ', 0.1)').replace('rgb', 'rgba'), name: 'Equity', hovertemplate: '<b>%{x}</b><br>Equity: €%{y:,.2f}<extra></extra>' }; Plotly.newPlot('equity-chart', [trace], cfg.layout, cfg.config); chartInstances['equity-chart'] = true; Logger.chart('Equity chart created'); }
 
-function createEquityChart(data) {
-    if (!data.timestamps || !data.equity) return;
-    
-    const colors = COLORS[currentTheme];
-    const config = getStandardChartConfig('equity-chart', {
-        yaxis: { tickprefix: '€' }
-    });
-    
-    const trace = {
-        x: data.timestamps,
-        y: data.equity,
-        type: 'scatter',
-        mode: 'lines',
-        line: { color: colors.primary, width: 2.5 },
-        fill: 'tozeroy',
-        fillcolor: colors.primary.replace(')', ', 0.1)').replace('rgb', 'rgba'),
-        name: 'Equity',
-        hovertemplate: '<b>%{x}</b><br>Equity: €%{y:,.2f}<extra></extra>'
-    };
-    
-    Plotly.newPlot('equity-chart', [trace], config.layout, config.config);
-    chartInstances['equity-chart'] = true;
-    Logger.chart('Equity chart created');
-}
+function createPortfolioPieChart(pos) { const cols = COLORS[currentTheme]; const cfg = getStandardChartConfig('portfolio-pie', { showlegend: false, margin: { t: 10, r: 20, b: 10, l: 20 } }); const trace = { labels: pos.map(p => p.symbol), values: pos.map(p => p.value), type: 'pie', hole: 0.45, textinfo: 'label+percent', textfont: { size: 12, color: cols.textPrimary }, marker: { colors: cols.chart, line: { color: cols.bgPaper, width: 3 } }, hovertemplate: '<b>%{label}</b><br>Value: €%{value:,.2f}<br>%{percent}<extra></extra>' }; Plotly.newPlot('portfolio-pie', [trace], cfg.layout, cfg.config); chartInstances['portfolio-pie'] = true; Logger.chart('Portfolio pie created'); }
 
-function createPortfolioPieChart(positions) { /* Same as v7.2.0 */ }
-function createMonthlyReturnsChart(data) { /* Same as v7.2.0 */ }
-function createDrawdownChart(data) { /* Same as v7.2.0 */ }
-function createBacktestChart(data) { /* Same as v7.2.0 */ }
+function createMonthlyReturnsChart(data) { if (!data.months || !data.returns) return; const cols = COLORS[currentTheme]; const cfg = getStandardChartConfig('monthly-returns', { yaxis: { ticksuffix: '%', zeroline: true, zerolinecolor: cols.gridcolor } }); const bc = data.returns.map(r => r >= 0 ? cols.success : cols.danger); const trace = { x: data.months, y: data.returns, type: 'bar', marker: { color: bc }, hovertemplate: '<b>%{x}</b><br>Return: %{y:.2f}%<extra></extra>' }; Plotly.newPlot('monthly-returns', [trace], cfg.layout, cfg.config); chartInstances['monthly-returns'] = true; Logger.chart('Monthly returns created'); }
+
+function createDrawdownChart(data) { if (!data.timestamps || !data.drawdown) return; const cols = COLORS[currentTheme]; const cfg = getStandardChartConfig('drawdown-chart', { yaxis: { ticksuffix: '%', zeroline: true, zerolinecolor: cols.gridcolor } }); const trace = { x: data.timestamps, y: data.drawdown, type: 'scatter', mode: 'lines', line: { color: cols.danger, width: 2.5 }, fill: 'tozeroy', fillcolor: cols.danger.replace(')', ', 0.15)').replace('rgb', 'rgba'), name: 'Drawdown', hovertemplate: '<b>%{x}</b><br>Drawdown: %{y:.2f}%<extra></extra>' }; Plotly.newPlot('drawdown-chart', [trace], cfg.layout, cfg.config); chartInstances['drawdown-chart'] = true; Logger.chart('Drawdown created'); }
+
+function createBacktestChart(data) { if (!data.timestamps || !data.strategy || !data.benchmark) return; const cols = COLORS[currentTheme]; const cfg = getStandardChartConfig('backtest-chart', { showlegend: true, yaxis: { tickprefix: '€' } }); const t1 = { x: data.timestamps, y: data.strategy, type: 'scatter', mode: 'lines', line: { color: cols.success, width: 2.5 }, name: 'Strategy', hovertemplate: '<b>%{x}</b><br>Strategy: €%{y:,.2f}<extra></extra>' }; const t2 = { x: data.timestamps, y: data.benchmark, type: 'scatter', mode: 'lines', line: { color: cols.primary, width: 2.5, dash: 'dot' }, name: 'Benchmark', hovertemplate: '<b>%{x}</b><br>Benchmark: €%{y:,.2f}<extra></extra>' }; Plotly.newPlot('backtest-chart', [t1, t2], cfg.layout, cfg.config); chartInstances['backtest-chart'] = true; Logger.chart('Backtest created'); }
 
 // ==================== WEBSOCKET ====================
-function initWebSocket() {
-    if (typeof io === 'undefined') {
-        Logger.warn('Socket.io not loaded - real-time updates disabled');
-        return;
-    }
-    
-    socket = io({ reconnection: true, reconnectionDelay: 1000, reconnectionAttempts: 5 });
-    
-    socket.on('connect', () => {
-        Logger.ws('Connected to server');
-        updateConnectionStatus(true);
-        showNotification('Connected to server', 'success', 2000);
-    });
-    
-    socket.on('disconnect', () => {
-        Logger.ws('Disconnected from server');
-        updateConnectionStatus(false);
-        showNotification('Disconnected from server', 'warning', 3000);
-    });
-    
-    socket.on('update', (data) => {
-        Logger.ws('Real-time update received', { type: data.type });
-        showNotification('Data updated', 'info', 1500);
-        if (currentSection) loadSection(currentSection);
-    });
-}
+function initWebSocket() { if (typeof io === 'undefined') { Logger.warn('Socket.io not loaded - real-time disabled'); return; } socket = io({ reconnection: true, reconnectionDelay: 1000, reconnectionAttempts: 5 }); socket.on('connect', () => { Logger.ws('Connected'); updateConnectionStatus(true); showNotification('Connected to server', 'success', 2000); }); socket.on('disconnect', () => { Logger.ws('Disconnected'); updateConnectionStatus(false); showNotification('Disconnected from server', 'warning', 3000); }); socket.on('update', (data) => { Logger.ws('Update received', { type: data.type }); showNotification('Data updated', 'info', 1500); if (currentSection) loadSection(currentSection); }); }
 
-function updateConnectionStatus(connected) {
-    const statusText = document.getElementById('connection-text');
-    const statusDot = document.querySelector('.status-dot');
-    
-    if (statusText && statusDot) {
-        statusText.textContent = connected ? 'Connected' : 'Disconnected';
-        statusDot.style.background = connected ? 'var(--accent-success)' : 'var(--accent-danger)';
-    }
-}
+function updateConnectionStatus(conn) { const st = document.getElementById('connection-text'); const dot = document.querySelector('.status-dot'); if (st && dot) { st.textContent = conn ? 'Connected' : 'Disconnected'; dot.style.background = conn ? 'var(--accent-success)' : 'var(--accent-danger)'; } }
 
-// ==================== UI FUNCTIONS ====================
-function setTheme(theme, skipToast = false) {
-    currentTheme = theme;
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('dashboard-theme', theme);
-    
-    document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
-    const themeButtons = { 'dark': 0, 'light': 1, 'bloomberg': 2 };
-    const buttons = document.querySelectorAll('.theme-btn');
-    if (buttons[themeButtons[theme]]) buttons[themeButtons[theme]].classList.add('active');
-    
-    if (!skipToast) {
-        showNotification(`Theme changed to ${theme}`, 'success', 2000);
-        Logger.system('Theme changed', { theme });
-    }
-    
-    if (currentSection) loadSection(currentSection);
-}
+// ==================== UI ====================
+function setTheme(theme, skip = false) { currentTheme = theme; document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('dashboard-theme', theme); document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active')); const tb = { dark: 0, light: 1, bloomberg: 2 }; const btns = document.querySelectorAll('.theme-btn'); if (btns[tb[theme]]) btns[tb[theme]].classList.add('active'); if (!skip) { showNotification(`Theme changed to ${theme}`, 'success', 2000); Logger.system('Theme changed', { theme }); } if (currentSection) loadSection(currentSection); }
 
-// ==================== RESIZE HANDLER ====================
+// ==================== RESIZE ====================
 let resizeTimer;
-window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-        Object.keys(chartInstances).forEach(chartId => {
-            try {
-                if (document.getElementById(chartId)) Plotly.Plots.resize(chartId);
-            } catch (e) {}
-        });
-    }, 250);
-});
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { Object.keys(chartInstances).forEach(cid => { try { if (document.getElementById(cid)) Plotly.Plots.resize(cid); } catch (e) {} }); }, 250); });
 
 // ==================== CLEANUP ====================
-window.addEventListener('beforeunload', () => {
-    Logger.system('Dashboard unloading - cleanup started');
-    cleanupCharts();
-    if (socket && socket.connected) socket.disconnect();
-});
+window.addEventListener('beforeunload', () => { Logger.system('Dashboard unloading'); cleanupCharts(); if (socket && socket.connected) socket.disconnect(); });
 
-// Add fadeOut animation for notifications
+// Add fadeOut animation
 const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeOut {
-        from { opacity: 1; transform: translateY(0); }
-        to { opacity: 0; transform: translateY(-20px); }
-    }
-`;
+style.textContent = `@keyframes fadeOut { from { opacity:1;transform:translateY(0) } to { opacity:0;transform:translateY(-20px) } }`;
 document.head.appendChild(style);
