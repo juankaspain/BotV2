@@ -1,13 +1,13 @@
-"""BotV2 Professional Dashboard v5.2 - Complete Integration
+"""BotV2 Professional Dashboard v5.3 - GZIP Compression Edition
 Ultra-professional real-time trading dashboard with production-grade security
 
-🆕 VERSION 5.2 - COMPLETE MOCK DATA INTEGRATION:
-- Integrated mock_data.py module for all 9 sections
-- Added 8 professional charts with real data
-- 100% functional dashboard with complete data
-- Live Monitor, Strategy Editor, Control Panel integrated
-- Professional favicon robot trading icon
-- Market Data & Annotations endpoints
+🆕 VERSION 5.3 - GZIP COMPRESSION ADDED:
+- Flask-Compress integrated for automatic GZIP compression
+- Reduces response size by 60-85% (typical)
+- Compresses JSON, HTML, CSS, JS automatically
+- Configurable compression levels
+- Performance optimized
+- All previous features maintained
 """
 
 import logging
@@ -31,6 +31,14 @@ import hashlib
 import secrets
 from pathlib import Path
 from collections import defaultdict
+
+# ✅ GZIP COMPRESSION IMPORT
+try:
+    from flask_compress import Compress
+    HAS_COMPRESS = True
+except ImportError:
+    HAS_COMPRESS = False
+    logging.getLogger(__name__).warning("⚠️ Flask-Compress not installed - install with: pip install flask-compress")
 
 # ==================== MOCK DATA IMPORT ====================
 try:
@@ -62,7 +70,7 @@ from .monitoring_routes import monitoring_bp
 from .strategy_routes import strategy_bp
 
 # Dashboard version
-__version__ = '5.2'
+__version__ = '5.3'
 
 logger = logging.getLogger(__name__)
 limiter_logger = logging.getLogger('flask-limiter')
@@ -168,7 +176,7 @@ class DashboardAuth:
 
 
 class ProfessionalDashboard:
-    """Ultra-professional trading dashboard v5.2"""
+    """Ultra-professional trading dashboard v5.3 with GZIP compression"""
     
     def __init__(self, config):
         self.config = config
@@ -189,6 +197,9 @@ class ProfessionalDashboard:
             template_folder=str(Path(__file__).parent / 'templates'),
             static_folder=str(Path(__file__).parent / 'static')
         )
+        
+        # ✅ GZIP COMPRESSION CONFIGURATION
+        self._setup_compression()
         
         self.app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_urlsafe(32))
         self.app.config['SESSION_COOKIE_SECURE'] = self.is_production
@@ -214,6 +225,38 @@ class ProfessionalDashboard:
         self._setup_websocket_handlers()
         
         self._log_startup_banner()
+    
+    def _setup_compression(self):
+        """✅ Setup GZIP compression for all responses"""
+        if HAS_COMPRESS:
+            # Professional compression settings
+            self.app.config['COMPRESS_MIMETYPES'] = [
+                'text/html',
+                'text/css',
+                'text/javascript',
+                'application/javascript',
+                'application/json',
+                'text/xml',
+                'application/xml',
+                'text/plain'
+            ]
+            
+            # Compression level: 1 (fast) to 9 (best compression)
+            # Level 6 is optimal balance between speed and compression ratio
+            self.app.config['COMPRESS_LEVEL'] = 6
+            
+            # Minimum response size to compress (bytes)
+            # Don't compress tiny responses (overhead not worth it)
+            self.app.config['COMPRESS_MIN_SIZE'] = 500
+            
+            # Enable compression
+            self.compress = Compress(self.app)
+            
+            logger.info("✅ GZIP compression enabled (level 6, min 500 bytes)")
+            logger.info("📊 Expected compression ratio: 60-85% size reduction")
+        else:
+            self.compress = None
+            logger.warning("⚠️ GZIP compression disabled - install flask-compress")
     
     def _setup_database(self):
         self.db_session = None
@@ -297,17 +340,19 @@ class ProfessionalDashboard:
             'system.startup', 'INFO',
             environment=self.env, version=__version__,
             database=HAS_DATABASE and self.db_session is not None,
-            mock_data=HAS_MOCK_DATA
+            mock_data=HAS_MOCK_DATA,
+            gzip_compression=HAS_COMPRESS
         )
         
         logger.info("")
         logger.info("=" * 80)
-        logger.info(f"   BotV2 Dashboard v{__version__} - Complete Integration")
+        logger.info(f"   BotV2 Dashboard v{__version__} - GZIP Compression Edition")
         logger.info("=" * 80)
         logger.info(f"Environment: {self.env.upper()}")
         logger.info(f"URL: http://{self.host}:{self.port}")
         logger.info(f"Mock Data: {'✅ Loaded' if HAS_MOCK_DATA else '⚠️ Fallback'}")
         logger.info(f"Database: {'✅ Connected' if self.db_session else '⚠️ Mock Mode'}")
+        logger.info(f"GZIP: {'✅ Enabled (60-85% reduction)' if HAS_COMPRESS else '⚠️ Disabled'}")
         logger.info(f"Auth: {self.auth.username} / {'✓' if self.auth.password_hash else '✗'}")
         logger.info("=" * 80)
         logger.info("")
@@ -374,19 +419,17 @@ class ProfessionalDashboard:
         @self.limiter.limit("30 per minute")
         @self.login_required
         def get_section_data_route(section):
-            """Get section data from mock_data module"""
+            """Get section data from mock_data module (with GZIP compression)"""
             try:
                 if HAS_MOCK_DATA:
-                    # 🔥 Use professional mock data module
                     data = get_section_data(section)
                     if data:
                         logger.info(f"✅ Section '{section}' loaded from mock_data.py")
-                        return jsonify(data)
+                        return jsonify(data)  # ✅ Automatically compressed by Flask-Compress
                     else:
                         logger.warning(f"⚠️ Section '{section}' returned empty data")
                         return jsonify({'error': 'Section not found'}), 404
                 else:
-                    # Fallback to basic data
                     logger.warning(f"⚠️ Using fallback data for section '{section}'")
                     return jsonify(self._get_fallback_data(section))
                 
@@ -555,7 +598,8 @@ class ProfessionalDashboard:
                 'status': 'healthy',
                 'version': __version__,
                 'mock_data': HAS_MOCK_DATA,
-                'database': self.db_session is not None
+                'database': self.db_session is not None,
+                'gzip': HAS_COMPRESS
             })
     
     def _get_fallback_data(self, section: str) -> Dict:
