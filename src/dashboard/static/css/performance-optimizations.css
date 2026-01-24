@@ -1,0 +1,350 @@
+/**
+ * Performance Optimizations CSS
+ * Styles for virtual scrolling, lazy loading, and performance features
+ * 
+ * Author: Juan Carlos Garcia Arriero
+ * Date: 2026-01-24
+ */
+
+/* ============================================================================
+   VIRTUAL SCROLLING
+   ============================================================================ */
+
+/* Container must have fixed height and overflow */
+.virtual-scroll-container {
+    height: 500px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Viewport for virtual scrolling */
+.virtual-scroll-viewport {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+
+/* Spacer to maintain scroll height */
+.virtual-scroll-spacer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+}
+
+/* Virtual row styling */
+.virtual-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: var(--bg-color, #ffffff);
+    transition: background-color 0.15s ease;
+}
+
+.virtual-row:hover {
+    background: var(--hover-bg-color, #f9fafb);
+}
+
+/* Trade row specific styling */
+.trade-row {
+    display: grid;
+    grid-template-columns: 100px 80px 60px 100px 80px 100px;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.trade-row.profit {
+    border-left: 3px solid var(--success-color, #10b981);
+}
+
+.trade-row.loss {
+    border-left: 3px solid var(--danger-color, #ef4444);
+}
+
+.trade-time {
+    color: var(--text-muted, #6b7280);
+    font-size: 13px;
+}
+
+.trade-symbol {
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+}
+
+.trade-side {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.trade-side.buy {
+    background: var(--success-light, #d1fae5);
+    color: var(--success-dark, #065f46);
+}
+
+.trade-side.sell {
+    background: var(--danger-light, #fee2e2);
+    color: var(--danger-dark, #991b1b);
+}
+
+.trade-pnl.profit {
+    color: var(--success-color, #10b981);
+    font-weight: 600;
+}
+
+.trade-pnl.loss {
+    color: var(--danger-color, #ef4444);
+    font-weight: 600;
+}
+
+/* Position row specific styling */
+.position-row {
+    display: grid;
+    grid-template-columns: 100px 60px 80px 100px 100px 120px;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.position-row.profit {
+    border-left: 3px solid var(--success-color, #10b981);
+}
+
+.position-row.loss {
+    border-left: 3px solid var(--danger-color, #ef4444);
+}
+
+/* ============================================================================
+   LAZY LOADING
+   ============================================================================ */
+
+/* Container for lazy-loaded content */
+[data-lazy-chart],
+[data-lazy-content] {
+    min-height: 200px;
+    position: relative;
+}
+
+/* Loading state */
+[data-lazy-chart]:not(.lazy-loaded),
+[data-lazy-content]:not(.lazy-loaded) {
+    background: var(--skeleton-bg, #f3f4f6);
+}
+
+/* Loading spinner */
+.loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color, #e5e7eb);
+    border-top-color: var(--primary-color, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Fade in animation for loaded content */
+.lazy-loaded {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ============================================================================
+   PERFORMANCE INDICATORS
+   ============================================================================ */
+
+/* FPS Counter */
+#fps-counter {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #0f0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    z-index: 10000;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+}
+
+/* Performance badge */
+.performance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--success-light, #d1fae5);
+    color: var(--success-dark, #065f46);
+}
+
+.performance-badge::before {
+    content: '⚡';
+    font-size: 14px;
+}
+
+/* ============================================================================
+   SMOOTH SCROLLING
+   ============================================================================ */
+
+/* Enable smooth scrolling with GPU acceleration */
+.smooth-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    will-change: scroll-position;
+}
+
+/* Optimize scrollbar */
+.smooth-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.smooth-scroll::-webkit-scrollbar-track {
+    background: var(--bg-secondary, #f9fafb);
+    border-radius: 4px;
+}
+
+.smooth-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-color, #d1d5db);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.smooth-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted, #9ca3af);
+}
+
+/* ============================================================================
+   OPTIMIZED ANIMATIONS
+   ============================================================================ */
+
+/* Use transform for better performance */
+.slide-in {
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Optimize hover effects */
+.optimized-hover {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    will-change: transform;
+}
+
+.optimized-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   RESPONSIVE OPTIMIZATIONS
+   ============================================================================ */
+
+/* Reduce animations on mobile for better performance */
+@media (max-width: 768px) {
+    .virtual-row {
+        padding: 6px 12px;
+    }
+    
+    .trade-row,
+    .position-row {
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: 8px;
+        font-size: 13px;
+    }
+    
+    /* Disable non-critical animations on mobile */
+    .optimized-hover:hover {
+        transform: none;
+    }
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-theme="dark"] .virtual-row {
+    --bg-color: #1f2937;
+    --hover-bg-color: #374151;
+    --border-color: #374151;
+    --text-primary: #f9fafb;
+    --text-muted: #9ca3af;
+}
+
+[data-theme="dark"] .trade-side.buy {
+    --success-light: rgba(16, 185, 129, 0.2);
+    --success-dark: #6ee7b7;
+}
+
+[data-theme="dark"] .trade-side.sell {
+    --danger-light: rgba(239, 68, 68, 0.2);
+    --danger-dark: #fca5a5;
+}
+
+[data-theme="dark"] .smooth-scroll::-webkit-scrollbar-track {
+    background: #1f2937;
+}
+
+[data-theme="dark"] .smooth-scroll::-webkit-scrollbar-thumb {
+    background: #4b5563;
+}
+
+[data-theme="dark"] .smooth-scroll::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+/* ============================================================================
+   PRINT OPTIMIZATIONS
+   ============================================================================ */
+
+@media print {
+    /* Hide performance indicators */
+    #fps-counter,
+    .performance-badge,
+    .loading-spinner {
+        display: none !important;
+    }
+    
+    /* Disable virtual scrolling for printing */
+    .virtual-scroll-container {
+        height: auto !important;
+        overflow: visible !important;
+    }
+    
+    /* Show all rows */
+    .virtual-row {
+        position: static !important;
+    }
+}
