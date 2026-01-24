@@ -63,7 +63,7 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     
     <style>
-        /* ==================== BotV2 Dashboard v5.0 ==================== */
+        /* ==================== BotV2 Dashboard v4.8 ==================== */
         :root {
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
@@ -314,11 +314,66 @@
             margin-bottom: 8px;
         }
         .kpi-value { font-size: 28px; font-weight: 700; }
+        .kpi-change { font-size: 14px; margin-top: 4px; font-weight: 600; }
+        .kpi-change.positive { color: var(--accent-success); }
+        .kpi-change.negative { color: var(--accent-danger); }
+        .positive { color: var(--accent-success); }
+        .negative { color: var(--accent-danger); }
+        .danger { color: var(--accent-danger); }
+        
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .chart-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius);
+            padding: 16px;
+        }
+        .chart-card.full-width { grid-column: 1 / -1; }
+        .chart-header { margin-bottom: 16px; }
+        .chart-title { font-size: 16px; font-weight: 600; }
+        .chart-container { height: 400px; }
+        
+        /* Tables */
+        .data-table {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .data-table table { width: 100%; border-collapse: collapse; }
+        .data-table thead { background: var(--bg-tertiary); }
+        .data-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .data-table td { padding: 12px 16px; border-top: 1px solid var(--border-default); }
+        .data-table tr:hover { background: var(--bg-hover); }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-success { background: var(--accent-success); color: white; }
+        .badge-danger { background: var(--accent-danger); color: white; }
         
         /* Loading */
         .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; }
         .spinner { border: 3px solid var(--border-default); border-top-color: var(--accent-primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { margin-top: 16px; color: var(--text-secondary); }
         
         /* Print styles */
         @media print {
@@ -334,6 +389,7 @@
             .sidebar { position: absolute; left: -240px; height: 100%; z-index: 1000; transition: left var(--transition-base) ease; }
             .sidebar.open { left: 0; }
             .kpi-grid { grid-template-columns: 1fr; }
+            .charts-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -376,11 +432,19 @@
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">System</div>
+                    <div class="menu-item" data-section="live_monitor">
+                        <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg>
+                        <span>Live Monitor</span>
+                    </div>
+                    <div class="menu-item" data-section="control_panel">
+                        <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+                        <span>Control Panel</span>
+                    </div>
                     <div class="menu-item" data-section="strategies">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5z"/></svg>
                         <span>Strategies</span>
                     </div>
-                    <div class="menu-item" data-section="backtest">
+                    <div class="menu-item" data-section="backtesting">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/></svg>
                         <span>Backtesting</span>
                     </div>
@@ -404,14 +468,14 @@
                     </div>
                     <div class="connection-status">
                         <div class="status-dot"></div>
-                        <span>Connected</span>
+                        <span id="connection-text">Connected</span>
                     </div>
                 </div>
             </header>
             <div class="dashboard-content" id="main-container">
                 <div class="loading">
                     <div class="spinner"></div>
-                    <p style="margin-top: 16px; color: var(--text-secondary);">Loading dashboard...</p>
+                    <p class="loading-text">Loading dashboard...</p>
                 </div>
             </div>
         </main>
@@ -433,8 +497,8 @@
         setTheme(savedTheme);
     </script>
     
-    <!-- PWA Installer (disabled temporarily) -->
-    <!-- <script src="{{ url_for('static', filename='js/pwa-installer.js') }}"></script> -->
+    <!-- PWA Installer -->
+    <script src="{{ url_for('static', filename='js/pwa-installer.js') }}"></script>
     
     <!-- Main dashboard script -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
