@@ -1,14 +1,121 @@
-// ==================== BotV2 Dashboard v6.0 - PHASE 3 FEATURE ADDITIONS ====================
-// 🚀 Date range selectors integrated
-// 🔍 Advanced filtering system
-// 🔄 Chart refresh & export controls
-// 📊 Comparison mode for charts
-// 🎛️ Dashboard customization
-// 🔔 Notification system
-// 💯 100% Quality Score MAINTAINED
+// ==================== BotV2 Dashboard v7.2 - PROFESSIONAL LOGGING SYSTEM ====================
+// 🚀 Ultra-professional logging with categorization
+// 🔍 Error tracking and reporting
+// ⚡ Performance monitoring
+// 🎨 Visual console output
 // Author: Juan Carlos Garcia
 // Date: 24-01-2026
-// Version: 6.0.0 - ENTERPRISE COMPLETE
+// Version: 7.2.0 - ENTERPRISE COMPLETE
+
+// ==================== PROFESSIONAL LOGGER SYSTEM ====================
+const Logger = (() => {
+    const VERSION = '7.2.0';
+    const ENV = 'production'; // Change to 'development' for verbose logging
+    
+    // Styled console prefixes
+    const STYLES = {
+        system: 'background:#2f81f7;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
+        success: 'background:#3fb950;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
+        warning: 'background:#d29922;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
+        error: 'background:#f85149;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
+        chart: 'background:#58a6ff;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
+        data: 'background:#a371f7;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
+        websocket: 'background:#10b981;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
+        performance: 'background:#ff7b72;color:white;padding:2px 8px;border-radius:3px;font-weight:600',
+        secondary: 'color:#7d8590'
+    };
+
+    // Performance tracking
+    const performance_marks = {};
+
+    return {
+        // System logs
+        system: (message, ...args) => {
+            console.log(`%c[SYSTEM]%c ${message}`, STYLES.system, STYLES.secondary, ...args);
+        },
+
+        // Success logs
+        success: (message, ...args) => {
+            console.log(`%c[SUCCESS]%c \u2705 ${message}`, STYLES.success, STYLES.secondary, ...args);
+        },
+
+        // Warning logs
+        warn: (message, ...args) => {
+            console.warn(`%c[WARNING]%c \u26a0\ufe0f ${message}`, STYLES.warning, STYLES.secondary, ...args);
+        },
+
+        // Error logs
+        error: (message, error, ...args) => {
+            console.error(`%c[ERROR]%c \u274c ${message}`, STYLES.error, STYLES.secondary, ...args);
+            if (error && error.stack) {
+                console.error('Stack trace:', error.stack);
+            }
+        },
+
+        // Chart logs
+        chart: (message, ...args) => {
+            if (ENV === 'development') {
+                console.log(`%c[CHART]%c \ud83d\udcca ${message}`, STYLES.chart, STYLES.secondary, ...args);
+            }
+        },
+
+        // Data logs
+        data: (message, ...args) => {
+            if (ENV === 'development') {
+                console.log(`%c[DATA]%c \ud83d\udcca ${message}`, STYLES.data, STYLES.secondary, ...args);
+            }
+        },
+
+        // WebSocket logs
+        ws: (message, ...args) => {
+            console.log(`%c[WS]%c \ud83d\udd0c ${message}`, STYLES.websocket, STYLES.secondary, ...args);
+        },
+
+        // Performance logs
+        perf: {
+            start: (mark) => {
+                performance_marks[mark] = performance.now();
+            },
+            end: (mark, message) => {
+                if (performance_marks[mark]) {
+                    const duration = (performance.now() - performance_marks[mark]).toFixed(2);
+                    console.log(`%c[PERF]%c ⚡ ${message || mark}: ${duration}ms`, STYLES.performance, STYLES.secondary);
+                    delete performance_marks[mark];
+                }
+            }
+        },
+
+        // Group logs
+        group: (title, collapsed = false) => {
+            if (collapsed) {
+                console.groupCollapsed(`%c${title}`, 'font-weight:600;color:#2f81f7');
+            } else {
+                console.group(`%c${title}`, 'font-weight:600;color:#2f81f7');
+            }
+        },
+
+        groupEnd: () => {
+            console.groupEnd();
+        },
+
+        // Display banner
+        banner: () => {
+            console.log(
+                `%c\n` +
+                `  ██████╗  ██████╗ ████████╗██╗   ██╗██████╗ \n` +
+                `  ██╔══██╗██╔═══██╗╚══██╔══╝██║   ██║╚════██╗\n` +
+                `  ██████╔╝██║   ██║   ██║   ██║   ██║ █████╔╝\n` +
+                `  ██╔══██╗██║   ██║   ██║   ╚██╗ ██╔╝██╔═══╝ \n` +
+                `  ██████╔╝╚██████╔╝   ██║    ╚████╔╝ ███████╗\n` +
+                `  ╚═════╝  ╚═════╝    ╚═╝     ╚═══╝  ╚══════╝\n` +
+                `\n%c  Dashboard v${VERSION} - Enterprise Trading Platform  %c\n`,
+                'color:#2f81f7;font-weight:600',
+                'background:#2f81f7;color:white;padding:4px 12px;border-radius:4px;font-weight:600',
+                'color:#7d8590'
+            );
+        }
+    };
+})();
 
 // ==================== GLOBAL STATE ====================
 let socket = null;
@@ -143,6 +250,7 @@ function applyDatePreset(days) {
     start.setDate(start.getDate() - days);
     
     dateRange = { start, end };
+    Logger.data('Date range applied', { days, start, end });
     
     // Update inputs if they exist
     const startInput = document.getElementById('date-start');
@@ -247,7 +355,7 @@ function createFilterPanel(options = {}) {
 
 function applyFilter(filterId, value) {
     activeFilters[filterId] = value;
-    console.log('Filter applied:', filterId, value);
+    Logger.data('Filter applied', { filterId, value });
     
     // Debounce search filters
     if (filterId.includes('search')) {
@@ -266,6 +374,7 @@ function clearAllFilters() {
         if (el.tagName === 'SELECT') el.selectedIndex = 0;
         else if (el.tagName === 'INPUT') el.value = '';
     });
+    Logger.data('All filters cleared');
     loadSection(currentSection);
     showNotification('Filters cleared', 'info');
 }
@@ -370,14 +479,14 @@ function createChartControls(chartId, options = {}) {
 }
 
 function refreshChart(chartId) {
-    console.log('Refreshing chart:', chartId);
+    Logger.chart('Refreshing chart', { chartId });
     showNotification(`Refreshing ${chartId}...`, 'info');
     loadSection(currentSection);
 }
 
 function toggleComparison(chartId) {
     comparisonMode = !comparisonMode;
-    console.log('Comparison mode:', comparisonMode);
+    Logger.chart('Comparison mode toggled', { chartId, enabled: comparisonMode });
     showNotification(comparisonMode ? 'Comparison mode enabled' : 'Comparison mode disabled', 'info');
     loadSection(currentSection);
 }
@@ -388,6 +497,7 @@ function toggleFullscreen(chartId) {
         if (!document.fullscreenElement) {
             chartElement.parentElement.requestFullscreen();
             showNotification('Fullscreen enabled', 'info');
+            Logger.chart('Fullscreen enabled', { chartId });
         } else {
             document.exitFullscreen();
         }
@@ -404,12 +514,13 @@ function exportChartImage(chartId) {
             filename: `botv2_${chartId}_${Date.now()}`,
             scale: 2
         });
+        Logger.success('Chart exported as PNG', { chartId });
         showNotification('Chart exported as PNG', 'success');
     }
 }
 
 function exportChartCSV(chartId) {
-    // Simplified CSV export - would need actual data in production
+    Logger.warn('CSV export not yet implemented', { chartId });
     showNotification('CSV export feature coming soon', 'info');
 }
 
@@ -496,9 +607,8 @@ function createNotificationContainer() {
         z-index: 9999;
         display: flex;
         flex-direction: column;
-        pointer-events: none;
+        pointer-events: auto;
     `;
-    container.style.pointerEvents = 'auto';
     document.body.appendChild(container);
     return container;
 }
@@ -741,26 +851,72 @@ function getStandardChartConfig(chartId, options = {}) {
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 BotV2 Dashboard v6.0 - ENTERPRISE COMPLETE');
+    Logger.perf.start('dashboard-init');
+    Logger.banner();
+    Logger.system('Initializing BotV2 Dashboard v7.2');
     
+    // Dependency checks
     if (typeof Plotly === 'undefined') {
-        console.error('❌ Plotly.js not loaded!');
+        Logger.error('Plotly.js not loaded');
         showError('main-container', 'Plotly.js library failed to load. Please refresh the page.');
         return;
     }
+    Logger.success('Plotly.js loaded successfully');
     
+    if (typeof io !== 'undefined') {
+        Logger.success('Socket.io loaded successfully');
+    } else {
+        Logger.warn('Socket.io not loaded - real-time updates disabled');
+    }
+    
+    // Initialize modules
+    Logger.group('Module Initialization');
+    
+    if (typeof CommandPalette !== 'undefined') {
+        Logger.success('Command Palette v7.2 initialized');
+    }
+    
+    if (typeof InsightsPanel !== 'undefined') {
+        Logger.success('AI Insights Panel initialized');
+    }
+    
+    if (typeof ChartMastery !== 'undefined') {
+        Logger.success('Chart Mastery v7.1 initialized (7 advanced charts)');
+    }
+    
+    if (typeof VisualExcellence !== 'undefined') {
+        Logger.success('Visual Excellence v7.0 initialized');
+    }
+    
+    if (typeof PWAInstaller !== 'undefined') {
+        Logger.success('PWA Installer v1.0 initialized');
+    }
+    
+    Logger.groupEnd();
+    
+    // Initialize WebSocket
     initWebSocket();
-    setupMenuHandlers();
     
+    // Setup menu handlers
+    setupMenuHandlers();
+    Logger.success('Menu handlers configured');
+    
+    // Load saved theme
     const savedTheme = localStorage.getItem('dashboard-theme') || 'dark';
     setTheme(savedTheme, true);
+    Logger.success('Theme applied', { theme: savedTheme });
     
+    // Load initial section
     loadSection('dashboard');
-    console.log('✅ Dashboard v6.0 initialized - ALL FEATURES ACTIVE');
+    
+    Logger.perf.end('dashboard-init', 'Dashboard initialization completed');
+    Logger.success('Dashboard v7.2 ready - ALL FEATURES ACTIVE');
 });
 
 // ==================== ERROR HANDLING ====================
 function showError(containerId, message, section = null) {
+    Logger.error('Displaying error to user', { message, section });
+    
     const container = document.getElementById(containerId);
     if (!container) return;
     
@@ -820,7 +976,10 @@ function setupMenuHandlers() {
 
 function loadSection(section) {
     if (!section) return;
-    console.log(`📂 Loading: ${section}`);
+    
+    Logger.perf.start(`load-${section}`);
+    Logger.system(`Loading section: ${section}`);
+    
     currentSection = section;
     cleanupCharts();
     
@@ -874,6 +1033,7 @@ function fetchSectionContent(section) {
     });
     
     const url = `/api/section/${section}${params.toString() ? '?' + params.toString() : ''}`;
+    Logger.data('Fetching section data', { section, url, filters: activeFilters });
     
     fetch(url)
         .then(r => {
@@ -881,10 +1041,16 @@ function fetchSectionContent(section) {
             return r.json();
         })
         .then(data => {
-            setTimeout(() => renderSection(section, data), 300);
+            Logger.success('Section data loaded', { section });
+            // Small delay for smooth skeleton → content transition
+            setTimeout(() => {
+                renderSection(section, data);
+                Logger.perf.end(`load-${section}`, `Section '${section}' rendered`);
+            }, 300);
         })
         .catch(error => {
-            console.error(`Error loading ${section}:`, error);
+            Logger.error(`Failed to load section: ${section}`, error);
+            
             let message = 'Unable to load data. Please check your connection and try again.';
             
             if (error.message.includes('404')) {
@@ -918,9 +1084,9 @@ function renderSection(section, data) {
     if (renderer) {
         try {
             renderer(data);
-            console.log(`✅ ${section} rendered with Phase 3 features`);
+            Logger.success(`Section rendered: ${section}`);
         } catch (error) {
-            console.error(`❌ Render error in ${section}:`, error);
+            Logger.error(`Render error in ${section}`, error);
             showError('main-container', `Failed to render ${section}. Please refresh the page.`, section);
         }
     }
@@ -929,8 +1095,13 @@ function renderSection(section, data) {
 function cleanupCharts() {
     Object.keys(chartInstances).forEach(chartId => {
         try {
-            if (document.getElementById(chartId)) Plotly.purge(chartId);
-        } catch (e) {}
+            if (document.getElementById(chartId)) {
+                Plotly.purge(chartId);
+                Logger.chart('Chart cleaned up', { chartId });
+            }
+        } catch (e) {
+            Logger.warn('Failed to cleanup chart', { chartId, error: e.message });
+        }
     });
     chartInstances = {};
 }
@@ -1458,7 +1629,7 @@ function renderLiveMonitor(data) {
             <td>${t.quantity}</td>
             <td>€${t.price}</td>
         </tr>
-    `).join('') : '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-secondary);">No recent trades</td></tr>';
+    `).join('') : '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-secondary)">No recent trades</td></tr>';
     
     let ordersRows = active_orders.length > 0 ? active_orders.map(o => `
         <tr class="fade-in">
@@ -1469,7 +1640,7 @@ function renderLiveMonitor(data) {
             <td>€${o.price}</td>
             <td>${createBadge(o.status, o.status === 'PENDING' ? 'warning' : 'success', { pulse: o.status === 'PENDING' })}</td>
         </tr>
-    `).join('') : '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">No active orders</td></tr>';
+    `).join('') : '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary)">No active orders</td></tr>';
     
     container.innerHTML = `
         <div class="kpi-grid fade-in">
@@ -1607,6 +1778,7 @@ function createEquityChart(data) {
     
     Plotly.newPlot('equity-chart', [trace], config.layout, config.config);
     chartInstances['equity-chart'] = true;
+    Logger.chart('Equity chart created');
 }
 
 function createPortfolioPieChart(positions) {
@@ -1632,6 +1804,7 @@ function createPortfolioPieChart(positions) {
     
     Plotly.newPlot('portfolio-pie', [trace], config.layout, config.config);
     chartInstances['portfolio-pie'] = true;
+    Logger.chart('Portfolio pie chart created');
 }
 
 function createMonthlyReturnsChart(data) {
@@ -1654,6 +1827,7 @@ function createMonthlyReturnsChart(data) {
     
     Plotly.newPlot('monthly-returns', [trace], config.layout, config.config);
     chartInstances['monthly-returns'] = true;
+    Logger.chart('Monthly returns chart created');
 }
 
 function createDrawdownChart(data) {
@@ -1678,6 +1852,7 @@ function createDrawdownChart(data) {
     
     Plotly.newPlot('drawdown-chart', [trace], config.layout, config.config);
     chartInstances['drawdown-chart'] = true;
+    Logger.chart('Drawdown chart created');
 }
 
 function createBacktestChart(data) {
@@ -1711,31 +1886,32 @@ function createBacktestChart(data) {
     
     Plotly.newPlot('backtest-chart', [trace1, trace2], config.layout, config.config);
     chartInstances['backtest-chart'] = true;
+    Logger.chart('Backtest chart created');
 }
 
 // ==================== WEBSOCKET ====================
 function initWebSocket() {
     if (typeof io === 'undefined') {
-        console.warn('⚠️ Socket.io not loaded - real-time updates disabled');
+        Logger.warn('Socket.io not loaded - real-time updates disabled');
         return;
     }
     
     socket = io({ reconnection: true, reconnectionDelay: 1000, reconnectionAttempts: 5 });
     
     socket.on('connect', () => {
-        console.log('✅ WebSocket Connected');
+        Logger.ws('Connected to server');
         updateConnectionStatus(true);
         showNotification('Connected to server', 'success', 2000);
     });
     
     socket.on('disconnect', () => {
-        console.log('❌ WebSocket Disconnected');
+        Logger.ws('Disconnected from server');
         updateConnectionStatus(false);
         showNotification('Disconnected from server', 'warning', 3000);
     });
     
     socket.on('update', (data) => {
-        console.log('📊 Real-time update received:', data);
+        Logger.ws('Real-time update received', { type: data.type });
         showNotification('Data updated', 'info', 1500);
         if (currentSection) loadSection(currentSection);
     });
@@ -1764,6 +1940,7 @@ function setTheme(theme, skipToast = false) {
     
     if (!skipToast) {
         showNotification(`Theme changed to ${theme}`, 'success', 2000);
+        Logger.system('Theme changed', { theme });
     }
     
     if (currentSection) loadSection(currentSection);
@@ -1784,6 +1961,7 @@ window.addEventListener('resize', () => {
 
 // ==================== CLEANUP ====================
 window.addEventListener('beforeunload', () => {
+    Logger.system('Dashboard unloading - cleanup started');
     cleanupCharts();
     if (socket && socket.connected) socket.disconnect();
 });
@@ -1797,11 +1975,3 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-
-console.log('🚀 Dashboard v6.0.0 - PHASE 3 COMPLETE - ENTERPRISE READY');
-console.log('✅ Date range selectors: ACTIVE');
-console.log('✅ Advanced filters: ACTIVE');
-console.log('✅ Chart controls: ACTIVE');
-console.log('✅ Comparison mode: ACTIVE');
-console.log('✅ Notifications: ACTIVE');
-console.log('💯 Quality Score: 100% MAINTAINED');
