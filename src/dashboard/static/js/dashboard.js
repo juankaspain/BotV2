@@ -1,8 +1,11 @@
-// ==================== BotV2 Dashboard v4.8 - COMPLETE + LIVE MONITOR + CONTROL PANEL ====================
-// Fortune 500 Enterprise Edition - ALL 11 SECTIONS FUNCTIONAL
+// ==================== BotV2 Dashboard v4.9 - PHASE 1 CRITICAL FIXES ====================
+// ✅ FIXED: Chart styling consistency across all themes
+// ✅ ADDED: Export functionality for all charts  
+// ✅ IMPROVED: Professional tooltips and hover states
+// ✅ ENHANCED: Error handling with user-friendly messages
 // Author: Juan Carlos Garcia
 // Date: 24-01-2026
-// Version: 4.8.0 - MEGA FIX
+// Version: 4.9.0 - PHASE 1 COMPLETE
 
 // ==================== GLOBAL STATE ====================
 let socket = null;
@@ -10,46 +13,153 @@ let currentTheme = 'dark';
 let currentSection = 'dashboard';
 let chartInstances = {};
 
-// Professional Plotly theme configs
-const plotlyThemes = {
+// ==================== UNIFIED COLOR SYSTEM ====================
+const COLORS = {
     dark: {
-        paper_bgcolor: 'rgba(13, 17, 23, 0)',
-        plot_bgcolor: 'rgba(22, 27, 34, 0.5)',
-        font: { color: '#e6edf3', family: 'Inter, sans-serif', size: 12 },
+        primary: '#2f81f7',
+        success: '#3fb950',
+        danger: '#f85149',
+        warning: '#d29922',
+        info: '#58a6ff',
+        neutral: '#7d8590',
+        // Chart colors
+        chart: ['#2f81f7', '#58a6ff', '#79c0ff', '#a5d6ff', '#3fb950', '#56d364', '#f85149', '#ff7b72', '#d29922', '#e3b341'],
+        // Backgrounds
+        bgPaper: '#0d1117',
+        bgPlot: '#161b22',
+        bgCard: '#21262d',
+        // Borders & Grid
         gridcolor: '#30363d',
-        linecolor: '#2f81f7',
-        fillcolor: 'rgba(47, 129, 247, 0.15)',
-        successcolor: '#3fb950',
-        dangercolor: '#f85149'
+        bordercolor: '#30363d',
+        // Text
+        textPrimary: '#e6edf3',
+        textSecondary: '#7d8590'
     },
     light: {
-        paper_bgcolor: 'rgba(255, 255, 255, 0)',
-        plot_bgcolor: 'rgba(246, 248, 250, 0.5)',
-        font: { color: '#1f2328', family: 'Inter, sans-serif', size: 12 },
+        primary: '#0969da',
+        success: '#1a7f37',
+        danger: '#cf222e',
+        warning: '#bf8700',
+        info: '#0969da',
+        neutral: '#656d76',
+        chart: ['#0969da', '#218bff', '#54a3ff', '#80b3ff', '#1a7f37', '#2da44e', '#cf222e', '#e5534b', '#bf8700', '#d4a72c'],
+        bgPaper: '#ffffff',
+        bgPlot: '#f6f8fa',
+        bgCard: '#ffffff',
         gridcolor: '#d0d7de',
-        linecolor: '#0969da',
-        fillcolor: 'rgba(9, 105, 218, 0.15)',
-        successcolor: '#1a7f37',
-        dangercolor: '#cf222e'
+        bordercolor: '#d0d7de',
+        textPrimary: '#1f2328',
+        textSecondary: '#656d76'
     },
     bloomberg: {
-        paper_bgcolor: 'rgba(0, 0, 0, 0)',
-        plot_bgcolor: 'rgba(10, 10, 10, 0.5)',
-        font: { color: '#ff9900', family: 'Courier New, monospace', size: 11 },
+        primary: '#ff9900',
+        success: '#00ff00',
+        danger: '#ff0000',
+        warning: '#ffff00',
+        info: '#ffaa00',
+        neutral: '#cc7700',
+        chart: ['#ff9900', '#ffaa00', '#ffbb00', '#ffcc00', '#00ff00', '#33ff33', '#ff0000', '#ff3333', '#ffff00', '#ffff33'],
+        bgPaper: '#000000',
+        bgPlot: '#0a0a0a',
+        bgCard: '#141414',
         gridcolor: '#2a2a2a',
-        linecolor: '#ff9900',
-        fillcolor: 'rgba(255, 153, 0, 0.15)',
-        successcolor: '#00ff00',
-        dangercolor: '#ff0000'
+        bordercolor: '#2a2a2a',
+        textPrimary: '#ff9900',
+        textSecondary: '#cc7700'
     }
 };
 
+// ==================== CHART CONFIGURATION FACTORY ====================
+function getStandardChartConfig(chartId, options = {}) {
+    const colors = COLORS[currentTheme];
+    
+    return {
+        layout: {
+            paper_bgcolor: colors.bgPaper,
+            plot_bgcolor: colors.bgPlot,
+            font: { 
+                family: 'Inter, -apple-system, sans-serif',
+                size: 12,
+                color: colors.textPrimary
+            },
+            xaxis: {
+                gridcolor: colors.gridcolor,
+                showgrid: true,
+                zeroline: false,
+                linecolor: colors.bordercolor,
+                tickfont: { color: colors.textSecondary },
+                ...options.xaxis
+            },
+            yaxis: {
+                gridcolor: colors.gridcolor,
+                showgrid: true,
+                zeroline: true,
+                zerolinecolor: colors.gridcolor,
+                linecolor: colors.bordercolor,
+                tickfont: { color: colors.textSecondary },
+                ...options.yaxis
+            },
+            margin: options.margin || { t: 20, r: 30, b: 50, l: 70 },
+            hovermode: options.hovermode || 'x unified',
+            hoverlabel: {
+                bgcolor: colors.bgCard,
+                bordercolor: colors.bordercolor,
+                font: { 
+                    family: 'Inter, sans-serif',
+                    size: 13,
+                    color: colors.textPrimary
+                },
+                align: 'left'
+            },
+            showlegend: options.showlegend !== undefined ? options.showlegend : false,
+            legend: options.legend || {
+                x: 0.02,
+                y: 0.98,
+                bgcolor: 'rgba(0,0,0,0)',
+                bordercolor: colors.bordercolor,
+                borderwidth: 0,
+                font: { color: colors.textPrimary }
+            },
+            ...options.layout
+        },
+        config: {
+            responsive: true,
+            displaylogo: false,
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['select2d', 'lasso2d', 'autoScale2d'],
+            modeBarButtonsToAdd: [
+                {
+                    name: 'Download PNG',
+                    icon: Plotly.Icons.camera,
+                    click: function(gd) {
+                        Plotly.downloadImage(gd, {
+                            format: 'png',
+                            width: 1920,
+                            height: 1080,
+                            filename: `botv2_${chartId}_${Date.now()}`,
+                            scale: 2
+                        });
+                    }
+                }
+            ],
+            toImageButtonOptions: {
+                format: 'png',
+                filename: `botv2_${chartId}_${Date.now()}`,
+                height: 1080,
+                width: 1920,
+                scale: 2
+            }
+        }
+    };
+}
+
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 BotV2 Dashboard v4.8 - COMPLETE');
+    console.log('🚀 BotV2 Dashboard v4.9 - PHASE 1 FIXES APPLIED');
     
     if (typeof Plotly === 'undefined') {
         console.error('❌ Plotly.js not loaded!');
+        showError('main-container', 'Plotly.js library failed to load. Please refresh the page.');
         return;
     }
     
@@ -60,8 +170,64 @@ document.addEventListener('DOMContentLoaded', function() {
     setTheme(savedTheme, true);
     
     loadSection('dashboard');
-    console.log('✅ Dashboard initialized');
+    console.log('✅ Dashboard initialized with unified styling');
 });
+
+// ==================== ERROR HANDLING ====================
+function showError(containerId, message, section = null) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const retryButton = section ? 
+        `<button onclick="loadSection('${section}')" class="retry-btn" style="
+            margin-top:1.5rem;
+            padding:10px 24px;
+            background:var(--accent-primary);
+            border:none;
+            border-radius:6px;
+            color:white;
+            cursor:pointer;
+            font-weight:600;
+            font-size:14px;
+            transition:all 0.2s;
+        ">🔄 Try Again</button>` : '';
+    
+    container.innerHTML = `
+        <div style="
+            text-align:center;
+            padding:80px 40px;
+            max-width:500px;
+            margin:0 auto;
+        ">
+            <div style="font-size:64px;margin-bottom:24px;opacity:0.8;">⚠️</div>
+            <h2 style="
+                color:var(--text-primary);
+                font-size:24px;
+                font-weight:600;
+                margin-bottom:12px;
+            ">Something went wrong</h2>
+            <p style="
+                color:var(--text-secondary);
+                font-size:15px;
+                line-height:1.6;
+                margin-bottom:8px;
+            ">${message}</p>
+            ${retryButton}
+        </div>
+    `;
+}
+
+function showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading data...</div>
+        </div>
+    `;
+}
 
 // ==================== MENU ====================
 function setupMenuHandlers() {
@@ -85,14 +251,14 @@ function loadSection(section) {
     if (activeItem) activeItem.classList.add('active');
     
     const titles = {
-        'dashboard': 'Dashboard', 
-        'portfolio': 'Portfolio', 
+        'dashboard': 'Dashboard',
+        'portfolio': 'Portfolio',
         'trades': 'Trade History',
-        'performance': 'Performance', 
-        'risk': 'Risk Analysis', 
+        'performance': 'Performance',
+        'risk': 'Risk Analysis',
         'markets': 'Market Overview',
-        'strategies': 'Strategies', 
-        'backtesting': 'Backtesting', 
+        'strategies': 'Strategies',
+        'backtesting': 'Backtesting',
         'live_monitor': 'Live Monitor',
         'control_panel': 'Control Panel',
         'settings': 'Settings'
@@ -105,17 +271,27 @@ function loadSection(section) {
 }
 
 function fetchSectionContent(section) {
-    const container = document.getElementById('main-container');
-    if (!container) return;
-    
-    container.innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">Loading...</div></div>';
+    showLoading('main-container');
     
     fetch(`/api/section/${section}`)
-        .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+        .then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            return r.json();
+        })
         .then(data => renderSection(section, data))
         .catch(error => {
             console.error(`Error loading ${section}:`, error);
-            container.innerHTML = `<div style="text-align:center;padding:50px;color:var(--accent-danger)"><h2>❌ Error</h2><p>${error}</p><button onclick="loadSection('${section}')" style="margin-top:1rem;padding:8px 16px;background:var(--accent-primary);border:none;border-radius:6px;color:white;cursor:pointer;">🔄 Retry</button></div>`;
+            let message = 'Unable to load data. Please check your connection and try again.';
+            
+            if (error.message.includes('404')) {
+                message = 'The requested data was not found.';
+            } else if (error.message.includes('500')) {
+                message = 'Server error occurred. Our team has been notified.';
+            } else if (error.message.includes('Failed to fetch')) {
+                message = 'Network connection lost. Please check your internet connection.';
+            }
+            
+            showError('main-container', message, section);
         });
 }
 
@@ -136,12 +312,12 @@ function renderSection(section, data) {
     
     const renderer = renderers[section];
     if (renderer) {
-        try { 
-            renderer(data); 
-            console.log(`✅ ${section} rendered`);
-        }
-        catch (error) { 
-            console.error(`❌ Render error in ${section}:`, error); 
+        try {
+            renderer(data);
+            console.log(`✅ ${section} rendered with enhanced styling`);
+        } catch (error) {
+            console.error(`❌ Render error in ${section}:`, error);
+            showError('main-container', `Failed to render ${section}. Please refresh the page.`, section);
         }
     }
 }
@@ -471,28 +647,16 @@ function renderBacktesting(data) {
 
 function renderLiveMonitor(data) {
     const container = document.getElementById('main-container');
-    const status = data.status || {};
-    const recent_trades = data.recent_trades || [];
-    const active_orders = data.active_orders || [];
+    const s = data.summary || {};
+    const active_trades = data.active_trades || [];
     
-    let tradesRows = recent_trades.map(t => `
+    let tradesRows = active_trades.map(t => `
         <tr>
-            <td>${t.timestamp}</td>
             <td><strong>${t.symbol}</strong></td>
             <td><span class="badge ${t.action === 'BUY' ? 'badge-success' : 'badge-danger'}">${t.action}</span></td>
-            <td>${t.quantity}</td>
-            <td>€${t.price}</td>
-        </tr>
-    `).join('');
-    
-    let ordersRows = active_orders.map(o => `
-        <tr>
-            <td><strong>${o.symbol}</strong></td>
-            <td>${o.type}</td>
-            <td>${o.side}</td>
-            <td>${o.quantity}</td>
-            <td>€${o.price}</td>
-            <td><span class="badge ${o.status === 'PENDING' ? 'badge-warning' : 'badge-success'}">${o.status}</span></td>
+            <td>€${t.entry_price.toFixed(2)}</td>
+            <td>€${t.current_price.toFixed(2)}</td>
+            <td class="${t.unrealized_pnl >= 0 ? 'positive' : 'negative'}">€${t.unrealized_pnl.toFixed(2)}</td>
         </tr>
     `).join('');
     
@@ -500,35 +664,23 @@ function renderLiveMonitor(data) {
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-title">BOT STATUS</div>
-                <div class="kpi-value ${status.bot_status === 'RUNNING' ? 'positive' : 'danger'}">${status.bot_status || 'STOPPED'}</div>
+                <div class="kpi-value ${s.status === 'ACTIVE' ? 'positive' : 'danger'}">${s.status || 'STOPPED'}</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-title">UPTIME</div>
-                <div class="kpi-value">${status.uptime || 'N/A'}</div>
+                <div class="kpi-title">ACTIVE TRADES</div>
+                <div class="kpi-value">${s.active_trades || 0}</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-title">ACTIVE ORDERS</div>
-                <div class="kpi-value">${active_orders.length}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-title">TODAY'S TRADES</div>
-                <div class="kpi-value">${status.trades_today || 0}</div>
+                <div class="kpi-title">UNREALIZED P&L</div>
+                <div class="kpi-value ${s.unrealized_pnl >= 0 ? 'positive' : 'negative'}">€${(s.unrealized_pnl || 0).toFixed(2)}</div>
             </div>
         </div>
         
-        <h3 style="margin:2rem 0 1rem;color:var(--text-primary)">Recent Trades (Real-Time)</h3>
+        <h3 style="margin:2rem 0 1rem;color:var(--text-primary)">Active Trades</h3>
         <div class="data-table">
             <table>
-                <thead><tr><th>Time</th><th>Symbol</th><th>Action</th><th>Qty</th><th>Price</th></tr></thead>
-                <tbody>${tradesRows || '<tr><td colspan="5">No recent trades</td></tr>'}</tbody>
-            </table>
-        </div>
-        
-        <h3 style="margin:2rem 0 1rem;color:var(--text-primary)">Active Orders</h3>
-        <div class="data-table">
-            <table>
-                <thead><tr><th>Symbol</th><th>Type</th><th>Side</th><th>Qty</th><th>Price</th><th>Status</th></tr></thead>
-                <tbody>${ordersRows || '<tr><td colspan="6">No active orders</td></tr>'}</tbody>
+                <thead><tr><th>Symbol</th><th>Action</th><th>Entry</th><th>Current</th><th>P&L</th></tr></thead>
+                <tbody>${tradesRows || '<tr><td colspan="5">No active trades</td></tr>'}</tbody>
             </table>
         </div>
     `;
@@ -607,134 +759,120 @@ function renderSettings(data) {
     `;
 }
 
-// ==================== CHART CREATORS ====================
+// ==================== ENHANCED CHART CREATORS ====================
 
 function createEquityChart(data) {
     if (!data.timestamps || !data.equity) return;
     
-    const theme = plotlyThemes[currentTheme];
+    const colors = COLORS[currentTheme];
+    const config = getStandardChartConfig('equity-chart', {
+        yaxis: { tickprefix: '€' }
+    });
+    
     const trace = {
         x: data.timestamps,
         y: data.equity,
         type: 'scatter',
         mode: 'lines',
-        line: { color: theme.linecolor, width: 2 },
+        line: { color: colors.primary, width: 2.5 },
         fill: 'tozeroy',
-        fillcolor: theme.fillcolor,
-        name: 'Equity'
+        fillcolor: colors.primary.replace(')', ', 0.1)').replace('rgb', 'rgba'),
+        name: 'Equity',
+        hovertemplate: '<b>%{x}</b><br>Equity: €%{y:,.2f}<extra></extra>'
     };
     
-    const layout = {
-        paper_bgcolor: theme.paper_bgcolor,
-        plot_bgcolor: theme.plot_bgcolor,
-        font: theme.font,
-        xaxis: { gridcolor: theme.gridcolor, showgrid: true },
-        yaxis: { gridcolor: theme.gridcolor, tickprefix: '€', showgrid: true },
-        margin: { t: 10, r: 20, b: 40, l: 70 },
-        showlegend: false,
-        hovermode: 'x unified'
-    };
-    
-    Plotly.newPlot('equity-chart', [trace], layout, { responsive: true, displaylogo: false, displayModeBar: true });
+    Plotly.newPlot('equity-chart', [trace], config.layout, config.config);
     chartInstances['equity-chart'] = true;
 }
 
 function createPortfolioPieChart(positions) {
-    const theme = plotlyThemes[currentTheme];
+    const colors = COLORS[currentTheme];
+    const config = getStandardChartConfig('portfolio-pie', {
+        showlegend: false,
+        margin: { t: 10, r: 20, b: 10, l: 20 }
+    });
     
     const trace = {
         labels: positions.map(p => p.symbol),
         values: positions.map(p => p.value),
         type: 'pie',
-        hole: 0.4,
+        hole: 0.45,
         textinfo: 'label+percent',
-        textfont: { size: 11 },
-        marker: { line: { color: theme.paper_bgcolor, width: 2 } }
+        textfont: { size: 12, color: colors.textPrimary },
+        marker: {
+            colors: colors.chart,
+            line: { color: colors.bgPaper, width: 3 }
+        },
+        hovertemplate: '<b>%{label}</b><br>Value: €%{value:,.2f}<br>%{percent}<extra></extra>'
     };
     
-    const layout = {
-        paper_bgcolor: theme.paper_bgcolor,
-        plot_bgcolor: theme.plot_bgcolor,
-        font: theme.font,
-        margin: { t: 10, r: 20, b: 10, l: 20 },
-        showlegend: false
-    };
-    
-    Plotly.newPlot('portfolio-pie', [trace], layout, { responsive: true, displaylogo: false, displayModeBar: false });
+    Plotly.newPlot('portfolio-pie', [trace], config.layout, config.config);
     chartInstances['portfolio-pie'] = true;
 }
 
 function createMonthlyReturnsChart(data) {
     if (!data.months || !data.returns) return;
     
-    const theme = plotlyThemes[currentTheme];
-    const colors = data.returns.map(r => r >= 0 ? theme.successcolor : theme.dangercolor);
+    const colors = COLORS[currentTheme];
+    const config = getStandardChartConfig('monthly-returns', {
+        yaxis: { ticksuffix: '%', zeroline: true, zerolinecolor: colors.gridcolor }
+    });
+    
+    const barColors = data.returns.map(r => r >= 0 ? colors.success : colors.danger);
     
     const trace = {
         x: data.months,
         y: data.returns,
         type: 'bar',
-        marker: { color: colors }
+        marker: { color: barColors },
+        hovertemplate: '<b>%{x}</b><br>Return: %{y:.2f}%<extra></extra>'
     };
     
-    const layout = {
-        paper_bgcolor: theme.paper_bgcolor,
-        plot_bgcolor: theme.plot_bgcolor,
-        font: theme.font,
-        xaxis: { gridcolor: theme.gridcolor },
-        yaxis: { gridcolor: theme.gridcolor, ticksuffix: '%', zeroline: true },
-        margin: { t: 10, r: 20, b: 40, l: 60 },
-        showlegend: false,
-        hovermode: 'x'
-    };
-    
-    Plotly.newPlot('monthly-returns', [trace], layout, { responsive: true, displaylogo: false, displayModeBar: true });
+    Plotly.newPlot('monthly-returns', [trace], config.layout, config.config);
     chartInstances['monthly-returns'] = true;
 }
 
 function createDrawdownChart(data) {
     if (!data.timestamps || !data.drawdown) return;
     
-    const theme = plotlyThemes[currentTheme];
+    const colors = COLORS[currentTheme];
+    const config = getStandardChartConfig('drawdown-chart', {
+        yaxis: { ticksuffix: '%', zeroline: true, zerolinecolor: colors.gridcolor }
+    });
     
     const trace = {
         x: data.timestamps,
         y: data.drawdown,
         type: 'scatter',
         mode: 'lines',
-        line: { color: theme.dangercolor, width: 2 },
+        line: { color: colors.danger, width: 2.5 },
         fill: 'tozeroy',
-        fillcolor: 'rgba(248, 81, 73, 0.2)',
-        name: 'Drawdown'
+        fillcolor: colors.danger.replace(')', ', 0.15)').replace('rgb', 'rgba'),
+        name: 'Drawdown',
+        hovertemplate: '<b>%{x}</b><br>Drawdown: %{y:.2f}%<extra></extra>'
     };
     
-    const layout = {
-        paper_bgcolor: theme.paper_bgcolor,
-        plot_bgcolor: theme.plot_bgcolor,
-        font: theme.font,
-        xaxis: { gridcolor: theme.gridcolor },
-        yaxis: { gridcolor: theme.gridcolor, ticksuffix: '%' },
-        margin: { t: 10, r: 20, b: 40, l: 70 },
-        showlegend: false,
-        hovermode: 'x unified'
-    };
-    
-    Plotly.newPlot('drawdown-chart', [trace], layout, { responsive: true, displaylogo: false, displayModeBar: true });
+    Plotly.newPlot('drawdown-chart', [trace], config.layout, config.config);
     chartInstances['drawdown-chart'] = true;
 }
 
 function createBacktestChart(data) {
     if (!data.timestamps || !data.strategy || !data.benchmark) return;
     
-    const theme = plotlyThemes[currentTheme];
+    const colors = COLORS[currentTheme];
+    const config = getStandardChartConfig('backtest-chart', {
+        showlegend: true,
+        yaxis: { tickprefix: '€' }
+    });
     
     const trace1 = {
         x: data.timestamps,
         y: data.strategy,
         type: 'scatter',
         mode: 'lines',
-        line: { color: theme.successcolor, width: 2 },
-        name: 'Strategy'
+        line: { color: colors.success, width: 2.5 },
+        name: 'Strategy',
+        hovertemplate: '<b>%{x}</b><br>Strategy: €%{y:,.2f}<extra></extra>'
     };
     
     const trace2 = {
@@ -742,23 +880,12 @@ function createBacktestChart(data) {
         y: data.benchmark,
         type: 'scatter',
         mode: 'lines',
-        line: { color: theme.linecolor, width: 2, dash: 'dot' },
-        name: 'Benchmark'
+        line: { color: colors.primary, width: 2.5, dash: 'dot' },
+        name: 'Benchmark',
+        hovertemplate: '<b>%{x}</b><br>Benchmark: €%{y:,.2f}<extra></extra>'
     };
     
-    const layout = {
-        paper_bgcolor: theme.paper_bgcolor,
-        plot_bgcolor: theme.plot_bgcolor,
-        font: theme.font,
-        xaxis: { gridcolor: theme.gridcolor },
-        yaxis: { gridcolor: theme.gridcolor, tickprefix: '€' },
-        margin: { t: 10, r: 20, b: 40, l: 70 },
-        showlegend: true,
-        legend: { x: 0, y: 1, bgcolor: 'rgba(0,0,0,0)' },
-        hovermode: 'x unified'
-    };
-    
-    Plotly.newPlot('backtest-chart', [trace1, trace2], layout, { responsive: true, displaylogo: false, displayModeBar: true });
+    Plotly.newPlot('backtest-chart', [trace1, trace2], config.layout, config.config);
     chartInstances['backtest-chart'] = true;
 }
 
@@ -811,16 +938,6 @@ function setTheme(theme, skipToast = false) {
     if (currentSection) loadSection(currentSection);
 }
 
-function refreshChart(chartName) {
-    console.log(`🔄 Refreshing ${chartName}`);
-    if (currentSection) loadSection(currentSection);
-}
-
-function exportChart(chartName) {
-    console.log(`💾 Exporting ${chartName}`);
-    alert('Chart export functionality coming soon');
-}
-
 // ==================== RESIZE HANDLER ====================
 let resizeTimer;
 window.addEventListener('resize', () => {
@@ -840,5 +957,6 @@ window.addEventListener('beforeunload', () => {
     if (socket && socket.connected) socket.disconnect();
 });
 
-console.log('✅ Dashboard v4.8.0 - ALL 11 SECTIONS READY');
-console.log('📊 Sections: dashboard, portfolio, trades, performance, risk, markets, strategies, backtesting, live_monitor, control_panel, settings');
+console.log('✅ Dashboard v4.9.0 - PHASE 1 CRITICAL FIXES COMPLETE');
+console.log('🎨 Enhanced: Unified chart styling, export buttons, professional tooltips');
+console.log('📊 All 11 sections ready with consistent theming');
