@@ -320,7 +320,6 @@
                         placeholder="Enter username"
                         required
                         autocomplete="username"
-                        autofocus
                     >
                 </div>
             </div>
@@ -364,12 +363,45 @@
 
         <!-- Footer -->
         <div class="footer">
-            BotV2 v4.1 Enterprise Edition<br>
+            BotV2 v7.2 Enterprise Edition<br>
             <a href="https://github.com/juankaspain/BotV2" target="_blank">Documentation</a>
         </div>
     </div>
 
     <script>
+        // ==================== OPTIMAL FOCUS MANAGEMENT ====================
+        // Prevents "Autofocus processing was blocked" warning by using
+        // requestAnimationFrame for proper timing after DOM is fully ready
+        
+        function initializeFocus() {
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            
+            // Check if username was saved
+            const savedUsername = localStorage.getItem('botv2_username');
+            
+            // Use requestAnimationFrame for optimal timing
+            requestAnimationFrame(() => {
+                if (savedUsername && savedUsername.trim() !== '') {
+                    // If username is saved, populate and focus password
+                    usernameInput.value = savedUsername;
+                    passwordInput.focus();
+                } else {
+                    // Otherwise focus username
+                    usernameInput.focus();
+                }
+            });
+        }
+
+        // Wait for DOM to be fully loaded before setting focus
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeFocus);
+        } else {
+            // DOM already loaded
+            initializeFocus();
+        }
+
+        // ==================== FORM SUBMISSION ====================
         const form = document.getElementById('loginForm');
         const btn = document.getElementById('loginBtn');
         const btnText = document.getElementById('btnText');
@@ -423,29 +455,30 @@
                 btnText.textContent = 'Sign In';
                 spinner.classList.remove('show');
 
-                // Clear password
+                // Clear password and refocus
                 document.getElementById('password').value = '';
-                document.getElementById('password').focus();
+                requestAnimationFrame(() => {
+                    document.getElementById('password').focus();
+                });
 
-                // Auto-hide after 5s
+                // Auto-hide error after 5s
                 setTimeout(() => {
                     errorMessage.classList.remove('show');
                 }, 5000);
             });
         });
 
-        // Remember username
-        const savedUsername = localStorage.getItem('botv2_username');
-        if (savedUsername) {
-            document.getElementById('username').value = savedUsername;
-            document.getElementById('password').focus();
-        }
-
+        // ==================== USERNAME PERSISTENCE ====================
         document.getElementById('username').addEventListener('change', function() {
-            localStorage.setItem('botv2_username', this.value);
+            const username = this.value.trim();
+            if (username) {
+                localStorage.setItem('botv2_username', username);
+            } else {
+                localStorage.removeItem('botv2_username');
+            }
         });
 
-        // Check URL params for error
+        // ==================== ERROR FROM URL PARAMS ====================
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('error')) {
             errorMessage.textContent = 'Authentication failed. Please try again.';
