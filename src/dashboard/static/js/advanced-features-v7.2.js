@@ -1,16 +1,15 @@
-// ==================== BotV2 Dashboard Advanced Features v7.2 ====================
-// Iteration 3: Command Palette + AI Insights + Advanced UX
+// ==================== BOTV2 ADVANCED FEATURES v7.2 ====================
+// 🚀 Command Palette & AI Insights System
 // Author: Juan Carlos Garcia
 // Date: 24 Enero 2026
 //
 // Features:
-// - Command Palette (Ctrl+K) - VSCode-style navigation
-// - Automated Insights Panel - AI-powered analysis
-// - Anomaly Detection - Real-time alerts
-// - Multi-Chart Layout Switcher - Dynamic layouts
-// - Shareable Snapshots - URL state persistence
-// - Quick Actions - Contextual shortcuts
-// - Smart Search - Fuzzy matching
+// - Command Palette (Ctrl+K / Cmd+K)
+// - Fuzzy Search Algorithm
+// - Keyboard Navigation (Arrow Keys, Enter, Esc)
+// - AI-powered Insights Panel
+// - Real-time Suggestions
+// - Context-aware Actions
 
 console.log('🚀 Advanced Features v7.2 initializing...');
 
@@ -18,929 +17,801 @@ console.log('🚀 Advanced Features v7.2 initializing...');
 class CommandPalette {
     constructor() {
         this.isOpen = false;
+        this.selectedIndex = 0;
         this.commands = [];
         this.filteredCommands = [];
-        this.selectedIndex = 0;
-        this.recentCommands = this.loadRecentCommands();
+        this.searchQuery = '';
         
         this.init();
-        this.registerDefaultCommands();
-        this.setupKeyboardShortcuts();
     }
     
     init() {
-        // Create palette HTML
-        const paletteHTML = `
-            <div id="command-palette-overlay" class="command-palette-overlay" style="display: none;">
-                <div class="command-palette">
-                    <div class="command-palette-header">
-                        <svg class="command-icon" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-                        </svg>
-                        <input 
-                            type="text" 
-                            id="command-palette-input" 
-                            class="command-palette-input" 
-                            placeholder="Type a command or search..."
-                            autocomplete="off"
-                            spellcheck="false"
-                        >
-                        <kbd class="command-palette-kbd">ESC</kbd>
-                    </div>
-                    <div class="command-palette-body">
-                        <div class="command-palette-section">
-                            <div class="command-palette-section-title">Recent</div>
-                            <div id="command-palette-recent" class="command-palette-list"></div>
+        this.createOverlay();
+        this.loadCommands();
+        this.bindEvents();
+        
+        console.log('✅ Command Palette initialized');
+    }
+    
+    createOverlay() {
+        const overlay = document.createElement('div');
+        overlay.className = 'command-palette-overlay';
+        overlay.id = 'command-palette-overlay';
+        
+        overlay.innerHTML = `
+            <div class="command-palette">
+                <div class="command-palette-search">
+                    <svg class="command-palette-search-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                    </svg>
+                    <input 
+                        type="text" 
+                        class="command-palette-input" 
+                        placeholder="Type a command or search..."
+                        id="command-palette-input"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                    <div class="command-palette-shortcut">ESC</div>
+                </div>
+                <div class="command-palette-results" id="command-palette-results">
+                    <!-- Results will be inserted here -->
+                </div>
+                <div class="command-palette-footer">
+                    <div class="command-palette-footer-hints">
+                        <div class="command-palette-footer-hint">
+                            <span class="kbd">↑</span>
+                            <span class="kbd">↓</span>
+                            <span>Navigate</span>
                         </div>
-                        <div class="command-palette-section">
-                            <div class="command-palette-section-title">Commands</div>
-                            <div id="command-palette-results" class="command-palette-list"></div>
+                        <div class="command-palette-footer-hint">
+                            <span class="kbd">Enter</span>
+                            <span>Select</span>
                         </div>
-                    </div>
-                    <div class="command-palette-footer">
-                        <span class="command-palette-hint">
-                            <kbd>↑</kbd><kbd>↓</kbd> Navigate
-                            <kbd>↵</kbd> Select
-                            <kbd>ESC</kbd> Close
-                        </span>
+                        <div class="command-palette-footer-hint">
+                            <span class="kbd">Esc</span>
+                            <span>Close</span>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
         
-        document.body.insertAdjacentHTML('beforeend', paletteHTML);
+        document.body.appendChild(overlay);
         
-        // Get references
-        this.overlay = document.getElementById('command-palette-overlay');
+        this.overlay = overlay;
         this.input = document.getElementById('command-palette-input');
-        this.resultsContainer = document.getElementById('command-palette-results');
-        this.recentContainer = document.getElementById('command-palette-recent');
-        
-        // Setup event listeners
-        this.input.addEventListener('input', (e) => this.handleInput(e));
-        this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
-        this.overlay.addEventListener('click', (e) => {
-            if (e.target === this.overlay) this.close();
-        });
+        this.results = document.getElementById('command-palette-results');
     }
     
-    registerDefaultCommands() {
+    loadCommands() {
         this.commands = [
             // Navigation
-            { id: 'nav-dashboard', icon: '📊', title: 'Go to Dashboard', category: 'Navigation', action: () => loadSection('dashboard') },
-            { id: 'nav-portfolio', icon: '💼', title: 'Go to Portfolio', category: 'Navigation', action: () => loadSection('portfolio') },
-            { id: 'nav-trades', icon: '📈', title: 'Go to Trades', category: 'Navigation', action: () => loadSection('trades') },
-            { id: 'nav-performance', icon: '📉', title: 'Go to Performance', category: 'Navigation', action: () => loadSection('performance') },
-            { id: 'nav-risk', icon: '🛡️', title: 'Go to Risk Analysis', category: 'Navigation', action: () => loadSection('risk') },
-            { id: 'nav-markets', icon: '🌍', title: 'Go to Market Overview', category: 'Navigation', action: () => loadSection('markets') },
-            { id: 'nav-strategies', icon: '⚙️', title: 'Go to Strategies', category: 'Navigation', action: () => loadSection('strategies') },
-            { id: 'nav-control', icon: '🎮', title: 'Go to Control Panel', category: 'Navigation', action: () => loadSection('control_panel') },
-            
-            // Themes
-            { id: 'theme-dark', icon: '🌙', title: 'Switch to Dark Theme', category: 'Appearance', action: () => setTheme('dark') },
-            { id: 'theme-light', icon: '☀️', title: 'Switch to Light Theme', category: 'Appearance', action: () => setTheme('light') },
-            { id: 'theme-bloomberg', icon: '💻', title: 'Switch to Bloomberg Theme', category: 'Appearance', action: () => setTheme('bloomberg') },
+            {
+                id: 'nav-dashboard',
+                title: 'Go to Dashboard',
+                description: 'View main dashboard overview',
+                icon: '📊',
+                category: 'Navigation',
+                keywords: ['home', 'main', 'overview'],
+                action: () => this.navigate('dashboard')
+            },
+            {
+                id: 'nav-portfolio',
+                title: 'Go to Portfolio',
+                description: 'View portfolio allocation and performance',
+                icon: '💼',
+                category: 'Navigation',
+                keywords: ['assets', 'holdings', 'positions'],
+                action: () => this.navigate('portfolio')
+            },
+            {
+                id: 'nav-trades',
+                title: 'Go to Trades',
+                description: 'View trade history and execution logs',
+                icon: '📝',
+                category: 'Navigation',
+                keywords: ['orders', 'executions', 'history'],
+                action: () => this.navigate('trades')
+            },
+            {
+                id: 'nav-performance',
+                title: 'Go to Performance',
+                description: 'Analyze strategy performance metrics',
+                icon: '📈',
+                category: 'Navigation',
+                keywords: ['metrics', 'stats', 'analytics'],
+                action: () => this.navigate('performance')
+            },
+            {
+                id: 'nav-risk',
+                title: 'Go to Risk Analysis',
+                description: 'View risk metrics and exposure',
+                icon: '⚠️',
+                category: 'Navigation',
+                keywords: ['exposure', 'var', 'drawdown'],
+                action: () => this.navigate('risk')
+            },
+            {
+                id: 'nav-markets',
+                title: 'Go to Market Overview',
+                description: 'View market conditions and sentiment',
+                icon: '🌐',
+                category: 'Navigation',
+                keywords: ['indices', 'sentiment', 'volatility'],
+                action: () => this.navigate('markets')
+            },
+            {
+                id: 'nav-strategies',
+                title: 'Go to Strategies',
+                description: 'Manage trading strategies',
+                icon: '⚙️',
+                category: 'Navigation',
+                keywords: ['algorithms', 'bots', 'config'],
+                action: () => this.navigate('strategies')
+            },
+            {
+                id: 'nav-backtesting',
+                title: 'Go to Backtesting',
+                description: 'Run strategy backtests',
+                icon: '⏱️',
+                category: 'Navigation',
+                keywords: ['historical', 'simulation', 'test'],
+                action: () => this.navigate('backtesting')
+            },
             
             // Actions
-            { id: 'refresh-data', icon: '🔄', title: 'Refresh Dashboard Data', category: 'Actions', action: () => window.location.reload() },
-            { id: 'export-data', icon: '📥', title: 'Export Data to CSV', category: 'Actions', action: () => this.exportData() },
-            { id: 'share-snapshot', icon: '📸', title: 'Create Shareable Snapshot', category: 'Actions', action: () => this.createSnapshot() },
-            { id: 'toggle-insights', icon: '🧠', title: 'Toggle Insights Panel', category: 'Actions', action: () => InsightsPanel.toggle() },
-            { id: 'toggle-fullscreen', icon: '⛶', title: 'Toggle Fullscreen', category: 'Actions', action: () => this.toggleFullscreen() },
+            {
+                id: 'action-start-bot',
+                title: 'Start Trading Bot',
+                description: 'Activate automated trading',
+                icon: '▶️',
+                category: 'Actions',
+                keywords: ['run', 'activate', 'enable'],
+                badge: 'Pro',
+                action: () => this.executeAction('start-bot')
+            },
+            {
+                id: 'action-stop-bot',
+                title: 'Stop Trading Bot',
+                description: 'Pause automated trading',
+                icon: '⏸️',
+                category: 'Actions',
+                keywords: ['pause', 'disable', 'halt'],
+                badge: 'Pro',
+                action: () => this.executeAction('stop-bot')
+            },
+            {
+                id: 'action-refresh',
+                title: 'Refresh Data',
+                description: 'Reload current view',
+                icon: '🔄',
+                category: 'Actions',
+                keywords: ['reload', 'update', 'sync'],
+                keys: ['Ctrl', 'R'],
+                action: () => this.executeAction('refresh')
+            },
+            {
+                id: 'action-export',
+                title: 'Export Data',
+                description: 'Download data as CSV/JSON',
+                icon: '📥',
+                category: 'Actions',
+                keywords: ['download', 'save', 'backup'],
+                action: () => this.executeAction('export')
+            },
             
-            // Layout
-            { id: 'layout-single', icon: '▪️', title: 'Single Chart Layout', category: 'Layout', action: () => LayoutSwitcher.setLayout('single') },
-            { id: 'layout-double', icon: '▪️▪️', title: 'Double Chart Layout', category: 'Layout', action: () => LayoutSwitcher.setLayout('double') },
-            { id: 'layout-grid', icon: '▦', title: 'Grid Layout', category: 'Layout', action: () => LayoutSwitcher.setLayout('grid') },
-            { id: 'layout-wide', icon: '▬', title: 'Wide Layout', category: 'Layout', action: () => LayoutSwitcher.setLayout('wide') },
+            // Settings
+            {
+                id: 'theme-dark',
+                title: 'Switch to Dark Theme',
+                description: 'Enable dark mode',
+                icon: '🌙',
+                category: 'Settings',
+                keywords: ['dark', 'night', 'black'],
+                action: () => setTheme('dark')
+            },
+            {
+                id: 'theme-light',
+                title: 'Switch to Light Theme',
+                description: 'Enable light mode',
+                icon: '☀️',
+                category: 'Settings',
+                keywords: ['light', 'day', 'white'],
+                action: () => setTheme('light')
+            },
+            {
+                id: 'theme-bloomberg',
+                title: 'Switch to Bloomberg Terminal',
+                description: 'Enable terminal theme',
+                icon: '💻',
+                category: 'Settings',
+                keywords: ['terminal', 'bloomberg', 'professional'],
+                action: () => setTheme('bloomberg')
+            },
             
             // Help
-            { id: 'help-shortcuts', icon: '⌨️', title: 'View Keyboard Shortcuts', category: 'Help', action: () => this.showShortcuts() },
-            { id: 'help-docs', icon: '📚', title: 'Open Documentation', category: 'Help', action: () => window.open('/docs', '_blank') },
+            {
+                id: 'help-shortcuts',
+                title: 'View Keyboard Shortcuts',
+                description: 'See all available shortcuts',
+                icon: '⌨️',
+                category: 'Help',
+                keywords: ['keys', 'commands', 'hotkeys'],
+                action: () => this.showShortcuts()
+            },
+            {
+                id: 'help-docs',
+                title: 'Open Documentation',
+                description: 'View user guide and API docs',
+                icon: '📖',
+                category: 'Help',
+                keywords: ['manual', 'guide', 'reference'],
+                action: () => this.openDocs()
+            }
         ];
+        
+        this.filteredCommands = [...this.commands];
     }
     
-    setupKeyboardShortcuts() {
+    bindEvents() {
+        // Global keyboard shortcut (Ctrl+K or Cmd+K)
         document.addEventListener('keydown', (e) => {
-            // Ctrl+K or Cmd+K to open
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
                 this.toggle();
             }
-            
-            // ESC to close
-            if (e.key === 'Escape' && this.isOpen) {
+        });
+        
+        // Close on overlay click
+        this.overlay.addEventListener('click', (e) => {
+            if (e.target === this.overlay) {
                 this.close();
+            }
+        });
+        
+        // Search input
+        this.input.addEventListener('input', (e) => {
+            this.searchQuery = e.target.value;
+            this.search();
+        });
+        
+        // Keyboard navigation
+        this.input.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this.selectNext();
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this.selectPrevious();
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    this.executeSelected();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    this.close();
+                    break;
             }
         });
     }
     
+    toggle() {
+        if (this.isOpen) {
+            this.close();
+        } else {
+            this.open();
+        }
+    }
+    
     open() {
         this.isOpen = true;
-        this.overlay.style.display = 'flex';
+        this.overlay.classList.add('active');
         this.input.value = '';
-        this.input.focus();
+        this.searchQuery = '';
         this.selectedIndex = 0;
-        this.renderRecent();
-        this.renderResults(this.commands);
+        this.filteredCommands = [...this.commands];
+        this.render();
         
-        // Animation
-        requestAnimationFrame(() => {
-            this.overlay.classList.add('active');
-        });
+        // Focus input after animation
+        setTimeout(() => {
+            this.input.focus();
+        }, 100);
     }
     
     close() {
         this.isOpen = false;
         this.overlay.classList.remove('active');
-        
-        setTimeout(() => {
-            this.overlay.style.display = 'none';
-        }, 200);
     }
     
-    toggle() {
-        if (this.isOpen) {
-            this.close();
+    search() {
+        if (!this.searchQuery.trim()) {
+            this.filteredCommands = [...this.commands];
         } else {
-            this.open();
-        }
-    }
-    
-    handleInput(e) {
-        const query = e.target.value.toLowerCase().trim();
-        
-        if (query === '') {
-            this.filteredCommands = this.commands;
-        } else {
-            // Fuzzy search
-            this.filteredCommands = this.commands.filter(cmd => {
-                const titleMatch = this.fuzzyMatch(query, cmd.title.toLowerCase());
-                const categoryMatch = this.fuzzyMatch(query, cmd.category.toLowerCase());
-                return titleMatch || categoryMatch;
-            }).sort((a, b) => {
-                // Sort by relevance
-                const aScore = this.fuzzyScore(query, a.title.toLowerCase());
-                const bScore = this.fuzzyScore(query, b.title.toLowerCase());
-                return bScore - aScore;
-            });
+            this.filteredCommands = this.fuzzySearch(this.searchQuery);
         }
         
         this.selectedIndex = 0;
-        this.renderResults(this.filteredCommands);
+        this.render();
     }
     
-    fuzzyMatch(query, text) {
-        let queryIndex = 0;
-        for (let i = 0; i < text.length && queryIndex < query.length; i++) {
-            if (text[i] === query[queryIndex]) {
-                queryIndex++;
-            }
-        }
-        return queryIndex === query.length;
-    }
-    
-    fuzzyScore(query, text) {
-        let score = 0;
-        let queryIndex = 0;
+    fuzzySearch(query) {
+        const lowerQuery = query.toLowerCase();
         
-        for (let i = 0; i < text.length && queryIndex < query.length; i++) {
-            if (text[i] === query[queryIndex]) {
-                score += (text.length - i);
-                queryIndex++;
-            }
-        }
-        
-        return score;
-    }
-    
-    handleKeydown(e) {
-        const commands = this.filteredCommands.length > 0 ? this.filteredCommands : this.commands;
-        
-        switch(e.key) {
-            case 'ArrowDown':
-                e.preventDefault();
-                this.selectedIndex = Math.min(this.selectedIndex + 1, commands.length - 1);
-                this.renderResults(commands);
-                break;
+        return this.commands
+            .map(cmd => {
+                // Calculate match score
+                let score = 0;
+                const title = cmd.title.toLowerCase();
+                const description = cmd.description.toLowerCase();
+                const keywords = cmd.keywords.join(' ').toLowerCase();
                 
-            case 'ArrowUp':
-                e.preventDefault();
-                this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-                this.renderResults(commands);
-                break;
-                
-            case 'Enter':
-                e.preventDefault();
-                if (commands[this.selectedIndex]) {
-                    this.executeCommand(commands[this.selectedIndex]);
+                // Exact title match: highest score
+                if (title.includes(lowerQuery)) {
+                    score += 100;
                 }
-                break;
-        }
+                
+                // Exact keyword match
+                if (keywords.includes(lowerQuery)) {
+                    score += 50;
+                }
+                
+                // Description match
+                if (description.includes(lowerQuery)) {
+                    score += 25;
+                }
+                
+                // Fuzzy match in title
+                if (this.fuzzyMatch(title, lowerQuery)) {
+                    score += 10;
+                }
+                
+                return { ...cmd, score };
+            })
+            .filter(cmd => cmd.score > 0)
+            .sort((a, b) => b.score - a.score);
     }
     
-    executeCommand(command) {
-        // Add to recent
-        this.addToRecent(command);
+    fuzzyMatch(str, pattern) {
+        let patternIdx = 0;
+        let strIdx = 0;
         
-        // Close palette
-        this.close();
-        
-        // Execute action
-        setTimeout(() => {
-            try {
-                command.action();
-                console.log(`✅ Executed command: ${command.title}`);
-            } catch (error) {
-                console.error(`❌ Error executing command: ${command.title}`, error);
+        while (strIdx < str.length && patternIdx < pattern.length) {
+            if (str[strIdx] === pattern[patternIdx]) {
+                patternIdx++;
             }
-        }, 100);
-    }
-    
-    renderRecent() {
-        if (this.recentCommands.length === 0) {
-            this.recentContainer.parentElement.style.display = 'none';
-            return;
+            strIdx++;
         }
         
-        this.recentContainer.parentElement.style.display = 'block';
-        
-        const html = this.recentCommands.slice(0, 5).map(cmd => `
-            <div class="command-palette-item" data-command-id="${cmd.id}">
-                <span class="command-icon-text">${cmd.icon}</span>
-                <span class="command-title">${cmd.title}</span>
-                <span class="command-category">${cmd.category}</span>
-            </div>
-        `).join('');
-        
-        this.recentContainer.innerHTML = html;
-        
-        // Add click listeners
-        this.recentContainer.querySelectorAll('.command-palette-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const cmdId = item.dataset.commandId;
-                const cmd = this.commands.find(c => c.id === cmdId);
-                if (cmd) this.executeCommand(cmd);
-            });
-        });
+        return patternIdx === pattern.length;
     }
     
-    renderResults(commands) {
-        if (commands.length === 0) {
-            this.resultsContainer.innerHTML = `
+    highlightMatch(text, query) {
+        if (!query) return text;
+        
+        const regex = new RegExp(`(${query})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    }
+    
+    render() {
+        if (this.filteredCommands.length === 0) {
+            this.results.innerHTML = `
                 <div class="command-palette-empty">
-                    <span>No commands found</span>
+                    <div class="command-palette-empty-icon">🔍</div>
+                    <div class="command-palette-empty-text">No commands found</div>
                 </div>
             `;
             return;
         }
         
-        const html = commands.map((cmd, index) => `
-            <div class="command-palette-item ${index === this.selectedIndex ? 'selected' : ''}" 
-                 data-command-id="${cmd.id}"
-                 data-index="${index}">
-                <span class="command-icon-text">${cmd.icon}</span>
-                <span class="command-title">${cmd.title}</span>
-                <span class="command-category">${cmd.category}</span>
-            </div>
-        `).join('');
+        // Group by category
+        const grouped = {};
+        this.filteredCommands.forEach(cmd => {
+            if (!grouped[cmd.category]) {
+                grouped[cmd.category] = [];
+            }
+            grouped[cmd.category].push(cmd);
+        });
         
-        this.resultsContainer.innerHTML = html;
+        let html = '';
+        let globalIndex = 0;
         
-        // Scroll selected into view
-        const selectedItem = this.resultsContainer.querySelector('.selected');
-        if (selectedItem) {
-            selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
+        Object.keys(grouped).forEach(category => {
+            html += `
+                <div class="command-palette-section">
+                    <div class="command-palette-section-title">${category}</div>
+            `;
+            
+            grouped[category].forEach(cmd => {
+                const isSelected = globalIndex === this.selectedIndex;
+                const highlightedTitle = this.highlightMatch(cmd.title, this.searchQuery);
+                
+                html += `
+                    <div class="command-palette-item ${isSelected ? 'selected' : ''}" data-index="${globalIndex}">
+                        <div class="command-palette-item-icon">${cmd.icon}</div>
+                        <div class="command-palette-item-content">
+                            <div class="command-palette-item-title">
+                                ${highlightedTitle}
+                                ${cmd.badge ? `<span class="command-palette-item-badge">${cmd.badge}</span>` : ''}
+                            </div>
+                            <div class="command-palette-item-description">${cmd.description}</div>
+                        </div>
+                        ${cmd.keys ? `
+                            <div class="command-palette-item-keys">
+                                ${cmd.keys.map(k => `<span class="command-palette-key">${k}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                globalIndex++;
+            });
+            
+            html += `</div>`;
+        });
         
-        // Add click listeners
-        this.resultsContainer.querySelectorAll('.command-palette-item').forEach(item => {
+        this.results.innerHTML = html;
+        
+        // Bind click events
+        this.results.querySelectorAll('.command-palette-item').forEach((item, index) => {
             item.addEventListener('click', () => {
-                const index = parseInt(item.dataset.index);
-                this.selectedIndex = index;
-                this.executeCommand(commands[index]);
+                this.selectedIndex = parseInt(item.dataset.index);
+                this.executeSelected();
             });
             
             item.addEventListener('mouseenter', () => {
-                const index = parseInt(item.dataset.index);
-                this.selectedIndex = index;
-                this.renderResults(commands);
+                this.selectedIndex = parseInt(item.dataset.index);
+                this.updateSelection();
             });
         });
+        
+        // Scroll selected into view
+        this.scrollSelectedIntoView();
     }
     
-    addToRecent(command) {
-        // Remove if already exists
-        this.recentCommands = this.recentCommands.filter(c => c.id !== command.id);
+    updateSelection() {
+        this.results.querySelectorAll('.command-palette-item').forEach((item, index) => {
+            const itemIndex = parseInt(item.dataset.index);
+            if (itemIndex === this.selectedIndex) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
         
-        // Add to front
-        this.recentCommands.unshift(command);
-        
-        // Keep only 10 recent
-        this.recentCommands = this.recentCommands.slice(0, 10);
-        
-        // Save to localStorage
-        this.saveRecentCommands();
+        this.scrollSelectedIntoView();
     }
     
-    loadRecentCommands() {
-        try {
-            const recent = localStorage.getItem('commandPaletteRecent');
-            return recent ? JSON.parse(recent) : [];
-        } catch {
-            return [];
+    scrollSelectedIntoView() {
+        const selected = this.results.querySelector('.command-palette-item.selected');
+        if (selected) {
+            selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
     }
     
-    saveRecentCommands() {
-        try {
-            localStorage.setItem('commandPaletteRecent', JSON.stringify(this.recentCommands));
-        } catch (error) {
-            console.warn('Could not save recent commands:', error);
+    selectNext() {
+        if (this.selectedIndex < this.filteredCommands.length - 1) {
+            this.selectedIndex++;
+            this.updateSelection();
         }
     }
     
-    // Utility actions
-    exportData() {
-        console.log('📥 Exporting data...');
-        // Implementation would fetch current data and create CSV
-        alert('Export feature coming soon!');
+    selectPrevious() {
+        if (this.selectedIndex > 0) {
+            this.selectedIndex--;
+            this.updateSelection();
+        }
     }
     
-    createSnapshot() {
-        console.log('📸 Creating snapshot...');
-        SnapshotManager.create();
+    executeSelected() {
+        const cmd = this.filteredCommands[this.selectedIndex];
+        if (cmd && cmd.action) {
+            cmd.action();
+            this.close();
+        }
     }
     
-    toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-        } else {
-            document.exitFullscreen();
+    // Command actions
+    navigate(section) {
+        console.log(`🧭Navigating to: ${section}`);
+        if (typeof loadSection === 'function') {
+            loadSection(section);
+        }
+    }
+    
+    executeAction(action) {
+        console.log(`⚡ Executing action: ${action}`);
+        
+        switch (action) {
+            case 'start-bot':
+                alert('🤖 Bot started! (Demo action)');
+                break;
+            case 'stop-bot':
+                alert('⏸️ Bot stopped! (Demo action)');
+                break;
+            case 'refresh':
+                location.reload();
+                break;
+            case 'export':
+                alert('📥 Export feature coming soon!');
+                break;
         }
     }
     
     showShortcuts() {
-        const shortcuts = [
-            { keys: 'Ctrl+K / Cmd+K', description: 'Open Command Palette' },
-            { keys: 'ESC', description: 'Close Palette' },
-            { keys: '↑ / ↓', description: 'Navigate Commands' },
-            { keys: 'Enter', description: 'Execute Command' },
-            { keys: 'Ctrl+/', description: 'Toggle Insights' },
-            { keys: 'F11', description: 'Toggle Fullscreen' },
-        ];
-        
-        const html = shortcuts.map(s => `${s.keys} - ${s.description}`).join('\n');
-        alert(`Keyboard Shortcuts:\n\n${html}`);
+        alert(`
+⌨️ Keyboard Shortcuts:
+
+Ctrl/Cmd + K - Command Palette
+Ctrl + R - Refresh
+Esc - Close overlays
+↑ ↓ - Navigate
+Enter - Select
+        `.trim());
+    }
+    
+    openDocs() {
+        window.open('https://github.com/juankaspain/BotV2/blob/main/README.md', '_blank');
     }
 }
 
-// ==================== AUTOMATED INSIGHTS PANEL ====================
+// ==================== AI INSIGHTS PANEL ====================
 class InsightsPanel {
     constructor() {
-        this.isOpen = false;
         this.insights = [];
-        this.updateInterval = null;
+        this.isLoading = false;
+        this.container = null;
         
-        this.init();
+        console.log('✅ Insights Panel initialized');
     }
     
-    init() {
-        const panelHTML = `
-            <div id="insights-panel" class="insights-panel" style="display: none;">
+    render(containerId) {
+        this.container = document.getElementById(containerId);
+        if (!this.container) {
+            console.warn(`Container ${containerId} not found`);
+            return;
+        }
+        
+        const html = `
+            <div class="insights-panel">
                 <div class="insights-header">
-                    <div class="insights-title">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                    <div class="insights-header-left">
+                        <svg class="insights-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/>
                         </svg>
-                        <span>Smart Insights</span>
-                        <span class="insights-badge" id="insights-count">0</span>
+                        <div class="insights-title">
+                            Smart Insights
+                            <span class="insights-badge" id="insights-count">0</span>
+                        </div>
                     </div>
-                    <button class="insights-close" onclick="InsightsPanel.close()">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                        </svg>
-                    </button>
+                    <div class="insights-actions">
+                        <button class="insights-action-btn" onclick="window.AdvancedFeatures.refreshInsights()">
+                            🔄 Refresh
+                        </button>
+                    </div>
                 </div>
-                <div class="insights-body" id="insights-body">
-                    <div class="insights-loading">
-                        <div class="spinner"></div>
-                        <p>Analyzing data...</p>
-                    </div>
+                <div class="insights-list" id="insights-list">
+                    <!-- Insights will be inserted here -->
                 </div>
             </div>
         `;
         
-        document.body.insertAdjacentHTML('beforeend', panelHTML);
-        this.panel = document.getElementById('insights-panel');
-        this.body = document.getElementById('insights-body');
-        this.countBadge = document.getElementById('insights-count');
+        this.container.innerHTML = html;
+        this.listContainer = document.getElementById('insights-list');
         
-        // Setup keyboard shortcut (Ctrl+/)
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === '/') {
-                e.preventDefault();
-                this.toggle();
-            }
-        });
+        // Load initial insights
+        this.loadInsights();
     }
     
-    open() {
-        this.isOpen = true;
-        this.panel.style.display = 'block';
+    async loadInsights() {
+        this.isLoading = true;
+        this.showLoading();
         
-        requestAnimationFrame(() => {
-            this.panel.classList.add('active');
-        });
+        // Simulate API call
+        await this.wait(1500);
         
-        // Generate insights
-        this.generateInsights();
+        // Generate mock insights
+        this.insights = this.generateMockInsights();
         
-        // Auto-update every 30 seconds
-        this.updateInterval = setInterval(() => this.generateInsights(), 30000);
+        this.isLoading = false;
+        this.renderInsights();
     }
     
-    close() {
-        this.isOpen = false;
-        this.panel.classList.remove('active');
-        
-        setTimeout(() => {
-            this.panel.style.display = 'none';
-        }, 300);
-        
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-    }
-    
-    toggle() {
-        if (this.isOpen) {
-            this.close();
-        } else {
-            this.open();
-        }
-    }
-    
-    async generateInsights() {
-        console.log('🧠 Generating insights...');
-        
-        // Simulate AI analysis (in production, this would call backend API)
-        await this.simulateAnalysis();
-        
-        // Get current dashboard data (mock for now)
-        const data = this.getMockData();
-        
-        // Generate insights
-        this.insights = [];
+    generateMockInsights() {
+        const insights = [];
         
         // Performance insights
-        if (data.dailyReturn > 3) {
-            this.insights.push({
-                type: 'success',
-                icon: '📈',
-                title: 'Strong Performance',
-                description: `Portfolio up ${data.dailyReturn.toFixed(1)}% today. Momentum is building.`,
-                action: { text: 'View Performance', handler: () => loadSection('performance') }
-            });
-        } else if (data.dailyReturn < -3) {
-            this.insights.push({
-                type: 'warning',
-                icon: '📉',
-                title: 'Performance Alert',
-                description: `Portfolio down ${Math.abs(data.dailyReturn).toFixed(1)}% today. Review risk exposure.`,
-                action: { text: 'View Risk Analysis', handler: () => loadSection('risk') }
-            });
-        }
+        insights.push({
+            id: 'insight-1',
+            type: 'Performance',
+            title: 'Strong Momentum Detected',
+            description: 'Portfolio up 8.5% in last 7 days. Current trend suggests continued growth potential.',
+            icon: '📈',
+            severity: 'success',
+            confidence: 92,
+            time: '2 min ago',
+            actions: [
+                { label: 'View Details', icon: '🔍', action: 'view-performance' },
+                { label: 'Share', icon: '📤', action: 'share' }
+            ]
+        });
         
-        // Drawdown insights
-        if (data.drawdown > 10) {
-            this.insights.push({
-                type: 'danger',
-                icon: '⚠️',
-                title: 'High Drawdown',
-                description: `Current drawdown at ${data.drawdown.toFixed(1)}%. Consider reducing exposure.`,
-                action: { text: 'View Positions', handler: () => loadSection('portfolio') }
-            });
-        }
+        // Risk warning
+        insights.push({
+            id: 'insight-2',
+            type: 'Risk Alert',
+            title: 'Elevated Drawdown Risk',
+            description: 'Current drawdown at -5.2%. Consider reducing position sizes or adjusting stop-loss levels.',
+            icon: '⚠️',
+            severity: 'warning',
+            confidence: 87,
+            time: '15 min ago',
+            actions: [
+                { label: 'View Risk', icon: '🔒', action: 'view-risk' },
+                { label: 'Adjust', icon: '⚙️', action: 'adjust-risk' }
+            ]
+        });
         
-        // Opportunity insights
-        if (data.unusedCapital > 5000) {
-            this.insights.push({
-                type: 'info',
-                icon: '💡',
-                title: 'Unused Capital',
-                description: `€${data.unusedCapital.toLocaleString()} available for deployment.`,
-                action: { text: 'View Markets', handler: () => loadSection('markets') }
-            });
-        }
+        // Opportunity
+        insights.push({
+            id: 'insight-3',
+            type: 'Opportunity',
+            title: 'Unused Capital Available',
+            description: '€10,500 available for deployment. Market conditions favorable for additional positions.',
+            icon: '💰',
+            severity: 'info',
+            confidence: 78,
+            time: '1 hour ago',
+            actions: [
+                { label: 'View Markets', icon: '🌐', action: 'view-markets' },
+                { label: 'Deploy', icon: '🚀', action: 'deploy-capital' }
+            ]
+        });
         
-        // Volatility insights
-        if (data.volatility > 20) {
-            this.insights.push({
-                type: 'warning',
-                icon: '🌊',
-                title: 'High Volatility',
-                description: 'Market volatility elevated. Adjust position sizing accordingly.',
-                action: { text: 'View Risk Metrics', handler: () => loadSection('risk') }
-            });
-        }
-        
-        // Win rate insights
-        if (data.winRate > 60) {
-            this.insights.push({
-                type: 'success',
-                icon: '🎯',
-                title: 'Excellent Win Rate',
-                description: `Win rate at ${data.winRate.toFixed(0)}%. Strategy performing well.`,
-                action: { text: 'View Trades', handler: () => loadSection('trades') }
-            });
-        }
-        
-        // Correlation insights
-        if (data.correlation > 0.7) {
-            this.insights.push({
-                type: 'warning',
-                icon: '🔗',
-                title: 'High Correlation',
-                description: 'Portfolio positions highly correlated. Consider diversification.',
-                action: { text: 'View Portfolio', handler: () => loadSection('portfolio') }
-            });
-        }
-        
-        // Render insights
-        this.render();
+        return insights;
     }
     
-    async simulateAnalysis() {
-        return new Promise(resolve => setTimeout(resolve, 800));
+    showLoading() {
+        this.listContainer.innerHTML = `
+            <div class="insights-loading">
+                <div class="insights-loading-spinner"></div>
+                <div class="insights-loading-text">Analyzing data...</div>
+            </div>
+        `;
     }
     
-    getMockData() {
-        // In production, this would get real dashboard data
-        return {
-            dailyReturn: (Math.random() - 0.5) * 10,
-            drawdown: Math.random() * 15,
-            unusedCapital: Math.random() * 20000,
-            volatility: Math.random() * 30,
-            winRate: 50 + Math.random() * 30,
-            correlation: Math.random()
-        };
-    }
-    
-    render() {
+    renderInsights() {
         if (this.insights.length === 0) {
-            this.body.innerHTML = `
+            this.listContainer.innerHTML = `
                 <div class="insights-empty">
-                    <svg width="48" height="48" fill="currentColor" viewBox="0 0 20 20" opacity="0.3">
-                        <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
-                    </svg>
-                    <p>No insights at the moment</p>
-                    <span>Everything looks good!</span>
+                    <div class="insights-empty-icon">🧐</div>
+                    <div class="insights-empty-title">No Insights Available</div>
+                    <div class="insights-empty-description">
+                        We're analyzing your portfolio. Check back soon for personalized recommendations.
+                    </div>
                 </div>
             `;
-            this.countBadge.textContent = '0';
             return;
         }
         
-        const html = this.insights.map(insight => `
-            <div class="insight-card insight-${insight.type}">
-                <div class="insight-icon">${insight.icon}</div>
-                <div class="insight-content">
-                    <div class="insight-title">${insight.title}</div>
-                    <div class="insight-description">${insight.description}</div>
-                    ${insight.action ? `
-                        <button class="insight-action" onclick="(${insight.action.handler.toString()})()">
-                            ${insight.action.text} →
-                        </button>
-                    ` : ''}
+        // Update count badge
+        const countBadge = document.getElementById('insights-count');
+        if (countBadge) {
+            countBadge.textContent = this.insights.length;
+        }
+        
+        let html = '';
+        
+        this.insights.forEach(insight => {
+            const confidenceLevel = insight.confidence >= 85 ? 'high' : 
+                                   insight.confidence >= 70 ? 'medium' : 'low';
+            
+            html += `
+                <div class="insight-item insight-${insight.severity}">
+                    <div class="insight-icon-container ${insight.severity}">
+                        <span style="font-size: 20px;">${insight.icon}</span>
+                    </div>
+                    <div class="insight-content">
+                        <div class="insight-type">${insight.type}</div>
+                        <div class="insight-title">${insight.title}</div>
+                        <div class="insight-description">${insight.description}</div>
+                        <div class="insight-meta">
+                            <div class="insight-time">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                </svg>
+                                ${insight.time}
+                            </div>
+                            <div class="insight-confidence">
+                                <span>Confidence</span>
+                                <div class="insight-confidence-bar">
+                                    <div class="insight-confidence-fill ${confidenceLevel}" style="width: ${insight.confidence}%"></div>
+                                </div>
+                                <span>${insight.confidence}%</span>
+                            </div>
+                        </div>
+                        ${insight.actions && insight.actions.length > 0 ? `
+                            <div class="insight-actions">
+                                ${insight.actions.map(action => `
+                                    <button class="insight-action" onclick="window.AdvancedFeatures.executeInsightAction('${action.action}')">
+                                        <span>${action.icon}</span>
+                                        <span>${action.label}</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
-            </div>
-        `).join('');
-        
-        this.body.innerHTML = html;
-        this.countBadge.textContent = this.insights.length;
-    }
-}
-
-// ==================== ANOMALY DETECTOR ====================
-class AnomalyDetector {
-    constructor() {
-        this.thresholds = {
-            rapidDrawdown: 5,      // % in 5 minutes
-            unusualVolume: 3,      // 3x average
-            priceSpike: 10,        // % sudden change
-            correlationBreak: 0.3  // correlation delta
-        };
-        
-        this.history = [];
-        this.alerts = [];
-    }
-    
-    detect(data) {
-        const anomalies = [];
-        
-        // Rapid drawdown detection
-        if (this.detectRapidDrawdown(data)) {
-            anomalies.push({
-                type: 'rapid_drawdown',
-                severity: 'high',
-                message: 'Rapid drawdown detected',
-                value: data.drawdown
-            });
-        }
-        
-        // Unusual volume
-        if (this.detectUnusualVolume(data)) {
-            anomalies.push({
-                type: 'unusual_volume',
-                severity: 'medium',
-                message: 'Trading volume spike detected',
-                value: data.volume
-            });
-        }
-        
-        // Price spike
-        if (this.detectPriceSpike(data)) {
-            anomalies.push({
-                type: 'price_spike',
-                severity: 'medium',
-                message: 'Sudden price movement detected',
-                value: data.priceChange
-            });
-        }
-        
-        // Store in history
-        this.history.push({ timestamp: Date.now(), data, anomalies });
-        
-        // Keep only last 100 records
-        if (this.history.length > 100) {
-            this.history.shift();
-        }
-        
-        // Trigger alerts if needed
-        if (anomalies.length > 0) {
-            this.triggerAlerts(anomalies);
-        }
-        
-        return anomalies;
-    }
-    
-    detectRapidDrawdown(data) {
-        if (this.history.length < 5) return false;
-        
-        const recent = this.history.slice(-5);
-        const initialValue = recent[0].data.portfolioValue;
-        const currentValue = data.portfolioValue;
-        const change = ((currentValue - initialValue) / initialValue) * 100;
-        
-        return change < -this.thresholds.rapidDrawdown;
-    }
-    
-    detectUnusualVolume(data) {
-        if (this.history.length < 10) return false;
-        
-        const avgVolume = this.history.slice(-10).reduce((sum, h) => sum + h.data.volume, 0) / 10;
-        return data.volume > avgVolume * this.thresholds.unusualVolume;
-    }
-    
-    detectPriceSpike(data) {
-        if (this.history.length < 1) return false;
-        
-        const lastPrice = this.history[this.history.length - 1].data.price;
-        const priceChange = Math.abs(((data.price - lastPrice) / lastPrice) * 100);
-        
-        return priceChange > this.thresholds.priceSpike;
-    }
-    
-    triggerAlerts(anomalies) {
-        anomalies.forEach(anomaly => {
-            console.warn(`🚨 Anomaly detected: ${anomaly.message}`);
-            
-            // Show notification (if permission granted)
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('BotV2 Alert', {
-                    body: anomaly.message,
-                    icon: '/static/icon-192.png',
-                    badge: '/static/badge-72.png'
-                });
-            }
-            
-            // Add to alerts list
-            this.alerts.push({
-                timestamp: new Date(),
-                ...anomaly
-            });
+            `;
         });
-    }
-}
-
-// ==================== LAYOUT SWITCHER ====================
-class LayoutSwitcher {
-    constructor() {
-        this.currentLayout = 'grid';
-        this.layouts = ['single', 'double', 'grid', 'wide'];
+        
+        this.listContainer.innerHTML = html;
     }
     
-    setLayout(layout) {
-        if (!this.layouts.includes(layout)) {
-            console.error(`Invalid layout: ${layout}`);
-            return;
-        }
+    executeAction(action) {
+        console.log(`⚡ Executing insight action: ${action}`);
         
-        this.currentLayout = layout;
-        
-        const chartsGrid = document.querySelector('.charts-grid');
-        if (!chartsGrid) return;
-        
-        // Remove all layout classes
-        chartsGrid.classList.remove('layout-single', 'layout-double', 'layout-grid', 'layout-wide');
-        
-        // Add new layout class
-        chartsGrid.classList.add(`layout-${layout}`);
-        
-        // Save preference
-        localStorage.setItem('dashboardLayout', layout);
-        
-        console.log(`📐 Layout changed to: ${layout}`);
-        
-        // Trigger chart resize (for Plotly)
-        setTimeout(() => {
-            if (typeof Plotly !== 'undefined') {
-                document.querySelectorAll('.chart-container').forEach(container => {
-                    Plotly.Plots.resize(container);
-                });
-            }
-        }, 300);
-    }
-    
-    loadSavedLayout() {
-        const saved = localStorage.getItem('dashboardLayout');
-        if (saved && this.layouts.includes(saved)) {
-            this.setLayout(saved);
-        }
-    }
-}
-
-// ==================== SNAPSHOT MANAGER ====================
-class SnapshotManager {
-    static create() {
-        const state = {
-            section: document.querySelector('.menu-item.active')?.dataset.section || 'dashboard',
-            theme: document.documentElement.getAttribute('data-theme') || 'dark',
-            layout: LayoutSwitcher.currentLayout,
-            filters: this.getCurrentFilters(),
-            timestamp: Date.now()
-        };
-        
-        // Encode state to base64
-        const encoded = btoa(JSON.stringify(state));
-        
-        // Create shareable URL
-        const url = `${window.location.origin}${window.location.pathname}?snapshot=${encoded}`;
-        
-        // Copy to clipboard
-        this.copyToClipboard(url);
-        
-        // Show notification
-        this.showNotification('📸 Snapshot created and copied to clipboard!');
-        
-        console.log('📸 Snapshot URL:', url);
-    }
-    
-    static restore(encoded) {
-        try {
-            const state = JSON.parse(atob(encoded));
-            
-            console.log('🔄 Restoring snapshot:', state);
-            
-            // Restore theme
-            if (state.theme) {
-                setTheme(state.theme);
-            }
-            
-            // Restore layout
-            if (state.layout && typeof LayoutSwitcher !== 'undefined') {
-                LayoutSwitcher.setLayout(state.layout);
-            }
-            
-            // Restore section
-            if (state.section && typeof loadSection === 'function') {
-                loadSection(state.section);
-            }
-            
-            // Restore filters
-            if (state.filters) {
-                this.applyFilters(state.filters);
-            }
-            
-            this.showNotification('✅ Snapshot restored!');
-        } catch (error) {
-            console.error('Error restoring snapshot:', error);
-            this.showNotification('❌ Invalid snapshot');
+        switch (action) {
+            case 'view-performance':
+                if (typeof loadSection === 'function') loadSection('performance');
+                break;
+            case 'view-risk':
+                if (typeof loadSection === 'function') loadSection('risk');
+                break;
+            case 'view-markets':
+                if (typeof loadSection === 'function') loadSection('markets');
+                break;
+            case 'share':
+                alert('📤 Share feature coming soon!');
+                break;
+            case 'adjust-risk':
+                alert('⚙️ Risk adjustment panel coming soon!');
+                break;
+            case 'deploy-capital':
+                alert('🚀 Capital deployment wizard coming soon!');
+                break;
         }
     }
     
-    static getCurrentFilters() {
-        // Placeholder - would get actual filter state
-        return {
-            dateRange: 'last_7_days',
-            strategy: 'all',
-            symbol: 'all'
-        };
+    refresh() {
+        this.loadInsights();
     }
     
-    static applyFilters(filters) {
-        // Placeholder - would apply filters to dashboard
-        console.log('Applying filters:', filters);
-    }
-    
-    static async copyToClipboard(text) {
-        try {
-            await navigator.clipboard.writeText(text);
-        } catch (err) {
-            // Fallback for older browsers
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-        }
-    }
-    
-    static showNotification(message) {
-        // Simple notification (could be enhanced with a proper toast component)
-        const notification = document.createElement('div');
-        notification.className = 'snapshot-notification';
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border-default);
-            box-shadow: var(--shadow-lg);
-            z-index: 10000;
-            animation: slideInRight 0.3s ease;
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.style.animation = 'slideOutRight 0.3s ease';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+    wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
 
 // ==================== INITIALIZATION ====================
-function initAdvancedFeatures() {
-    console.log('🚀 Initializing Advanced Features v7.2...');
-    
-    // Initialize Command Palette
-    window.CommandPalette = new CommandPalette();
-    
-    // Initialize Insights Panel
-    window.InsightsPanel = new InsightsPanel();
-    
-    // Initialize Anomaly Detector
-    window.AnomalyDetector = new AnomalyDetector();
-    
-    // Initialize Layout Switcher
-    window.LayoutSwitcher = new LayoutSwitcher();
-    LayoutSwitcher.loadSavedLayout();
-    
-    // Check for snapshot in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const snapshotParam = urlParams.get('snapshot');
-    if (snapshotParam) {
-        SnapshotManager.restore(snapshotParam);
-    }
-    
-    console.log('✅ Advanced Features v7.2 initialized');
-}
+const commandPalette = new CommandPalette();
+const insightsPanel = new InsightsPanel();
 
-// Auto-initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAdvancedFeatures);
-} else {
-    initAdvancedFeatures();
-}
-
-// Export for global use
+// Global exports
 window.AdvancedFeatures = {
-    CommandPalette,
-    InsightsPanel,
-    AnomalyDetector,
-    LayoutSwitcher,
-    SnapshotManager,
-    init: initAdvancedFeatures
+    commandPalette,
+    insightsPanel,
+    openCommandPalette: () => commandPalette.open(),
+    refreshInsights: () => insightsPanel.refresh(),
+    executeInsightAction: (action) => insightsPanel.executeAction(action)
 };
 
-console.log('✅ Advanced Features v7.2 module loaded');
+// Auto-initialize insights panel if container exists
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('insights-container');
+        if (container) {
+            insightsPanel.render('insights-container');
+        }
+    });
+} else {
+    const container = document.getElementById('insights-container');
+    if (container) {
+        insightsPanel.render('insights-container');
+    }
+}
+
+console.log('✅ Advanced Features v7.2 loaded and active');
+console.log('💡 Press Ctrl/Cmd + K to open Command Palette');
