@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BotV2 Dashboard v4.4 - Enterprise Edition</title>
+    <title>BotV2 Dashboard - Professional Trading Platform</title>
+    
+    <!-- 🤖 Robot Trading Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMzIgMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYiIGN5PSI4IiByPSI2IiBmaWxsPSIjMmY4MWY3Ii8+PGNpcmNsZSBjeD0iMTMiIGN5PSI2IiByPSIxIiBmaWxsPSJ3aGl0ZSIvPjxjaXJjbGUgY3g9IjE5IiBjeT0iNiIgcj0iMSIgZmlsbD0id2hpdGUiLz48cmVjdCB4PSIxMCIgeT0iMTQiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMCIgcng9IjIiIGZpbGw9IiMxNjFiMjIiLz48cmVjdCB4PSI2IiB5PSIxNiIgd2lkdGg9IjQiIGhlaWdodD0iMiIgcng9IjEiIGZpbGw9IiMzMDM2M2QiLz48cmVjdCB4PSIyMiIgeT0iMTYiIHdpZHRoPSI0IiBoZWlnaHQ9IjIiIHJ4PSIxIiBmaWxsPSIjMzAzNjNkIi8+PHJlY3QgeD0iMTEiIHk9IjI0IiB3aWR0aD0iMyIgaGVpZ2h0PSI2IiByeD0iMS41IiBmaWxsPSIjMzAzNjNkIi8+PHJlY3QgeD0iMTgiIHk9IjI0IiB3aWR0aD0iMyIgaGVpZ2h0PSI2IiByeD0iMS41IiBmaWxsPSIjMzAzNjNkIi8+PHJlY3QgeD0iMTUiIHk9IjAiIHdpZHRoPSIyIiBoZWlnaHQ9IjQiIHJ4PSIxIiBmaWxsPSIjZjg1MTQ5Ii8+PGNpcmNsZSBjeD0iMTYiIGN5PSI0IiByPSIxIiBmaWxsPSIjZjg1MTQ5Ii8+PC9zdmc+">
     
     <!-- External Libraries -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -15,9 +18,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* ==================== ITERATION 1: ENHANCED UX v4.4.1 ==================== */
+        /* ==================== ULTRA-PROFESSIONAL v4.5 ==================== */
         :root {
-            /* Enhanced Color System */
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
             --bg-tertiary: #21262d;
@@ -95,7 +97,6 @@
             --shadow-lg: 0 8px 24px rgba(255, 153, 0, 0.3);
         }
 
-        /* ==================== ENHANCED RESET ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -126,13 +127,12 @@
             overflow: hidden;
         }
 
-        /* ==================== LAYOUT ==================== */
         .app-container {
             display: flex;
             height: 100vh;
         }
 
-        /* ==================== ENHANCED SIDEBAR ==================== */
+        /* ==================== SIDEBAR ==================== */
         .sidebar {
             width: 240px;
             background: var(--bg-secondary);
@@ -147,52 +147,32 @@
             border-bottom: 1px solid var(--border-default);
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
         }
 
+        /* 🤖 Logo con icono robot */
         .logo {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             transition: transform var(--transition-fast) ease;
+            user-select: none;
         }
 
         .logo:hover {
-            transform: scale(1.02);
+            transform: scale(1.05);
         }
 
         .logo-icon {
-            width: 24px;
-            height: 24px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
-            border-radius: 4px;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
-            color: white;
-            font-weight: 700;
-            box-shadow: 0 2px 8px rgba(47, 129, 247, 0.3);
-        }
-
-        .version-badge {
-            font-size: 10px;
-            color: var(--text-muted);
-            font-weight: 600;
-            background: var(--bg-tertiary);
-            padding: 3px 7px;
-            border-radius: 4px;
-            border: 1px solid var(--border-default);
-            transition: all var(--transition-fast) ease;
-        }
-
-        .version-badge:hover {
-            background: var(--bg-hover);
-            color: var(--text-secondary);
-            border-color: var(--accent-primary);
+            font-size: 20px;
         }
 
         .sidebar-menu {
@@ -234,7 +214,6 @@
             user-select: none;
         }
 
-        /* ==================== ENHANCED MENU ITEMS ==================== */
         .menu-item {
             display: flex;
             align-items: center;
@@ -253,7 +232,6 @@
             user-select: none;
         }
 
-        /* Ripple effect */
         .menu-item::before {
             content: '';
             position: absolute;
@@ -307,35 +285,7 @@
             opacity: 1;
         }
 
-        /* ==================== ENHANCED BADGES ==================== */
-        .menu-badge {
-            margin-left: auto;
-            padding: 2px 6px;
-            background: var(--bg-tertiary);
-            color: var(--text-muted);
-            border-radius: 10px;
-            font-size: 9px;
-            font-weight: 700;
-            border: 1px solid var(--border-default);
-            transition: all var(--transition-fast) ease;
-            white-space: nowrap;
-            letter-spacing: 0.3px;
-        }
-
-        .menu-item:hover .menu-badge {
-            background: var(--bg-active);
-            color: var(--text-secondary);
-            border-color: var(--text-muted);
-            transform: scale(1.05);
-        }
-
-        .menu-item.active .menu-badge {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        /* ==================== ENHANCED TOPBAR ==================== */
+        /* ==================== TOPBAR ==================== */
         .topbar {
             height: 56px;
             background: var(--bg-secondary);
@@ -361,7 +311,6 @@
             margin: 0;
         }
 
-        /* ==================== ENHANCED BREADCRUMB ==================== */
         .breadcrumb {
             display: flex;
             align-items: center;
@@ -397,7 +346,6 @@
             gap: 12px;
         }
 
-        /* ==================== ENHANCED THEME SWITCHER ==================== */
         .theme-switcher {
             display: flex;
             gap: 4px;
@@ -432,7 +380,6 @@
             box-shadow: 0 2px 4px rgba(47, 129, 247, 0.3);
         }
 
-        /* ==================== ENHANCED CONNECTION STATUS ==================== */
         .connection-status {
             display: flex;
             align-items: center;
@@ -472,7 +419,6 @@
             }
         }
 
-        /* ==================== ENHANCED USER MENU ==================== */
         .user-menu {
             position: relative;
         }
@@ -566,7 +512,7 @@
             margin: 8px 0;
         }
 
-        /* ==================== ENHANCED MAIN CONTENT ==================== */
+        /* ==================== MAIN CONTENT ==================== */
         .main-content {
             flex: 1;
             display: flex;
@@ -600,7 +546,7 @@
             background: var(--text-muted);
         }
 
-        /* ==================== ENHANCED LOADING ==================== */
+        /* ==================== LOADING ==================== */
         .loading {
             display: flex;
             flex-direction: column;
@@ -631,7 +577,6 @@
             margin-bottom: 12px;
         }
 
-        /* Progress bar */
         .loading-progress {
             width: 200px;
             height: 4px;
@@ -653,7 +598,7 @@
             100% { width: 100%; }
         }
 
-        /* ==================== PROFESSIONAL COMPONENTS ==================== */
+        /* ==================== COMPONENTS ==================== */
         
         .kpi-grid {
             display: grid;
@@ -952,10 +897,9 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
-                    <div class="logo-icon">B2</div>
+                    <div class="logo-icon">🤖</div>
                     <span>BotV2</span>
                 </div>
-                <span class="version-badge" title="Version 4.4.1 - Enhanced UX">v4.4</span>
             </div>
             
             <nav class="sidebar-menu">
@@ -984,12 +928,11 @@
                 
                 <div class="menu-section">
                     <div class="menu-section-title">Monitoring</div>
-                    <div class="menu-item" onclick="window.location.href='/monitoring'">
+                    <div class="menu-item" data-section="live_monitor">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
                         </svg>
                         <span>Live Monitor</span>
-                        <span class="menu-badge" title="Real-time monitoring v4.3">v4.3</span>
                     </div>
                 </div>
                 
@@ -1012,23 +955,21 @@
                 
                 <div class="menu-section">
                     <div class="menu-section-title">Development</div>
-                    <div class="menu-item" onclick="window.location.href='/strategy-editor'">
+                    <div class="menu-item" data-section="strategy_editor">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                         </svg>
                         <span>Strategy Editor</span>
-                        <span class="menu-badge" title="Visual strategy builder v4.4">v4.4</span>
                     </div>
                 </div>
                 
                 <div class="menu-section">
                     <div class="menu-section-title">Control</div>
-                    <div class="menu-item" onclick="window.location.href='/control'">
+                    <div class="menu-item" data-section="control_panel">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"/>
                         </svg>
                         <span>Control Panel</span>
-                        <span class="menu-badge" title="System control center v4.2">v4.2</span>
                     </div>
                 </div>
                 
@@ -1164,7 +1105,7 @@
         }
 
         window.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => showToast('success', '🚀 BotV2 v4.4.1: Enhanced UX with improved animations'), 2000);
+            setTimeout(() => showToast('success', '🚀 BotV2 v4.5: Complete Integration - All Systems Online'), 2000);
         });
     </script>
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
