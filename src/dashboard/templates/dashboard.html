@@ -63,8 +63,14 @@
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     
+    <!-- Visual Excellence v7.0 CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/visual-excellence-v7.css') }}">
+    
+    <!-- Advanced Features v7.2 CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/advanced-features-v7.2.css') }}">
+    
     <style>
-        /* Core Dashboard Styles (same as before) */
+        /* Core Dashboard Styles */
         :root {
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
@@ -85,14 +91,11 @@
             --accent-success: #3fb950;
             --accent-warning: #d29922;
             --accent-danger: #f85149;
-            
-            /* Extended colors for Advanced Features */
             --color-excellent: #10b981;
             --color-good: #3fb950;
             --color-fair: #d29922;
             --color-poor: #f85149;
             --color-critical: #da3633;
-            
             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
             --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
             --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -187,7 +190,7 @@
         }
         .app-container { display: flex; height: 100vh; }
         
-        /* Sidebar & Navigation (truncated for brevity - same as before) */
+        /* Sidebar & Navigation */
         .sidebar {
             width: 240px;
             background: var(--bg-secondary);
@@ -279,7 +282,7 @@
         }
         .topbar-right { display: flex; align-items: center; gap: 12px; }
         
-        /* Quick Actions Button (NEW) */
+        /* Quick Actions Button */
         .quick-actions-btn {
             display: flex;
             align-items: center;
@@ -369,7 +372,7 @@
             border-radius: 4px;
         }
         
-        /* KPI Cards & Charts (truncated - same as before) */
+        /* KPI Cards */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -400,6 +403,7 @@
         .positive { color: var(--accent-success); }
         .negative { color: var(--accent-danger); }
         
+        /* Charts */
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -411,7 +415,19 @@
             border-radius: var(--radius);
             padding: var(--spacing-md);
         }
+        .chart-card.full-width { grid-column: 1 / -1; }
         .chart-container { height: 400px; }
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+        }
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
         
         /* Loading */
         .loading { 
@@ -432,6 +448,83 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         
+        /* Animations */
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-up { animation: slideUp 0.5s ease-out; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+        }
+        .empty-state-icon { font-size: 64px; margin-bottom: 24px; }
+        .empty-state-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+        .empty-state-description {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        /* Data Tables */
+        .data-table {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table thead {
+            background: var(--bg-tertiary);
+        }
+        .data-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .data-table td {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-muted);
+            color: var(--text-secondary);
+        }
+        .data-table tbody tr:hover {
+            background: var(--bg-hover);
+        }
+        
+        /* Skeleton Loaders */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-hover) 50%, var(--bg-tertiary) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+            border-radius: var(--radius-sm);
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-kpi { height: 100px; }
+        .skeleton-chart { height: 400px; }
+        .skeleton-table-row { height: 40px; margin-bottom: 8px; }
+        
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar { 
@@ -443,14 +536,11 @@
             .sidebar.open { left: 0; }
             .quick-actions-btn span { display: none; }
             .theme-switcher { display: none; }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
-    
-    <!-- Visual Excellence v7.0 CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/visual-excellence-v7.css') }}">
-    
-    <!-- Advanced Features v7.2 CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/advanced-features-v7.2.css') }}">
 </head>
 <body>
     <div class="app-container">
@@ -521,7 +611,7 @@
                 </div>
                 <div class="topbar-right">
                     <!-- Command Palette Trigger -->
-                    <button class="quick-actions-btn" onclick="CommandPalette.open()">
+                    <button class="quick-actions-btn" onclick="typeof CommandPalette !== 'undefined' ? CommandPalette.open() : alert('Command Palette loading...')">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
                         </svg>
@@ -530,7 +620,7 @@
                     </button>
                     
                     <!-- Insights Toggle -->
-                    <button class="quick-actions-btn" onclick="InsightsPanel.toggle()" title="Toggle AI Insights (Ctrl+/)">
+                    <button class="quick-actions-btn" onclick="typeof InsightsPanel !== 'undefined' ? InsightsPanel.toggle() : alert('Insights loading...')" title="Toggle AI Insights (Ctrl+/)">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
                             <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
@@ -558,23 +648,8 @@
         </main>
     </div>
     
-    <!-- Scripts -->
-    <script>
-        // Theme switcher
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            document.querySelectorAll('.theme-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.textContent.toLowerCase() === theme);
-            });
-        }
-        
-        // Load saved theme
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        setTheme(savedTheme);
-        
-        console.log('🚀 BotV2 Dashboard v7.2 with Advanced Features + Visual Excellence loaded');
-    </script>
+    <!-- Chart Mastery v7.1 JS -->
+    <script src="{{ url_for('static', filename='js/chart-mastery-v7.1.js') }}"></script>
     
     <!-- Visual Excellence v7.0 JS -->
     <script src="{{ url_for('static', filename='js/visual-excellence.js') }}"></script>
@@ -587,5 +662,31 @@
     
     <!-- Main dashboard script -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    
+    <script>
+        // Theme switcher
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === theme);
+            });
+            
+            // Notify modules of theme change
+            if (typeof ChartMastery !== 'undefined' && ChartMastery.updateAllChartsTheme) {
+                ChartMastery.updateAllChartsTheme();
+            }
+        }
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        setTheme(savedTheme);
+        
+        console.log('🚀 BotV2 Dashboard v7.2 loaded');
+        console.log('✅ Chart Mastery v7.1: 7 advanced charts');
+        console.log('✅ Advanced Features v7.2: AI Insights, Command Palette, Layouts, Snapshots');
+        console.log('💡 Press Ctrl+K for quick actions');
+        console.log('💡 Press Ctrl+/ for insights panel');
+    </script>
 </body>
 </html>
