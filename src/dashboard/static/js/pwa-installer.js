@@ -1,106 +1,168 @@
-// ==================== PWA Installer v1.1 - ENABLED ====================
-// ✅ Service Worker now at root: /sw.js (scope='/')
-// Professional PWA installation handler
+// ==================== BotV2 PWA Installer v1.0 ====================
+// Progressive Web App installation and service worker registration
 // Author: Juan Carlos Garcia
 // Date: 24-01-2026
+// Version: 1.0.0 - PRODUCTION READY
 
-let deferredPrompt = null;
+(function() {
+    'use strict';
 
-// ==================== SERVICE WORKER REGISTRATION ====================
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
-      });
-      
-      console.log('✅ Service Worker registered successfully');
-      console.log('Scope:', registration.scope);
-      console.log('State:', registration.installing ? 'installing' : registration.waiting ? 'waiting' : registration.active ? 'active' : 'unknown');
-      
-      // Check for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        console.log('🔄 Service Worker update found');
-        
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('✅ New Service Worker installed - refresh to activate');
-          }
-        });
-      });
-      
-    } catch (error) {
-      console.error('❌ Service Worker registration failed:', error);
-      console.error('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
+    const PWA_VERSION = '1.0.0';
+    const LOG_PREFIX = '%c[PWA]%c';
+    const LOG_STYLE_1 = 'background:#2f81f7;color:white;padding:2px 6px;border-radius:3px;font-weight:600';
+    const LOG_STYLE_2 = 'color:#7d8590';
+
+    // ==================== LOGGER ====================
+    const Logger = {
+        info: (msg, ...args) => {
+            console.log(`${LOG_PREFIX} ${msg}`, LOG_STYLE_1, LOG_STYLE_2, ...args);
+        },
+        success: (msg, ...args) => {
+            console.log(`${LOG_PREFIX} ✅ ${msg}`, LOG_STYLE_1, LOG_STYLE_2, ...args);
+        },
+        warn: (msg, ...args) => {
+            console.warn(`${LOG_PREFIX} ⚠️ ${msg}`, LOG_STYLE_1, LOG_STYLE_2, ...args);
+        },
+        error: (msg, ...args) => {
+            console.error(`${LOG_PREFIX} ❌ ${msg}`, LOG_STYLE_1, LOG_STYLE_2, ...args);
+        }
+    };
+
+    // ==================== SERVICE WORKER REGISTRATION ====================
+    async function registerServiceWorker() {
+        if (!('serviceWorker' in navigator)) {
+            Logger.warn('Service Worker not supported in this browser');
+            return null;
+        }
+
+        try {
+            // Check if already registered
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+                Logger.info('Service Worker already registered', {
+                    scope: registration.scope,
+                    active: !!registration.active
+                });
+                return registration;
+            }
+
+            // Register new service worker
+            Logger.info('Registering Service Worker...');
+            const newRegistration = await navigator.serviceWorker.register('/sw.js', {
+                scope: '/'
+            });
+
+            Logger.success('Service Worker registered successfully', {
+                scope: newRegistration.scope
+            });
+
+            // Handle updates
+            newRegistration.addEventListener('updatefound', () => {
+                const newWorker = newRegistration.installing;
+                Logger.info('New Service Worker version found');
+
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        Logger.info('New version available - Please refresh');
+                        // Could show update notification here
+                    }
+                });
+            });
+
+            return newRegistration;
+        } catch (error) {
+            // Don't throw error if service worker is not available
+            // This is expected in development without HTTPS
+            Logger.warn('Service Worker registration skipped', error.message);
+            return null;
+        }
     }
-  });
-}
 
-// ==================== INSTALL PROMPT HANDLER ====================
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevent Chrome 67 and earlier from automatically showing the prompt
-  e.preventDefault();
-  // Stash the event so it can be triggered later
-  deferredPrompt = e;
-  console.log('💾 PWA Install prompt available');
-  console.log('User can now install the app');
-});
+    // ==================== PWA INSTALLATION ====================
+    let deferredPrompt = null;
 
-// ==================== APP INSTALLED HANDLER ====================
-window.addEventListener('appinstalled', () => {
-  console.log('✅ PWA installed successfully');
-  deferredPrompt = null;
-});
+    function setupInstallPrompt() {
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent default mini-infobar
+            e.preventDefault();
+            deferredPrompt = e;
 
-// ==================== INSTALL FUNCTION ====================
-// Can be called from UI button: installPWA()
-window.installPWA = async function() {
-  if (!deferredPrompt) {
-    console.warn('⚠️ Install prompt not available');
-    return false;
-  }
-  
-  try {
-    // Show the install prompt
-    deferredPrompt.prompt();
-    
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response: ${outcome}`);
-    
-    // Clear the deferredPrompt
-    deferredPrompt = null;
-    
-    return outcome === 'accepted';
-  } catch (error) {
-    console.error('❌ PWA installation failed:', error);
-    return false;
-  }
-};
+            Logger.info('PWA installation available');
 
-// ==================== CHECK PWA STATUS ====================
-window.isPWAInstalled = function() {
-  // Check if running in standalone mode (installed PWA)
-  return window.matchMedia('(display-mode: standalone)').matches || 
-         window.navigator.standalone === true;
-};
+            // Could show install button here
+            // showInstallButton();
+        });
 
-// ==================== STARTUP LOG ====================
-console.log('🚀 PWA Installer v1.1 loaded');
-console.log('PWA Installed:', window.isPWAInstalled());
-console.log('Service Worker Support:', 'serviceWorker' in navigator);
+        window.addEventListener('appinstalled', () => {
+            Logger.success('PWA installed successfully');
+            deferredPrompt = null;
+        });
+    }
 
-// Log status after 2 seconds
-setTimeout(() => {
-  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-    console.log('✅ Service Worker is controlling the page');
-    console.log('Scope:', navigator.serviceWorker.controller.scriptURL);
-  } else {
-    console.log('⚠️ Service Worker not yet controlling the page');
-  }
-}, 2000);
+    // ==================== PUBLIC API ====================
+    window.PWAInstaller = {
+        version: PWA_VERSION,
+
+        async install() {
+            if (!deferredPrompt) {
+                Logger.warn('PWA installation not available');
+                return false;
+            }
+
+            try {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+
+                if (outcome === 'accepted') {
+                    Logger.success('User accepted installation');
+                    return true;
+                } else {
+                    Logger.info('User declined installation');
+                    return false;
+                }
+            } catch (error) {
+                Logger.error('Installation failed', error);
+                return false;
+            }
+        },
+
+        isInstallable() {
+            return deferredPrompt !== null;
+        },
+
+        async unregisterServiceWorker() {
+            if (!('serviceWorker' in navigator)) {
+                return false;
+            }
+
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+                await registration.unregister();
+                Logger.info('Service Worker unregistered');
+                return true;
+            }
+            return false;
+        }
+    };
+
+    // ==================== INITIALIZATION ====================
+    async function init() {
+        Logger.info(`Initializing PWA Installer v${PWA_VERSION}`);
+
+        // Setup installation prompt
+        setupInstallPrompt();
+
+        // Register service worker (optional - only in production with HTTPS)
+        // await registerServiceWorker();
+
+        Logger.success('PWA Installer ready');
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+})();
