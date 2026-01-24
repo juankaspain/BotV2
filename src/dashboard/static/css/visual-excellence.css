@@ -1,0 +1,837 @@
+/*
+ * BotV2 Dashboard - VISUAL EXCELLENCE v7.0
+ * Iteration 1: Ultra Professional Visual Enhancements
+ * Author: Juan Carlos Garcia
+ * Date: 24 Enero 2026
+ * 
+ * Features:
+ * - KPI Sparklines Integration
+ * - Variable Font Support (Inter Variable)
+ * - Semantic Color System
+ * - Glassmorphism Effects
+ * - Animated Number Counters
+ * - Page Transitions
+ * - Staggered Animations
+ * - Gradient Overlays
+ */
+
+/* ==================== VARIABLE FONT IMPLEMENTATION ==================== */
+@import url('https://rsms.me/inter/inter.css');
+
+:root {
+    /* Enhanced Typography */
+    font-family: 'Inter var', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-feature-settings: 
+        'cv05' 1,  /* Better lowercase l */
+        'cv08' 1,  /* Better uppercase i */
+        'cv11' 1,  /* Better single-story a */
+        'ss01' 1,  /* Alternate a */
+        'ss02' 1,  /* Alternate g */
+        'zero' 1;  /* Slashed zero */
+    
+    /* Monospace for numbers */
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', 'Monaco', monospace;
+    
+    /* ==================== SEMANTIC COLOR SYSTEM ==================== */
+    
+    /* Performance Colors */
+    --perf-excellent: #10b981;    /* > 15% return */
+    --perf-excellent-bg: rgba(16, 185, 129, 0.1);
+    --perf-excellent-border: rgba(16, 185, 129, 0.3);
+    
+    --perf-good: #3fb950;         /* 5-15% return */
+    --perf-good-bg: rgba(63, 185, 80, 0.1);
+    --perf-good-border: rgba(63, 185, 80, 0.3);
+    
+    --perf-neutral: #7d8590;      /* -5 to 5% */
+    --perf-neutral-bg: rgba(125, 133, 144, 0.1);
+    --perf-neutral-border: rgba(125, 133, 144, 0.3);
+    
+    --perf-poor: #f85149;         /* -15 to -5% */
+    --perf-poor-bg: rgba(248, 81, 73, 0.1);
+    --perf-poor-border: rgba(248, 81, 73, 0.3);
+    
+    --perf-critical: #cf222e;     /* < -15% */
+    --perf-critical-bg: rgba(207, 34, 46, 0.1);
+    --perf-critical-border: rgba(207, 34, 46, 0.3);
+    
+    /* Risk Level Colors */
+    --risk-low: #10b981;
+    --risk-low-bg: rgba(16, 185, 129, 0.15);
+    --risk-low-border: rgba(16, 185, 129, 0.4);
+    
+    --risk-medium: #d29922;
+    --risk-medium-bg: rgba(210, 153, 34, 0.15);
+    --risk-medium-border: rgba(210, 153, 34, 0.4);
+    
+    --risk-high: #f85149;
+    --risk-high-bg: rgba(248, 81, 73, 0.15);
+    --risk-high-border: rgba(248, 81, 73, 0.4);
+    
+    --risk-extreme: #cf222e;
+    --risk-extreme-bg: rgba(207, 34, 46, 0.15);
+    --risk-extreme-border: rgba(207, 34, 46, 0.4);
+    
+    /* Status Colors */
+    --status-active: #3fb950;
+    --status-active-bg: rgba(63, 185, 80, 0.15);
+    --status-active-glow: rgba(63, 185, 80, 0.5);
+    
+    --status-pending: #d29922;
+    --status-pending-bg: rgba(210, 153, 34, 0.15);
+    --status-pending-glow: rgba(210, 153, 34, 0.5);
+    
+    --status-inactive: #7d8590;
+    --status-inactive-bg: rgba(125, 133, 144, 0.15);
+    
+    --status-error: #f85149;
+    --status-error-bg: rgba(248, 81, 73, 0.15);
+    --status-error-glow: rgba(248, 81, 73, 0.5);
+    
+    /* Sentiment Colors */
+    --sentiment-bullish: #10b981;
+    --sentiment-bullish-bg: rgba(16, 185, 129, 0.1);
+    --sentiment-bullish-glow: 0 0 20px rgba(16, 185, 129, 0.3);
+    
+    --sentiment-neutral: #7d8590;
+    --sentiment-neutral-bg: rgba(125, 133, 144, 0.1);
+    
+    --sentiment-bearish: #f85149;
+    --sentiment-bearish-bg: rgba(248, 81, 73, 0.1);
+    --sentiment-bearish-glow: 0 0 20px rgba(248, 81, 73, 0.3);
+    
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    --glass-highlight: rgba(255, 255, 255, 0.1);
+    
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Light theme adjustments */
+.light-theme {
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.8);
+}
+
+/* ==================== ENHANCED KPI CARDS WITH SPARKLINES ==================== */
+.kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    opacity: 0;
+    transition: opacity var(--transition-base);
+}
+
+.kpi-card:hover::before {
+    opacity: 1;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent-primary);
+}
+
+.kpi-card.glassmorphic {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 0 var(--glass-highlight);
+}
+
+/* KPI Header with Trend Indicator */
+.kpi-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.kpi-title {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-trend-indicator {
+    font-size: 1.25rem;
+    line-height: 1;
+    opacity: 0.7;
+    transition: all var(--transition-base);
+}
+
+.kpi-trend-indicator.bullish {
+    color: var(--sentiment-bullish);
+    filter: drop-shadow(var(--sentiment-bullish-glow));
+}
+
+.kpi-trend-indicator.bearish {
+    color: var(--sentiment-bearish);
+    filter: drop-shadow(var(--sentiment-bearish-glow));
+}
+
+.kpi-trend-indicator.neutral {
+    color: var(--sentiment-neutral);
+}
+
+.kpi-card:hover .kpi-trend-indicator {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* KPI Value Row with Sparkline */
+.kpi-value-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+    transition: font-variation-settings var(--transition-base);
+}
+
+@supports (font-variation-settings: normal) {
+    .kpi-value {
+        font-variation-settings: 'wght' 700;
+    }
+    
+    .kpi-card:hover .kpi-value {
+        font-variation-settings: 'wght' 800;
+    }
+}
+
+/* Sparkline Container */
+.kpi-sparkline {
+    width: 80px;
+    height: 36px;
+    flex-shrink: 0;
+    position: relative;
+    opacity: 0.8;
+    transition: all var(--transition-base);
+}
+
+.kpi-card:hover .kpi-sparkline {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.kpi-sparkline canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* KPI Footer with Details */
+.kpi-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.kpi-change {
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.kpi-change.positive {
+    color: var(--perf-good);
+}
+
+.kpi-change.negative {
+    color: var(--perf-poor);
+}
+
+.kpi-change-pct {
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.kpi-change-pct.positive {
+    background: var(--perf-good-bg);
+    color: var(--perf-good);
+    border: 1px solid var(--perf-good-border);
+}
+
+.kpi-change-pct.negative {
+    background: var(--perf-poor-bg);
+    color: var(--perf-poor);
+    border: 1px solid var(--perf-poor-border);
+}
+
+.kpi-period {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+/* ==================== ANIMATED NUMBER COUNTERS ==================== */
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.kpi-value.animating {
+    animation: countUp 0.4s var(--transition-base);
+}
+
+/* Numeric elements with tabular nums */
+.numeric {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+
+/* ==================== PAGE TRANSITIONS ==================== */
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideRight {
+    from { opacity: 0; transform: translateX(-40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.fade-in {
+    animation: fadeIn var(--transition-base) ease-out;
+}
+
+.fade-out {
+    animation: fadeOut var(--transition-base) ease-out;
+}
+
+.slide-up {
+    animation: slideUp var(--transition-slow) ease-out;
+}
+
+.slide-right {
+    animation: slideRight var(--transition-slow) ease-out;
+}
+
+/* Page container transitions */
+#main-container {
+    transition: opacity var(--transition-base) ease, 
+                transform var(--transition-base) ease;
+}
+
+#main-container.transitioning-out {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+#main-container.transitioning-in {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+/* ==================== STAGGERED ANIMATIONS ==================== */
+.kpi-grid .kpi-card,
+.data-table tbody tr,
+.chart-card {
+    animation: slideUp var(--transition-slow) ease-out both;
+}
+
+/* Stagger delay for grid items */
+.kpi-grid .kpi-card:nth-child(1) { animation-delay: 0ms; }
+.kpi-grid .kpi-card:nth-child(2) { animation-delay: 50ms; }
+.kpi-grid .kpi-card:nth-child(3) { animation-delay: 100ms; }
+.kpi-grid .kpi-card:nth-child(4) { animation-delay: 150ms; }
+.kpi-grid .kpi-card:nth-child(5) { animation-delay: 200ms; }
+.kpi-grid .kpi-card:nth-child(6) { animation-delay: 250ms; }
+.kpi-grid .kpi-card:nth-child(7) { animation-delay: 300ms; }
+.kpi-grid .kpi-card:nth-child(8) { animation-delay: 350ms; }
+
+/* Stagger delay for table rows */
+.data-table tbody tr { animation: slideRight var(--transition-base) ease-out both; }
+.data-table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.data-table tbody tr:nth-child(2) { animation-delay: 30ms; }
+.data-table tbody tr:nth-child(3) { animation-delay: 60ms; }
+.data-table tbody tr:nth-child(4) { animation-delay: 90ms; }
+.data-table tbody tr:nth-child(5) { animation-delay: 120ms; }
+.data-table tbody tr:nth-child(6) { animation-delay: 150ms; }
+.data-table tbody tr:nth-child(7) { animation-delay: 180ms; }
+.data-table tbody tr:nth-child(8) { animation-delay: 210ms; }
+.data-table tbody tr:nth-child(9) { animation-delay: 240ms; }
+.data-table tbody tr:nth-child(10) { animation-delay: 270ms; }
+
+/* ==================== SKELETON MORPHING ==================== */
+@keyframes skeletonShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--bg-tertiary) 0%,
+        var(--bg-hover) 50%,
+        var(--bg-tertiary) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+.skeleton-morphing {
+    animation: skeletonShimmer 1.5s ease-in-out infinite,
+               fadeOut 0.3s ease-out 0.2s forwards;
+}
+
+.skeleton-content {
+    opacity: 0;
+    animation: fadeIn 0.4s ease-out 0.5s forwards;
+}
+
+/* ==================== GRADIENT OVERLAYS ==================== */
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.gradient-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    transition: opacity var(--transition-base);
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+/* Performance-based gradients */
+.gradient-excellent {
+    background: linear-gradient(
+        135deg,
+        rgba(16, 185, 129, 0.15) 0%,
+        rgba(52, 211, 153, 0.15) 100%
+    );
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+}
+
+.gradient-good {
+    background: linear-gradient(
+        135deg,
+        rgba(63, 185, 80, 0.15) 0%,
+        rgba(52, 211, 153, 0.15) 100%
+    );
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+}
+
+.gradient-poor {
+    background: linear-gradient(
+        135deg,
+        rgba(248, 81, 73, 0.15) 0%,
+        rgba(239, 68, 68, 0.15) 100%
+    );
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+}
+
+.gradient-critical {
+    background: linear-gradient(
+        135deg,
+        rgba(207, 34, 46, 0.2) 0%,
+        rgba(239, 68, 68, 0.2) 100%
+    );
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+}
+
+.kpi-card:hover .gradient-overlay {
+    opacity: 1;
+}
+
+/* ==================== PREMIUM EFFECTS ==================== */
+
+/* Glow effect for active elements */
+@keyframes glow {
+    0%, 100% { filter: drop-shadow(0 0 8px currentColor); }
+    50% { filter: drop-shadow(0 0 16px currentColor); }
+}
+
+.status-active,
+.status-pending {
+    animation: glow 2s ease-in-out infinite;
+}
+
+/* Floating animation for icons */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.empty-state-icon,
+.kpi-trend-indicator {
+    animation: float 3s ease-in-out infinite;
+}
+
+/* ==================== SEMANTIC BADGES ==================== */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all var(--transition-base);
+    border: 1px solid transparent;
+}
+
+/* Performance badges */
+.badge-excellent {
+    background: var(--perf-excellent-bg);
+    color: var(--perf-excellent);
+    border-color: var(--perf-excellent-border);
+}
+
+.badge-good {
+    background: var(--perf-good-bg);
+    color: var(--perf-good);
+    border-color: var(--perf-good-border);
+}
+
+.badge-neutral {
+    background: var(--perf-neutral-bg);
+    color: var(--perf-neutral);
+    border-color: var(--perf-neutral-border);
+}
+
+.badge-poor {
+    background: var(--perf-poor-bg);
+    color: var(--perf-poor);
+    border-color: var(--perf-poor-border);
+}
+
+.badge-critical {
+    background: var(--perf-critical-bg);
+    color: var(--perf-critical);
+    border-color: var(--perf-critical-border);
+}
+
+/* Risk badges */
+.badge-risk-low {
+    background: var(--risk-low-bg);
+    color: var(--risk-low);
+    border-color: var(--risk-low-border);
+}
+
+.badge-risk-medium {
+    background: var(--risk-medium-bg);
+    color: var(--risk-medium);
+    border-color: var(--risk-medium-border);
+}
+
+.badge-risk-high {
+    background: var(--risk-high-bg);
+    color: var(--risk-high);
+    border-color: var(--risk-high-border);
+}
+
+.badge-risk-extreme {
+    background: var(--risk-extreme-bg);
+    color: var(--risk-extreme);
+    border-color: var(--risk-extreme-border);
+}
+
+/* Status badges with pulse */
+.badge-active {
+    background: var(--status-active-bg);
+    color: var(--status-active);
+    border-color: var(--status-active);
+    box-shadow: 0 0 0 0 var(--status-active-glow);
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+.badge-pending {
+    background: var(--status-pending-bg);
+    color: var(--status-pending);
+    border-color: var(--status-pending);
+    box-shadow: 0 0 0 0 var(--status-pending-glow);
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+.badge-inactive {
+    background: var(--status-inactive-bg);
+    color: var(--status-inactive);
+    border-color: var(--status-inactive);
+}
+
+.badge-error {
+    background: var(--status-error-bg);
+    color: var(--status-error);
+    border-color: var(--status-error);
+    box-shadow: 0 0 0 0 var(--status-error-glow);
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 currentColor;
+        opacity: 1;
+    }
+    50% {
+        box-shadow: 0 0 0 4px transparent;
+        opacity: 0.8;
+    }
+}
+
+/* Sentiment badges */
+.badge-bullish {
+    background: var(--sentiment-bullish-bg);
+    color: var(--sentiment-bullish);
+    border-color: var(--sentiment-bullish);
+}
+
+.badge-bearish {
+    background: var(--sentiment-bearish-bg);
+    color: var(--sentiment-bearish);
+    border-color: var(--sentiment-bearish);
+}
+
+.badge-sentiment-neutral {
+    background: var(--sentiment-neutral-bg);
+    color: var(--sentiment-neutral);
+    border-color: var(--sentiment-neutral);
+}
+
+/* Badge hover effects */
+.badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ==================== ENHANCED INTERACTIONS ==================== */
+
+/* Smooth button transitions */
+.btn,
+.chart-controls button,
+.date-preset-btn,
+.filter-panel button {
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before,
+.chart-controls button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn:hover::before,
+.chart-controls button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Enhanced hover states */
+.kpi-card,
+.chart-card,
+.data-table tbody tr {
+    transition: all var(--transition-base);
+}
+
+/* Micro-interactions for inputs */
+input[type="date"],
+input[type="text"],
+input[type="number"],
+select {
+    transition: all var(--transition-base);
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.1);
+    transform: translateY(-1px);
+}
+
+/* ==================== RESPONSIVE ENHANCEMENTS ==================== */
+
+@media (max-width: 768px) {
+    .kpi-value {
+        font-size: 1.75rem;
+    }
+    
+    .kpi-sparkline {
+        width: 60px;
+        height: 28px;
+    }
+    
+    .kpi-value-row {
+        gap: 0.5rem;
+    }
+    
+    /* Reduce animation complexity on mobile */
+    .kpi-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .gradient-overlay {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+
+/* Text utilities with proper numeric rendering */
+.text-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+
+.text-tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+
+/* Performance indicators */
+.perf-excellent { color: var(--perf-excellent); }
+.perf-good { color: var(--perf-good); }
+.perf-neutral { color: var(--perf-neutral); }
+.perf-poor { color: var(--perf-poor); }
+.perf-critical { color: var(--perf-critical); }
+
+/* Risk indicators */
+.risk-low { color: var(--risk-low); }
+.risk-medium { color: var(--risk-medium); }
+.risk-high { color: var(--risk-high); }
+.risk-extreme { color: var(--risk-extreme); }
+
+/* Status indicators */
+.status-active { color: var(--status-active); }
+.status-pending { color: var(--status-pending); }
+.status-inactive { color: var(--status-inactive); }
+.status-error { color: var(--status-error); }
+
+/* Sentiment indicators */
+.sentiment-bullish { color: var(--sentiment-bullish); }
+.sentiment-bearish { color: var(--sentiment-bearish); }
+.sentiment-neutral { color: var(--sentiment-neutral); }
+
+/* ==================== PRINT STYLES ==================== */
+
+@media print {
+    .kpi-card,
+    .chart-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    .gradient-overlay,
+    .kpi-sparkline::after {
+        display: none;
+    }
+    
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ==================== HIGH CONTRAST MODE ==================== */
+
+@media (prefers-contrast: high) {
+    .kpi-card,
+    .badge {
+        border-width: 2px;
+    }
+    
+    .kpi-value {
+        font-weight: 800;
+    }
+}
+
+/* ==================== DARK MODE SPECIFIC ENHANCEMENTS ==================== */
+
+@media (prefers-color-scheme: dark) {
+    :root:not(.light-theme) {
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-highlight: rgba(255, 255, 255, 0.05);
+    }
+}
+
+console.log('✅ Visual Excellence CSS v7.0 loaded');
