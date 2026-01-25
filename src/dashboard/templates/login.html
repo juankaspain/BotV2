@@ -13,7 +13,7 @@
     
     <title>BotV2 Dashboard - Login</title>
     
-    <!-- Professional Font -->
+    <!-- Professional Font (Google Fonts doesn't support SRI - dynamic CSS) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -236,10 +236,11 @@
         </div>
     </div>
 
-    <!-- 🔒 SECURITY: DOMPurify for XSS Protection -->
+    <!-- 🔒 SECURITY: DOMPurify for XSS Protection (SRI Protected) -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js" 
-            integrity="sha384-SYJ8QtKHhth5O6jOgwGQO7PaFJLLYZwKUlYPJNJm9Z5L6dD6RnKZWqPJJvFdlPJX" 
-            crossorigin="anonymous"></script>
+            integrity="sha512-KqUc2SPCA2gKEZLjRm/2FLuV1Y9LN+3j+w3xHmYEu/1KF+VqeaCqBqCZcQrDSiDPbdlPWPKH/aqnVR3KzRCXKw==" 
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
     
     <!-- 🔐 CSP NONCE: All inline scripts use server-generated nonce -->
     <script nonce="{{ csp_nonce }}">
@@ -248,7 +249,7 @@
             const passwordInput = document.getElementById('password');
             const savedUsername = localStorage.getItem('botv2_username');
             
-            requestAnimationFrame(() => {
+            requestAnimationFrame(function() {
                 if (savedUsername && savedUsername.trim() !== '') {
                     usernameInput.value = savedUsername;
                     passwordInput.focus();
@@ -286,9 +287,9 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+                body: 'username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password)
             })
-            .then(response => {
+            .then(function(response) {
                 if (response.ok) {
                     return response.json();
                 } else if (response.status === 401) {
@@ -299,19 +300,23 @@
                     throw new Error('Login failed');
                 }
             })
-            .then(data => {
+            .then(function(data) {
                 localStorage.setItem('botv2_username', username);
                 window.location.href = data.redirect || '/';
             })
-            .catch(error => {
+            .catch(function(error) {
                 errorMessage.textContent = DOMPurify.sanitize(error.message);
                 errorMessage.classList.add('show');
                 btn.disabled = false;
                 btnText.textContent = 'Sign In';
                 spinner.classList.remove('show');
                 document.getElementById('password').value = '';
-                requestAnimationFrame(() => { document.getElementById('password').focus(); });
-                setTimeout(() => { errorMessage.classList.remove('show'); }, 5000);
+                requestAnimationFrame(function() { 
+                    document.getElementById('password').focus(); 
+                });
+                setTimeout(function() { 
+                    errorMessage.classList.remove('show'); 
+                }, 5000);
             });
         });
 
