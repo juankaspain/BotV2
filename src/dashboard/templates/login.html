@@ -231,15 +231,18 @@
         </div>
 
         <div class="footer">
-            BotV2 v7.3 Enterprise Edition - Security Phase 1<br>
+            BotV2 v7.5 Enterprise Edition - Nonce-Based CSP<br>
             <a href="https://github.com/juankaspain/BotV2" target="_blank">Documentation</a>
         </div>
     </div>
 
     <!-- 🔒 SECURITY: DOMPurify for XSS Protection -->
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js" 
+            integrity="sha384-SYJ8QtKHhth5O6jOgwGQO7PaFJLLYZwKUlYPJNJm9Z5L6dD6RnKZWqPJJvFdlPJX" 
+            crossorigin="anonymous"></script>
     
-    <script>
+    <!-- 🔐 CSP NONCE: All inline scripts use server-generated nonce -->
+    <script nonce="{{ csp_nonce }}">
         function initializeFocus() {
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
