@@ -154,13 +154,21 @@ class SecurityAuditLogger:
             **kwargs
         )
     
-    def log_session_timeout(self, session_id: str, timeout_type: str = 'idle', **kwargs):
-        """Log session timeout"""
+    def log_session_timeout(self, username: str, session_id: str, reason: str = 'idle', **kwargs):
+        """Log session timeout
+        
+        Args:
+            username: Username whose session timed out
+            session_id: Session ID
+            reason: Timeout reason (e.g., 'idle', 'automatic_timeout', 'max_lifetime')
+            **kwargs: Additional context
+        """
         self._log_event(
             'session.timeout',
             'INFO',
+            user=username,
             session_id=session_id,
-            timeout_type=timeout_type,
+            timeout_reason=reason,
             **kwargs
         )
     
@@ -184,6 +192,63 @@ class SecurityAuditLogger:
             'CRITICAL',
             field=field,
             value_preview=value[:100],  # First 100 chars
+            **kwargs
+        )
+    
+    # ==================== INPUT VALIDATION EVENTS ====================
+    
+    def log_invalid_input(self, field: str, error: str, **kwargs):
+        """Log invalid input validation failure
+        
+        Args:
+            field: Field name that failed validation
+            error: Validation error message
+            **kwargs: Additional context
+        """
+        self._log_event(
+            'security.input_validation.failed',
+            'WARNING',
+            field=field,
+            validation_error=error,
+            **kwargs
+        )
+    
+    # ==================== AUTHORIZATION EVENTS ====================
+    
+    def log_permission_denied(self, resource: str, action: str, reason: str = 'insufficient_privileges', **kwargs):
+        """Log authorization failure
+        
+        Args:
+            resource: Resource being accessed
+            action: Action attempted (e.g., 'read', 'write', 'delete')
+            reason: Denial reason
+            **kwargs: Additional context
+        """
+        self._log_event(
+            'security.authorization.denied',
+            'WARNING',
+            resource=resource,
+            action=action,
+            reason=reason,
+            **kwargs
+        )
+    
+    # ==================== SUSPICIOUS ACTIVITY ====================
+    
+    def log_suspicious_activity(self, activity_type: str, description: str, severity: str = 'WARNING', **kwargs):
+        """Log suspicious activity
+        
+        Args:
+            activity_type: Type of suspicious activity
+            description: Description of what was detected
+            severity: Log severity (WARNING, ERROR, CRITICAL)
+            **kwargs: Additional context
+        """
+        self._log_event(
+            'security.suspicious_activity',
+            severity,
+            activity_type=activity_type,
+            description=description,
             **kwargs
         )
     
