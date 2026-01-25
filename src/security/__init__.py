@@ -9,7 +9,7 @@ Provides comprehensive security features for BotV2:
 - Audit Logging (structured JSON logs)
 - Request Validation (size, content-type)
 
-Phase 1 Status: 90% Complete (integration pending)
+Phase 1 Status: 100% Complete
 """
 
 # CSRF Protection
@@ -51,13 +51,15 @@ from .input_validator import (
     
     # Annotations
     AnnotationRequest,
+    AnnotationCreate,  # Alias for compatibility
     
     # Configuration
     ConfigUpdateRequest,
     
     # Market Data
-    MarketSymbolRequest,
-    OHLCVRequest,
+    MarketDataRequest,
+    MarketSymbolRequest,  # Alias
+    OHLCVRequest,  # Alias
     
     # Strategies
     StrategyCreateRequest,
@@ -65,9 +67,18 @@ from .input_validator import (
     # Trades
     TradeExecutionRequest,
     
-    # Helpers
+    # Validation Helpers
+    validate_input,
     validate_request_data,
-    get_validation_errors
+    get_validation_errors,
+    sanitize_filename,
+    
+    # Legacy functions (backwards compatibility)
+    validate_login_request,
+    validate_annotation_request,
+    validate_market_data_request,
+    validate_pagination,
+    validate_date_range
 )
 
 # Audit Logging
@@ -76,6 +87,16 @@ from .audit_logger import (
     get_audit_logger,
     init_audit_logger
 )
+
+# Rate Limiting (if available)
+try:
+    from .rate_limiter import (
+        RateLimiterConfig,
+        init_rate_limiter
+    )
+    HAS_RATE_LIMITER = True
+except ImportError:
+    HAS_RATE_LIMITER = False
 
 # Secrets Management (existing)
 try:
@@ -125,11 +146,13 @@ __all__ = [
     
     # Annotation Models
     'AnnotationRequest',
+    'AnnotationCreate',
     
     # Configuration Models
     'ConfigUpdateRequest',
     
     # Market Data Models
+    'MarketDataRequest',
     'MarketSymbolRequest',
     'OHLCVRequest',
     
@@ -140,8 +163,17 @@ __all__ = [
     'TradeExecutionRequest',
     
     # Validation Helpers
+    'validate_input',
     'validate_request_data',
     'get_validation_errors',
+    'sanitize_filename',
+    
+    # Legacy validation functions
+    'validate_login_request',
+    'validate_annotation_request',
+    'validate_market_data_request',
+    'validate_pagination',
+    'validate_date_range',
     
     # ==================== Audit Logging ====================
     'SecurityAuditLogger',
@@ -150,6 +182,9 @@ __all__ = [
 ]
 
 # Add optional exports if available
+if HAS_RATE_LIMITER:
+    __all__.extend(['RateLimiterConfig', 'init_rate_limiter'])
+
 if HAS_SECRETS_MANAGER:
     __all__.append('SecretsManager')
 
@@ -158,4 +193,4 @@ if HAS_SSL_CONFIG:
 
 
 __version__ = '1.1.0'
-__phase__ = 'Phase 1 - 90% Complete'
+__phase__ = 'Phase 1 - 100% Complete'
