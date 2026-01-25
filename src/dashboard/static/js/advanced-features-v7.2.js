@@ -1,17 +1,19 @@
-// ==================== BOTV2 ADVANCED FEATURES v7.2 ====================
+// ==================== BOTV2 ADVANCED FEATURES v7.2.1 ====================
 // 🚀 Command Palette & AI Insights System
 // Author: Juan Carlos Garcia
-// Date: 24 Enero 2026
+// Date: 25 Enero 2026
+// Version: 7.2.1 - Fixed InsightsPanel toggle
 //
 // Features:
 // - Command Palette (Ctrl+K / Cmd+K)
 // - Fuzzy Search Algorithm
 // - Keyboard Navigation (Arrow Keys, Enter, Esc)
-// - AI-powered Insights Panel
+// - AI-powered Insights Panel with toggle() method
 // - Real-time Suggestions
 // - Context-aware Actions
+// - Keyboard shortcut Ctrl+/ for Insights
 
-console.log('🚀 Advanced Features v7.2 initializing...');
+console.log('🚀 Advanced Features v7.2.1 initializing...');
 
 // ==================== COMMAND PALETTE ====================
 class CommandPalette {
@@ -199,6 +201,16 @@ class CommandPalette {
                 category: 'Actions',
                 keywords: ['download', 'save', 'backup'],
                 action: () => this.executeAction('export')
+            },
+            {
+                id: 'action-insights',
+                title: 'Toggle AI Insights',
+                description: 'Show/hide insights panel',
+                icon: '💡',
+                category: 'Actions',
+                keywords: ['ai', 'smart', 'recommendations'],
+                keys: ['Ctrl', '/'],
+                action: () => { if (typeof InsightsPanel !== 'undefined' && InsightsPanel.toggle) InsightsPanel.toggle(); }
             },
             
             // Settings
@@ -516,7 +528,7 @@ class CommandPalette {
     
     // Command actions
     navigate(section) {
-        console.log(`🧭Navigating to: ${section}`);
+        console.log(`🧭 Navigating to: ${section}`);
         if (typeof loadSection === 'function') {
             loadSection(section);
         }
@@ -546,6 +558,7 @@ class CommandPalette {
 ⌨️ Keyboard Shortcuts:
 
 Ctrl/Cmd + K - Command Palette
+Ctrl + / - Toggle Insights Panel
 Ctrl + R - Refresh
 Esc - Close overlays
 ↑ ↓ - Navigate
@@ -559,137 +572,167 @@ Enter - Select
 }
 
 // ==================== AI INSIGHTS PANEL ====================
-class InsightsPanel {
-    constructor() {
-        this.insights = [];
-        this.isLoading = false;
-        this.container = null;
+const InsightsPanel = (() => {
+    let isVisible = false;
+    let isInitialized = false;
+    let panelElement = null;
+    let insights = [];
+    let isLoading = false;
+    
+    function init() {
+        if (isInitialized) return;
+        
+        createPanel();
+        bindKeyboardShortcut();
+        isInitialized = true;
         
         console.log('✅ Insights Panel initialized');
     }
     
-    render(containerId) {
-        this.container = document.getElementById(containerId);
-        if (!this.container) {
-            console.warn(`Container ${containerId} not found`);
-            return;
-        }
+    function createPanel() {
+        panelElement = document.createElement('div');
+        panelElement.id = 'insights-panel';
+        panelElement.className = 'insights-panel-overlay';
+        panelElement.style.cssText = `
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-default);
+            box-shadow: -8px 0 24px rgba(0,0,0,0.3);
+            z-index: 9998;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        `;
         
-        const html = `
-            <div class="insights-panel">
-                <div class="insights-header">
-                    <div class="insights-header-left">
-                        <svg class="insights-icon" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/>
-                        </svg>
-                        <div class="insights-title">
-                            Smart Insights
-                            <span class="insights-badge" id="insights-count">0</span>
-                        </div>
-                    </div>
-                    <div class="insights-actions">
-                        <button class="insights-action-btn" onclick="window.AdvancedFeatures.refreshInsights()">
-                            🔄 Refresh
-                        </button>
+        panelElement.innerHTML = `
+            <div class="insights-header" style="padding: 20px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20" style="color: var(--accent-primary)">
+                        <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/>
+                    </svg>
+                    <div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);">AI Insights</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Smart recommendations</div>
                     </div>
                 </div>
-                <div class="insights-list" id="insights-list">
-                    <!-- Insights will be inserted here -->
-                </div>
+                <button onclick="InsightsPanel.close()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: all 0.2s;" onmouseover="this.style.background='var(--bg-hover)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='none';this.style.color='var(--text-muted)'">×</button>
+            </div>
+            <div id="insights-content" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <!-- Insights will be loaded here -->
             </div>
         `;
         
-        this.container.innerHTML = html;
-        this.listContainer = document.getElementById('insights-list');
-        
-        // Load initial insights
-        this.loadInsights();
+        document.body.appendChild(panelElement);
     }
     
-    async loadInsights() {
-        this.isLoading = true;
-        this.showLoading();
+    function bindKeyboardShortcut() {
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === '/') {
+                e.preventDefault();
+                toggle();
+            }
+        });
+    }
+    
+    function toggle() {
+        if (isVisible) {
+            close();
+        } else {
+            open();
+        }
+    }
+    
+    function open() {
+        if (!isInitialized) init();
+        
+        isVisible = true;
+        panelElement.style.right = '0';
+        
+        if (insights.length === 0) {
+            loadInsights();
+        }
+    }
+    
+    function close() {
+        isVisible = false;
+        panelElement.style.right = '-400px';
+    }
+    
+    async function loadInsights() {
+        isLoading = true;
+        showLoading();
         
         // Simulate API call
-        await this.wait(1500);
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Generate mock insights
-        this.insights = this.generateMockInsights();
+        insights = generateMockInsights();
         
-        this.isLoading = false;
-        this.renderInsights();
+        isLoading = false;
+        renderInsights();
     }
     
-    generateMockInsights() {
-        const insights = [];
-        
-        // Performance insights
-        insights.push({
-            id: 'insight-1',
-            type: 'Performance',
-            title: 'Strong Momentum Detected',
-            description: 'Portfolio up 8.5% in last 7 days. Current trend suggests continued growth potential.',
-            icon: '📈',
-            severity: 'success',
-            confidence: 92,
-            time: '2 min ago',
-            actions: [
-                { label: 'View Details', icon: '🔍', action: 'view-performance' },
-                { label: 'Share', icon: '📤', action: 'share' }
-            ]
-        });
-        
-        // Risk warning
-        insights.push({
-            id: 'insight-2',
-            type: 'Risk Alert',
-            title: 'Elevated Drawdown Risk',
-            description: 'Current drawdown at -5.2%. Consider reducing position sizes or adjusting stop-loss levels.',
-            icon: '⚠️',
-            severity: 'warning',
-            confidence: 87,
-            time: '15 min ago',
-            actions: [
-                { label: 'View Risk', icon: '🔒', action: 'view-risk' },
-                { label: 'Adjust', icon: '⚙️', action: 'adjust-risk' }
-            ]
-        });
-        
-        // Opportunity
-        insights.push({
-            id: 'insight-3',
-            type: 'Opportunity',
-            title: 'Unused Capital Available',
-            description: '€10,500 available for deployment. Market conditions favorable for additional positions.',
-            icon: '💰',
-            severity: 'info',
-            confidence: 78,
-            time: '1 hour ago',
-            actions: [
-                { label: 'View Markets', icon: '🌐', action: 'view-markets' },
-                { label: 'Deploy', icon: '🚀', action: 'deploy-capital' }
-            ]
-        });
-        
-        return insights;
+    function generateMockInsights() {
+        return [
+            {
+                id: 'insight-1',
+                type: 'Performance',
+                title: 'Strong Momentum Detected',
+                description: 'Portfolio up 8.5% in last 7 days. Current trend suggests continued growth potential.',
+                icon: '📈',
+                severity: 'success',
+                confidence: 92,
+                time: '2 min ago'
+            },
+            {
+                id: 'insight-2',
+                type: 'Risk Alert',
+                title: 'Elevated Drawdown Risk',
+                description: 'Current drawdown at -5.2%. Consider reducing position sizes or adjusting stop-loss levels.',
+                icon: '⚠️',
+                severity: 'warning',
+                confidence: 87,
+                time: '15 min ago'
+            },
+            {
+                id: 'insight-3',
+                type: 'Opportunity',
+                title: 'Unused Capital Available',
+                description: '€10,500 available for deployment. Market conditions favorable for additional positions.',
+                icon: '💰',
+                severity: 'info',
+                confidence: 78,
+                time: '1 hour ago'
+            }
+        ];
     }
     
-    showLoading() {
-        this.listContainer.innerHTML = `
-            <div class="insights-loading">
-                <div class="insights-loading-spinner"></div>
-                <div class="insights-loading-text">Analyzing data...</div>
+    function showLoading() {
+        const content = document.getElementById('insights-content');
+        if (!content) return;
+        
+        content.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px;">
+                <div style="width: 40px; height: 40px; border: 3px solid var(--border-default); border-top-color: var(--accent-primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                <div style="color: var(--text-secondary); font-size: 14px;">Analyzing data...</div>
             </div>
         `;
     }
     
-    renderInsights() {
-        if (this.insights.length === 0) {
-            this.listContainer.innerHTML = `
-                <div class="insights-empty">
-                    <div class="insights-empty-icon">🧐</div>
-                    <div class="insights-empty-title">No Insights Available</div>
-                    <div class="insights-empty-description">
+    function renderInsights() {
+        const content = document.getElementById('insights-content');
+        if (!content) return;
+        
+        if (insights.length === 0) {
+            content.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🧐</div>
+                    <div style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">No Insights Available</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
                         We're analyzing your portfolio. Check back soon for personalized recommendations.
                     </div>
                 </div>
@@ -697,121 +740,97 @@ class InsightsPanel {
             return;
         }
         
-        // Update count badge
-        const countBadge = document.getElementById('insights-count');
-        if (countBadge) {
-            countBadge.textContent = this.insights.length;
-        }
-        
         let html = '';
         
-        this.insights.forEach(insight => {
-            const confidenceLevel = insight.confidence >= 85 ? 'high' : 
-                                   insight.confidence >= 70 ? 'medium' : 'low';
+        insights.forEach(insight => {
+            const colors = {
+                success: { bg: 'rgba(63, 185, 80, 0.1)', border: 'var(--accent-success)', icon: 'var(--accent-success)' },
+                warning: { bg: 'rgba(210, 153, 34, 0.1)', border: 'var(--accent-warning)', icon: 'var(--accent-warning)' },
+                info: { bg: 'rgba(47, 129, 247, 0.1)', border: 'var(--accent-primary)', icon: 'var(--accent-primary)' },
+                danger: { bg: 'rgba(248, 81, 73, 0.1)', border: 'var(--accent-danger)', icon: 'var(--accent-danger)' }
+            };
+            
+            const style = colors[insight.severity] || colors.info;
             
             html += `
-                <div class="insight-item insight-${insight.severity}">
-                    <div class="insight-icon-container ${insight.severity}">
-                        <span style="font-size: 20px;">${insight.icon}</span>
-                    </div>
-                    <div class="insight-content">
-                        <div class="insight-type">${insight.type}</div>
-                        <div class="insight-title">${insight.title}</div>
-                        <div class="insight-description">${insight.description}</div>
-                        <div class="insight-meta">
-                            <div class="insight-time">
-                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
-                                </svg>
-                                ${insight.time}
-                            </div>
-                            <div class="insight-confidence">
-                                <span>Confidence</span>
-                                <div class="insight-confidence-bar">
-                                    <div class="insight-confidence-fill ${confidenceLevel}" style="width: ${insight.confidence}%"></div>
-                                </div>
-                                <span>${insight.confidence}%</span>
-                            </div>
+                <div style="background: ${style.bg}; border-left: 3px solid ${style.border}; border-radius: 8px; padding: 16px; margin-bottom: 16px; animation: fadeIn 0.3s ease-out;">
+                    <div style="display: flex; align-items: start; gap: 12px; margin-bottom: 12px;">
+                        <div style="font-size: 24px; color: ${style.icon};">${insight.icon}</div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">${insight.type}</div>
+                            <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">${insight.title}</div>
+                            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">${insight.description}</div>
                         </div>
-                        ${insight.actions && insight.actions.length > 0 ? `
-                            <div class="insight-actions">
-                                ${insight.actions.map(action => `
-                                    <button class="insight-action" onclick="window.AdvancedFeatures.executeInsightAction('${action.action}')">
-                                        <span>${action.icon}</span>
-                                        <span>${action.label}</span>
-                                    </button>
-                                `).join('')}
-                            </div>
-                        ` : ''}
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                            ${insight.time}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span>Confidence:</span>
+                            <span style="font-weight: 600; color: var(--text-primary);">${insight.confidence}%</span>
+                        </div>
                     </div>
                 </div>
             `;
         });
         
-        this.listContainer.innerHTML = html;
+        content.innerHTML = html;
     }
     
-    executeAction(action) {
-        console.log(`⚡ Executing insight action: ${action}`);
-        
-        switch (action) {
-            case 'view-performance':
-                if (typeof loadSection === 'function') loadSection('performance');
-                break;
-            case 'view-risk':
-                if (typeof loadSection === 'function') loadSection('risk');
-                break;
-            case 'view-markets':
-                if (typeof loadSection === 'function') loadSection('markets');
-                break;
-            case 'share':
-                alert('📤 Share feature coming soon!');
-                break;
-            case 'adjust-risk':
-                alert('⚙️ Risk adjustment panel coming soon!');
-                break;
-            case 'deploy-capital':
-                alert('🚀 Capital deployment wizard coming soon!');
-                break;
-        }
+    function refresh() {
+        loadInsights();
     }
     
-    refresh() {
-        this.loadInsights();
-    }
-    
-    wait(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-}
+    // Public API
+    return {
+        init,
+        toggle,
+        open,
+        close,
+        refresh,
+        isVisible: () => isVisible
+    };
+})();
 
 // ==================== INITIALIZATION ====================
 const commandPalette = new CommandPalette();
-const insightsPanel = new InsightsPanel();
 
-// Global exports
-window.AdvancedFeatures = {
-    commandPalette,
-    insightsPanel,
-    openCommandPalette: () => commandPalette.open(),
-    refreshInsights: () => insightsPanel.refresh(),
-    executeInsightAction: (action) => insightsPanel.executeAction(action)
-};
-
-// Auto-initialize insights panel if container exists
+// Initialize Insights Panel
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        const container = document.getElementById('insights-container');
-        if (container) {
-            insightsPanel.render('insights-container');
-        }
+        InsightsPanel.init();
     });
 } else {
-    const container = document.getElementById('insights-container');
-    if (container) {
-        insightsPanel.render('insights-container');
-    }
+    InsightsPanel.init();
 }
 
-console.log('✅ Advanced Features v7.2 loaded and active');
+// Global exports
+window.CommandPalette = commandPalette;
+window.InsightsPanel = InsightsPanel;
+window.AdvancedFeatures = {
+    commandPalette,
+    insightsPanel: InsightsPanel,
+    openCommandPalette: () => commandPalette.open(),
+    toggleInsights: () => InsightsPanel.toggle()
+};
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+`;
+document.head.appendChild(style);
+
+console.log('✅ Advanced Features v7.2.1 loaded and active');
 console.log('💡 Press Ctrl/Cmd + K to open Command Palette');
+console.log('💡 Press Ctrl + / to toggle Insights Panel');
