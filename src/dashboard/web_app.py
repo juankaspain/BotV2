@@ -4,7 +4,7 @@ Ultra-professional real-time trading dashboard with enterprise-grade security
 🔒 VERSION 7.0 - SECURITY PHASE 1 COMPLETE:
 - ✅ CSRF Protection (Flask-WTF): Token-based validation
 - ✅ XSS Prevention (bleach + DOMPurify): Multi-layer sanitization
-- ✅ Input Validation (Pydantic): Type-safe request validation
+- ✅ Input Validation (Pydantic): Type-safe request validation  
 - ✅ Session Management: Secure cookies + automatic timeout
 - ✅ Rate Limiting (Redis): Brute force protection
 - ✅ Security Audit Logging: Comprehensive event tracking
@@ -38,16 +38,17 @@ import hashlib
 import secrets
 from pathlib import Path
 from collections import defaultdict
+from pydantic import ValidationError
 
 # 🔒 SECURITY IMPORTS
 try:
     from ..security.csrf_protection import CSRFProtection
     from ..security.xss_protection import XSSProtection, sanitize_html, sanitize_json
     from ..security.input_validator import (
-        LoginRequest, AnnotationRequest, validate_request, sanitize_request_data
+        LoginRequest, AnnotationCreate, validate_input, safe_dict
     )
-    from ..security.rate_limiter import init_rate_limiter, RateLimits
-    from ..security.audit_logger import SecurityAuditLogger, get_audit_logger
+    from ..security.rate_limiter import RateLimiterConfig
+    from ..security.audit_logger import get_audit_logger
     from ..security.security_middleware import init_security_middleware
     from ..security.session_manager import SessionManager
     HAS_SECURITY = True
@@ -108,10 +109,10 @@ logger = logging.getLogger(__name__)
 class DashboardAuth:
     """🔒 Enhanced Session-Based Authentication with Security Audit Logging"""
     
-    def __init__(self, audit_logger: Optional[SecurityAuditLogger] = None):
+    def __init__(self, audit_logger=None):
         self.username = os.getenv('DASHBOARD_USERNAME', 'admin')
         self.password_hash = self._get_password_hash()
-        self.audit_logger = audit_logger or (get_audit_logger() if HAS_SECURITY else None)
+        self.audit_logger = audit_logger
         self.failed_attempts = defaultdict(lambda: {'count': 0, 'last_attempt': None, 'locked_until': None})
         self.max_attempts = 5
         self.lockout_duration = timedelta(minutes=5)
@@ -144,14 +145,15 @@ class DashboardAuth:
         attempt_info['last_attempt'] = datetime.now()
         
         if self.audit_logger:
-            self.audit_logger.log_login_failure(username, 'invalid_credentials', ip)
+            self.audit_logger.log_login_failure(username, reason='invalid_credentials', failed_attempts=attempt_info['count'])
         
         if attempt_info['count'] >= self.max_attempts:
             attempt_info['locked_until'] = datetime.now() + self.lockout_duration
             if self.audit_logger:
                 self.audit_logger.log_account_locked(
-                    username, 'too_many_failed_attempts',
-                    attempt_info['locked_until'].isoformat(), ip
+                    username, 
+                    reason='too_many_failed_attempts',
+                    locked_until=attempt_info['locked_until'].isoformat()
                 )
     
     def record_successful_login(self, ip: str, username: str):
@@ -159,7 +161,7 @@ class DashboardAuth:
             del self.failed_attempts[ip]
         
         if self.audit_logger:
-            self.audit_logger.log_login_success(username, ip)
+            self.audit_logger.log_login_success(username)
     
     def check_credentials(self, username: str, password: str) -> bool:
         if not self.password_hash:
@@ -238,6 +240,11 @@ class ProfessionalDashboard:
             minutes=int(os.getenv('SESSION_TIMEOUT_MINUTES', 30))
         )
         self.app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+        
+        # 🔒 CSRF Configuration
+        self.app.config['WTF_CSRF_ENABLED'] = os.getenv('CSRF_ENABLED', 'true').lower() == 'true'
+        self.app.config['WTF_CSRF_TIME_LIMIT'] = int(os.getenv('CSRF_TOKEN_TTL', 3600))
+        self.app.config['WTF_CSRF_SSL_STRICT'] = self.is_production
     
     def _setup_security(self):
         """🔒 Initialize all security features"""
@@ -246,7 +253,11 @@ class ProfessionalDashboard:
             return
         
         # 1. CSRF Protection
-        self.csrf = CSRFProtection(self.app)
+        self.csrf = CSRFProtection(
+            self.app,
+            token_length=int(os.getenv('CSRF_TOKEN_LENGTH', 32)),
+            token_ttl=int(os.getenv('CSRF_TOKEN_TTL', 3600))
+        )
         logger.info("✅ CSRF Protection enabled")
         
         # 2. XSS Protection
@@ -254,13 +265,14 @@ class ProfessionalDashboard:
         logger.info("✅ XSS Protection enabled")
         
         # 3. Rate Limiting
-        self.limiter = init_rate_limiter(self.app)
+        rate_limiter_config = RateLimiterConfig(self.app)
+        self.limiter = rate_limiter_config.get_limiter()
         logger.info("✅ Rate Limiting enabled")
         
         # 4. Session Manager
         self.session_manager = SessionManager(
             self.app,
-            timeout_minutes=int(os.getenv('SESSION_TIMEOUT_MINUTES', 30)),
+            timeout_minutes=int(os.getenv('SESSION_TIMEOUT_MINUTES', 15)),
             max_lifetime_hours=int(os.getenv('SESSION_MAX_LIFETIME_HOURS', 12))
         )
         logger.info("✅ Session Management enabled")
@@ -270,20 +282,24 @@ class ProfessionalDashboard:
         logger.info("✅ Security Middleware enabled")
         
         # 6. HTTPS Enforcement (Production only)
-        if self.is_production:
+        if self.is_production and os.getenv('FORCE_HTTPS', 'true').lower() == 'true':
             Talisman(
                 self.app,
                 force_https=True,
                 strict_transport_security=True,
                 strict_transport_security_max_age=31536000,
+                strict_transport_security_include_subdomains=True,
+                strict_transport_security_preload=True,
                 content_security_policy={
                     'default-src': "'self'",
-                    'script-src': ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdn.socket.io", "https://cdn.plot.ly"],
+                    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://cdn.socket.io", "https://cdn.plot.ly"],
                     'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-                    'font-src': ["'self'", "https://fonts.gstatic.com"],
+                    'font-src': ["'self'", "https://fonts.gstatic.com", "data:"],
                     'img-src': ["'self'", "data:", "https:"],
                     'connect-src': ["'self'", "wss:", "ws:"],
-                    'frame-ancestors': "'none'"
+                    'frame-ancestors': "'none'",
+                    'base-uri': "'self'",
+                    'form-action': "'self'"
                 }
             )
             logger.info("✅ HTTPS Enforcement enabled (production)")
@@ -357,9 +373,9 @@ class ProfessionalDashboard:
     def _log_startup_banner(self):
         """📢 Log startup banner"""
         if self.audit_logger:
-            self.audit_logger.log_event(
-                'system.startup', 'INFO',
-                environment=self.env, version=__version__,
+            self.audit_logger.log_startup(
+                version=__version__,
+                environment=self.env,
                 security=HAS_SECURITY,
                 database=self.db_session is not None,
                 gzip=HAS_COMPRESS,
@@ -373,12 +389,14 @@ class ProfessionalDashboard:
         logger.info(f"Environment: {self.env.upper()}")
         logger.info(f"URL: http://{self.host}:{self.port}")
         logger.info(f"🔒 Security: {'ENABLED' if HAS_SECURITY else 'DISABLED'}")
-        logger.info(f"   - CSRF Protection: {'✅' if HAS_SECURITY else '❌'}")
-        logger.info(f"   - XSS Prevention: {'✅' if HAS_SECURITY else '❌'}")
-        logger.info(f"   - Input Validation: {'✅' if HAS_SECURITY else '❌'}")
-        logger.info(f"   - Rate Limiting: {'✅' if HAS_SECURITY else '❌'}")
-        logger.info(f"   - Session Management: {'✅' if HAS_SECURITY else '❌'}")
-        logger.info(f"   - Audit Logging: {'✅' if HAS_SECURITY else '❌'}")
+        if HAS_SECURITY:
+            logger.info("   - CSRF Protection: ✅")
+            logger.info("   - XSS Prevention: ✅")
+            logger.info("   - Input Validation: ✅")
+            logger.info("   - Rate Limiting: ✅")
+            logger.info("   - Session Management: ✅")
+            logger.info("   - Audit Logging: ✅")
+            logger.info("   - Security Headers: ✅")
         logger.info(f"📊 Metrics: {'✅ Active' if HAS_METRICS else '⚠️ Disabled'}")
         logger.info(f"✅ GZIP: {'✅ Enabled' if HAS_COMPRESS else '⚠️ Disabled'}")
         logger.info(f"💾 Database: {'✅ Connected' if self.db_session else '⚠️ Mock Mode'}")
@@ -397,6 +415,12 @@ class ProfessionalDashboard:
             if HAS_SECURITY and self.session_manager:
                 if not self.session_manager.validate_session():
                     session.clear()
+                    if self.audit_logger:
+                        self.audit_logger.log_session_timeout(
+                            session.get('session_id', 'unknown'),
+                            session.get('user', 'unknown'),
+                            'automatic_timeout'
+                        )
                     return redirect(url_for('login', error='session_expired'))
             
             return f(*args, **kwargs)
@@ -418,14 +442,19 @@ class ProfessionalDashboard:
             try:
                 # 🔒 Input validation (if security enabled)
                 if HAS_SECURITY:
-                    login_data = validate_request(LoginRequest, {
-                        'username': request.form.get('username', ''),
-                        'password': request.form.get('password', '')
-                    })
-                    username = login_data.username
-                    password = login_data.password
+                    try:
+                        login_data = validate_input(LoginRequest, {
+                            'username': request.form.get('username', ''),
+                            'password': request.form.get('password', '')
+                        })
+                        username = login_data.username
+                        password = login_data.password
+                    except ValidationError as e:
+                        if self.audit_logger:
+                            self.audit_logger.log_invalid_input('login_form', str(e))
+                        return jsonify({'error': 'Invalid input format'}), 400
                 else:
-                    username = request.form.get('username', '')
+                    username = request.form.get('username', '').strip()
                     password = request.form.get('password', '')
                 
                 ip = request.remote_addr
@@ -461,8 +490,6 @@ class ProfessionalDashboard:
                     self.auth.record_failed_attempt(ip, username)
                     return jsonify({'error': 'Invalid credentials'}), 401
             
-            except ValueError as e:
-                return jsonify({'error': f'Validation failed: {str(e)}'}), 400
             except Exception as e:
                 logger.error(f"Login error: {e}")
                 return jsonify({'error': 'Login failed'}), 500
@@ -470,9 +497,10 @@ class ProfessionalDashboard:
         @self.app.route('/logout')
         def logout():
             username = session.get('user')
+            session_id = session.get('session_id')
             
             # 🔒 Destroy session if session manager available
-            if HAS_SECURITY and self.session_manager:
+            if HAS_SECURITY and self.session_manager and session_id:
                 self.session_manager.destroy_session('user_logout')
             
             if self.audit_logger and username:
@@ -501,8 +529,10 @@ class ProfessionalDashboard:
         def get_section_data_route(section):
             """📊 Get section data (with XSS protection)"""
             try:
-                # 🔒 Validate section name
-                if not section.isalnum():
+                # 🔒 Validate section name (alphanumeric only)
+                if not section.replace('_', '').isalnum():
+                    if self.audit_logger:
+                        self.audit_logger.log_invalid_input('section', 'invalid_format')
                     return jsonify({'error': 'Invalid section name'}), 400
                 
                 if HAS_MOCK_DATA:
@@ -550,15 +580,15 @@ class ProfessionalDashboard:
                 
                 # 🔒 Validate and sanitize input
                 if HAS_SECURITY:
-                    validated = validate_request(AnnotationRequest, data)
-                    annotation_data = {
-                        'chart_id': validated.chart_id,
-                        'type': validated.type.value,
-                        'x': validated.x,
-                        'y': validated.y,
-                        'text': sanitize_html(validated.text, strip=True),
-                        'color': validated.color
-                    }
+                    try:
+                        validated = validate_input(AnnotationCreate, data)
+                        annotation_data = safe_dict(validated)
+                        # Sanitize text
+                        annotation_data['text'] = sanitize_html(annotation_data['text'], strip=True)
+                    except ValidationError as e:
+                        if self.audit_logger:
+                            self.audit_logger.log_invalid_input('annotation', str(e))
+                        return jsonify({'success': False, 'error': str(e)}), 400
                 else:
                     annotation_data = data
                 
@@ -566,7 +596,8 @@ class ProfessionalDashboard:
                 annotation = {
                     'id': annotation_id,
                     **annotation_data,
-                    'created_at': datetime.now().isoformat() + 'Z'
+                    'created_at': datetime.now().isoformat() + 'Z',
+                    'created_by': session.get('user', 'unknown')
                 }
                 
                 self.annotations.append(annotation)
@@ -578,8 +609,6 @@ class ProfessionalDashboard:
                     'message': 'Annotation created successfully'
                 }), 201
             
-            except ValueError as e:
-                return jsonify({'success': False, 'error': str(e)}), 400
             except Exception as e:
                 logger.error(f"Annotation error: {e}")
                 return jsonify({'success': False, 'error': 'Internal server error'}), 500
@@ -651,6 +680,7 @@ class ProfessionalDashboard:
             # 📊 Track WebSocket connection
             if HAS_METRICS and self.metrics_monitor:
                 self.metrics_monitor.increment_websocket_connections()
+                logger.debug(f"WebSocket connected (total: {self.metrics_monitor.get_websocket_connections()})")
             
             emit('connected', {
                 'message': f'Connected to BotV2 v{__version__}',
@@ -663,6 +693,7 @@ class ProfessionalDashboard:
             # 📊 Track WebSocket disconnection
             if HAS_METRICS and self.metrics_monitor:
                 self.metrics_monitor.decrement_websocket_connections()
+                logger.debug(f"WebSocket disconnected (total: {self.metrics_monitor.get_websocket_connections()})")
     
     def run(self):
         """🚀 Start the dashboard server"""
@@ -670,6 +701,13 @@ class ProfessionalDashboard:
         
         if HAS_SECURITY:
             logger.info("🔒 Security Phase 1: ACTIVE")
+            logger.info("   ✅ CSRF Protection")
+            logger.info("   ✅ XSS Prevention")
+            logger.info("   ✅ Input Validation")
+            logger.info("   ✅ Rate Limiting")
+            logger.info("   ✅ Session Management")
+            logger.info("   ✅ Security Audit Logging")
+            logger.info("   ✅ Security Headers (CSP, HSTS, etc.)")
         else:
             logger.warning("⚠️ Security Phase 1: DISABLED (modules not available)")
         
