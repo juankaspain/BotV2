@@ -1,301 +1,338 @@
 """Input Validation Module
 
-Provides Pydantic models for strict input validation across all API endpoints.
-Prevents injection attacks, malformed data, and validates business logic.
+Provides Pydantic models for request data validation.
+Enforces strict input validation to prevent injection attacks.
 """
 
 import re
+import logging
 from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field, validator, root_validator
 from datetime import datetime
-from pydantic import BaseModel, Field, validator, EmailStr
-from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 
-class TradingMode(str, Enum):
-    """Valid trading modes"""
-    PAPER = "paper"
-    LIVE = "live"
-    BACKTEST = "backtest"
-
-
-class OrderType(str, Enum):
-    """Valid order types"""
-    MARKET = "market"
-    LIMIT = "limit"
-    STOP = "stop"
-    STOP_LIMIT = "stop_limit"
-
-
-class OrderSide(str, Enum):
-    """Valid order sides"""
-    BUY = "buy"
-    SELL = "sell"
-
-
-class TimeInForce(str, Enum):
-    """Valid time in force values"""
-    GTC = "gtc"  # Good till cancel
-    IOC = "ioc"  # Immediate or cancel
-    FOK = "fok"  # Fill or kill
-    DAY = "day"  # Day order
-
+# ==================== AUTHENTICATION MODELS ====================
 
 class LoginRequest(BaseModel):
-    """Login request validation"""
+    """Login request validation
+    
+    Enforces:
+    - Username: 3-20 alphanumeric + underscore/hyphen
+    - Password: min 8 chars (dev), min 16 chars (prod)
+    """
     username: str = Field(..., min_length=3, max_length=20)
     password: str = Field(..., min_length=8, max_length=128)
     
     @validator('username')
     def validate_username(cls, v):
-        """Username: alphanumeric + underscore/hyphen only"""
+        """Validate username format"""
         if not re.match(r'^[a-zA-Z0-9_-]+$', v):
-            raise ValueError('Username can only contain letters, numbers, underscore, and hyphen')
+            raise ValueError(
+                'Username must contain only alphanumeric characters, '
+                'underscores, and hyphens'
+            )
         return v.strip()
     
     @validator('password')
     def validate_password(cls, v):
-        """Password: enforce minimum security"""
+        """Validate password strength"""
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
+        
+        # Production: require stronger passwords
+        import os
+        if os.getenv('FLASK_ENV') == 'production' and len(v) < 16:
+            raise ValueError(
+                'Production passwords must be at least 16 characters'
+            )
+        
         return v
+    
+    class Config:
+        str_strip_whitespace = True
 
 
-class AnnotationCreate(BaseModel):
-    """Annotation creation validation"""
+class PasswordChangeRequest(BaseModel):
+    """Password change request validation"""
+    current_password: str = Field(..., min_length=8, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
+    confirm_password: str = Field(..., min_length=8, max_length=128)
+    
+    @validator('new_password')
+    def validate_new_password(cls, v, values):
+        """Validate new password"""
+        # Check if same as current password
+        if 'current_password' in values and v == values['current_password']:
+            raise ValueError('New password must be different from current password')
+        
+        # Check strength
+        import os
+        if os.getenv('FLASK_ENV') == 'production':
+            if len(v) < 16:
+                raise ValueError('Production passwords must be at least 16 characters')
+            
+            # Check complexity
+            has_upper = any(c.isupper() for c in v)
+            has_lower = any(c.islower() for c in v)
+            has_digit = any(c.isdigit() for c in v)
+            has_special = any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in v)
+            
+            if not (has_upper and has_lower and has_digit and has_special):
+                raise ValueError(
+                    'Production passwords must contain uppercase, lowercase, '
+                    'digits, and special characters'
+                )
+        
+        return v
+    
+    @root_validator
+    def passwords_match(cls, values):
+        """Validate password confirmation"""
+        new_pwd = values.get('new_password')
+        confirm_pwd = values.get('confirm_password')
+        
+        if new_pwd != confirm_pwd:
+            raise ValueError('Passwords do not match')
+        
+        return values
+
+
+# ==================== ANNOTATION MODELS ====================
+
+class AnnotationRequest(BaseModel):
+    """Annotation creation/update validation"""
     chart_id: str = Field(..., min_length=1, max_length=50)
     type: str = Field(..., min_length=1, max_length=20)
     x: float
     y: float
     text: str = Field(..., min_length=1, max_length=500)
-    color: Optional[str] = Field(default='#ffffff', regex=r'^#[0-9a-fA-F]{6}$')
+    color: Optional[str] = Field(default='#ffffff', max_length=20)
     
     @validator('chart_id')
     def validate_chart_id(cls, v):
-        """Chart ID: alphanumeric + underscore only"""
+        """Validate chart ID format"""
         if not re.match(r'^[a-zA-Z0-9_-]+$', v):
             raise ValueError('Invalid chart_id format')
-        return v.strip()
+        return v
     
     @validator('type')
-    def validate_type(cls, v):
-        """Type: limited set of values"""
-        allowed_types = ['line', 'arrow', 'text', 'box', 'circle']
-        if v.lower() not in allowed_types:
+    def validate_annotation_type(cls, v):
+        """Validate annotation type"""
+        allowed_types = ['note', 'arrow', 'line', 'rect', 'circle']
+        if v not in allowed_types:
             raise ValueError(f'Type must be one of: {allowed_types}')
-        return v.lower()
+        return v
+    
+    @validator('color')
+    def validate_color(cls, v):
+        """Validate color format"""
+        if v and not re.match(r'^#[0-9a-fA-F]{6}$', v):
+            raise ValueError('Color must be hex format (#RRGGBB)')
+        return v
     
     @validator('text')
     def validate_text(cls, v):
-        """Text: sanitize and limit length"""
-        # Remove control characters
-        v = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', v)
-        return v.strip()
+        """Sanitize annotation text"""
+        # Strip HTML tags for security
+        import re
+        clean_text = re.sub(r'<[^>]+>', '', v)
+        return clean_text.strip()
 
 
-class OrderCreate(BaseModel):
-    """Order creation validation"""
+# ==================== CONFIGURATION MODELS ====================
+
+class ConfigUpdateRequest(BaseModel):
+    """Configuration update validation"""
+    key: str = Field(..., min_length=1, max_length=100)
+    value: Any
+    
+    @validator('key')
+    def validate_config_key(cls, v):
+        """Validate config key format"""
+        # Only allow specific config keys
+        allowed_keys = [
+            'trading_mode',
+            'initial_capital',
+            'trading_interval',
+            'max_positions',
+            'risk_per_trade',
+            'stop_loss_pct',
+            'take_profit_pct',
+            'enable_notifications',
+            'notification_channels'
+        ]
+        
+        if v not in allowed_keys:
+            raise ValueError(f'Invalid config key: {v}')
+        
+        return v
+    
+    @root_validator
+    def validate_value_for_key(cls, values):
+        """Validate value based on key"""
+        key = values.get('key')
+        value = values.get('value')
+        
+        if key == 'trading_mode':
+            if value not in ['paper', 'live']:
+                raise ValueError('trading_mode must be "paper" or "live"')
+        
+        elif key == 'initial_capital':
+            if not isinstance(value, (int, float)) or value <= 0:
+                raise ValueError('initial_capital must be positive number')
+        
+        elif key == 'trading_interval':
+            if not isinstance(value, int) or value < 1:
+                raise ValueError('trading_interval must be positive integer')
+        
+        elif key in ['max_positions', 'risk_per_trade', 'stop_loss_pct', 'take_profit_pct']:
+            if not isinstance(value, (int, float)) or value <= 0:
+                raise ValueError(f'{key} must be positive number')
+        
+        return values
+
+
+# ==================== MARKET DATA MODELS ====================
+
+class MarketSymbolRequest(BaseModel):
+    """Market symbol validation"""
     symbol: str = Field(..., min_length=2, max_length=20)
-    side: OrderSide
-    type: OrderType
-    quantity: float = Field(..., gt=0)
-    price: Optional[float] = Field(default=None, gt=0)
-    stop_price: Optional[float] = Field(default=None, gt=0)
-    time_in_force: TimeInForce = TimeInForce.GTC
     
     @validator('symbol')
     def validate_symbol(cls, v):
-        """Symbol: uppercase alphanumeric + slash only"""
-        if not re.match(r'^[A-Z0-9/]+$', v.upper()):
+        """Validate symbol format"""
+        # Allow alphanumeric, slash, hyphen (BTC/USD, EUR-USD)
+        if not re.match(r'^[A-Z0-9/-]+$', v.upper()):
             raise ValueError('Invalid symbol format')
-        return v.upper().strip()
+        return v.upper()
+
+
+class OHLCVRequest(BaseModel):
+    """OHLCV data request validation"""
+    symbol: str = Field(..., min_length=2, max_length=20)
+    timeframe: str = Field(..., min_length=2, max_length=5)
+    limit: int = Field(default=100, ge=1, le=500)
     
-    @validator('price')
-    def validate_price(cls, v, values):
-        """Price: required for LIMIT and STOP_LIMIT orders"""
-        if values.get('type') in [OrderType.LIMIT, OrderType.STOP_LIMIT]:
-            if v is None or v <= 0:
-                raise ValueError('Price is required for LIMIT/STOP_LIMIT orders')
-        return v
+    @validator('symbol')
+    def validate_symbol(cls, v):
+        """Validate symbol format"""
+        if not re.match(r'^[A-Z0-9/-]+$', v.upper()):
+            raise ValueError('Invalid symbol format')
+        return v.upper()
     
-    @validator('stop_price')
-    def validate_stop_price(cls, v, values):
-        """Stop price: required for STOP and STOP_LIMIT orders"""
-        if values.get('type') in [OrderType.STOP, OrderType.STOP_LIMIT]:
-            if v is None or v <= 0:
-                raise ValueError('Stop price is required for STOP/STOP_LIMIT orders')
+    @validator('timeframe')
+    def validate_timeframe(cls, v):
+        """Validate timeframe"""
+        allowed = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w']
+        if v not in allowed:
+            raise ValueError(f'Timeframe must be one of: {allowed}')
         return v
 
 
-class StrategyConfig(BaseModel):
-    """Strategy configuration validation"""
-    name: str = Field(..., min_length=3, max_length=50)
-    description: Optional[str] = Field(default=None, max_length=500)
-    enabled: bool = True
-    symbols: List[str] = Field(..., min_items=1, max_items=50)
-    timeframe: str = Field(..., regex=r'^(1m|5m|15m|30m|1h|4h|1d)$')
+# ==================== STRATEGY MODELS ====================
+
+class StrategyCreateRequest(BaseModel):
+    """Strategy creation validation"""
+    name: str = Field(..., min_length=3, max_length=100)
+    description: Optional[str] = Field(default='', max_length=500)
+    strategy_type: str = Field(..., min_length=3, max_length=50)
     parameters: Dict[str, Any] = Field(default_factory=dict)
     
     @validator('name')
     def validate_name(cls, v):
-        """Name: alphanumeric + spaces/underscores"""
-        if not re.match(r'^[a-zA-Z0-9_ -]+$', v):
-            raise ValueError('Name can only contain letters, numbers, spaces, and underscores')
-        return v.strip()
+        """Validate strategy name"""
+        # Remove HTML tags
+        import re
+        clean_name = re.sub(r'<[^>]+>', '', v)
+        return clean_name.strip()
     
-    @validator('symbols')
-    def validate_symbols(cls, v):
-        """Symbols: uppercase and deduplicate"""
-        return list(set(s.upper().strip() for s in v))
-    
-    @validator('parameters')
-    def validate_parameters(cls, v):
-        """Parameters: limit depth and size"""
-        if len(str(v)) > 10000:  # Max 10KB JSON
-            raise ValueError('Parameters too large')
+    @validator('strategy_type')
+    def validate_strategy_type(cls, v):
+        """Validate strategy type"""
+        allowed_types = [
+            'trend_following',
+            'mean_reversion',
+            'breakout',
+            'momentum',
+            'arbitrage',
+            'market_making'
+        ]
+        
+        if v not in allowed_types:
+            raise ValueError(f'Strategy type must be one of: {allowed_types}')
+        
         return v
 
 
-class BacktestConfig(BaseModel):
-    """Backtest configuration validation"""
-    strategy_id: str = Field(..., min_length=1, max_length=50)
-    start_date: datetime
-    end_date: datetime
-    initial_capital: float = Field(..., gt=0, le=1000000000)
-    symbols: List[str] = Field(..., min_items=1, max_items=100)
-    
-    @validator('end_date')
-    def validate_dates(cls, v, values):
-        """End date must be after start date"""
-        if 'start_date' in values and v <= values['start_date']:
-            raise ValueError('end_date must be after start_date')
-        return v
-    
-    @validator('symbols')
-    def validate_symbols(cls, v):
-        """Symbols: uppercase and deduplicate"""
-        return list(set(s.upper().strip() for s in v))
+# ==================== TRADE MODELS ====================
 
-
-class SettingsUpdate(BaseModel):
-    """Settings update validation"""
-    trading_mode: Optional[TradingMode] = None
-    initial_capital: Optional[float] = Field(default=None, gt=0, le=1000000000)
-    risk_per_trade: Optional[float] = Field(default=None, gt=0, le=100)
-    max_positions: Optional[int] = Field(default=None, gt=0, le=100)
-    stop_loss_pct: Optional[float] = Field(default=None, gt=0, le=100)
-    take_profit_pct: Optional[float] = Field(default=None, gt=0, le=1000)
-    
-    class Config:
-        validate_assignment = True
-
-
-class MarketDataRequest(BaseModel):
-    """Market data request validation"""
+class TradeExecutionRequest(BaseModel):
+    """Trade execution validation"""
     symbol: str = Field(..., min_length=2, max_length=20)
-    timeframe: str = Field(default='1h', regex=r'^(1m|5m|15m|30m|1h|4h|1d|1w)$')
-    limit: int = Field(default=100, ge=1, le=1000)
+    side: str = Field(..., min_length=3, max_length=4)
+    quantity: float = Field(..., gt=0)
+    price: Optional[float] = Field(default=None, gt=0)
+    order_type: str = Field(default='market', min_length=5, max_length=10)
     
     @validator('symbol')
     def validate_symbol(cls, v):
-        """Symbol: uppercase alphanumeric + slash only"""
-        if not re.match(r'^[A-Z0-9/]+$', v.upper()):
+        """Validate symbol"""
+        if not re.match(r'^[A-Z0-9/-]+$', v.upper()):
             raise ValueError('Invalid symbol format')
-        return v.upper().strip()
-
-
-class AlertCreate(BaseModel):
-    """Alert creation validation"""
-    type: str = Field(..., regex=r'^(price|indicator|condition)$')
-    symbol: str = Field(..., min_length=2, max_length=20)
-    condition: str = Field(..., min_length=1, max_length=100)
-    value: float
-    enabled: bool = True
-    notify_email: Optional[EmailStr] = None
-    notify_telegram: Optional[bool] = False
+        return v.upper()
     
-    @validator('symbol')
-    def validate_symbol(cls, v):
-        """Symbol: uppercase alphanumeric + slash only"""
-        if not re.match(r'^[A-Z0-9/]+$', v.upper()):
-            raise ValueError('Invalid symbol format')
-        return v.upper().strip()
+    @validator('side')
+    def validate_side(cls, v):
+        """Validate trade side"""
+        if v.lower() not in ['buy', 'sell']:
+            raise ValueError('Side must be "buy" or "sell"')
+        return v.lower()
     
-    @validator('condition')
-    def validate_condition(cls, v):
-        """Condition: limited operators"""
-        allowed_operators = ['>', '<', '>=', '<=', '==', 'crosses_above', 'crosses_below']
-        if not any(op in v for op in allowed_operators):
-            raise ValueError(f'Condition must contain one of: {allowed_operators}')
-        return v.strip()
+    @validator('order_type')
+    def validate_order_type(cls, v):
+        """Validate order type"""
+        allowed_types = ['market', 'limit', 'stop', 'stop_limit']
+        if v.lower() not in allowed_types:
+            raise ValueError(f'Order type must be one of: {allowed_types}')
+        return v.lower()
 
 
-class ExportRequest(BaseModel):
-    """Export request validation"""
-    format: str = Field(..., regex=r'^(csv|json|excel)$')
-    data_type: str = Field(..., regex=r'^(trades|positions|portfolio|performance)$')
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    
-    @validator('end_date')
-    def validate_dates(cls, v, values):
-        """End date must be after start date"""
-        if v and 'start_date' in values and values['start_date']:
-            if v <= values['start_date']:
-                raise ValueError('end_date must be after start_date')
-        return v
+# ==================== HELPER FUNCTIONS ====================
 
-
-def validate_input(model: BaseModel, data: Dict[str, Any]) -> BaseModel:
-    """Validate input data against Pydantic model
+def validate_request_data(model: BaseModel, data: Dict[str, Any]) -> tuple[bool, Optional[BaseModel], Optional[str]]:
+    """Validate request data against Pydantic model
     
     Args:
         model: Pydantic model class
-        data: Dictionary of data to validate
+        data: Request data dictionary
         
     Returns:
-        Validated model instance
-        
-    Raises:
-        ValueError: If validation fails
+        Tuple of (is_valid, validated_data, error_message)
     """
     try:
-        return model(**data)
+        validated = model(**data)
+        return True, validated, None
     except Exception as e:
-        raise ValueError(f"Validation error: {str(e)}")
+        logger.warning(f"Validation failed for {model.__name__}: {e}")
+        return False, None, str(e)
 
 
-def validate_json_size(data: str, max_size_kb: int = 100) -> bool:
-    """Validate JSON payload size
+def get_validation_errors(model: BaseModel, data: Dict[str, Any]) -> List[str]:
+    """Get list of validation errors
     
     Args:
-        data: JSON string
-        max_size_kb: Maximum size in kilobytes
+        model: Pydantic model class
+        data: Request data dictionary
         
     Returns:
-        True if valid, False otherwise
+        List of error messages
     """
-    size_kb = len(data.encode('utf-8')) / 1024
-    return size_kb <= max_size_kb
-
-
-def sanitize_filename(filename: str) -> str:
-    """Sanitize filename to prevent path traversal
-    
-    Args:
-        filename: Original filename
-        
-    Returns:
-        Sanitized filename
-    """
-    # Remove path separators and null bytes
-    filename = filename.replace('/', '').replace('\\', '').replace('\0', '')
-    
-    # Remove dangerous characters
-    filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
-    
-    # Limit length
-    if len(filename) > 255:
-        name, ext = filename.rsplit('.', 1) if '.' in filename else (filename, '')
-        filename = name[:250] + ('.' + ext if ext else '')
-    
-    return filename
+    try:
+        model(**data)
+        return []
+    except Exception as e:
+        if hasattr(e, 'errors'):
+            return [f"{err['loc'][0]}: {err['msg']}" for err in e.errors()]
+        return [str(e)]
