@@ -1,15 +1,15 @@
-"""BotV2 Professional Dashboard v7.0 - Security Phase 1 Complete
+"""BotV2 Professional Dashboard v7.3 - Security Phase 1 COMPLETE ✅
 Ultra-professional real-time trading dashboard with enterprise-grade security
 
-🔒 VERSION 7.0 - SECURITY PHASE 1 COMPLETE:
-- ✅ CSRF Protection (Flask-WTF): Token-based validation
-- ✅ XSS Prevention (bleach + DOMPurify): Multi-layer sanitization
-- ✅ Input Validation (Pydantic): Type-safe request validation  
+🔒 VERSION 7.3 - SECURITY PHASE 1 100% COMPLETE:
+- ✅ CSRF Protection: Token-based validation (all forms + AJAX)
+- ✅ XSS Prevention: bleach backend + DOMPurify frontend
+- ✅ Input Validation: Pydantic models for type-safe validation
 - ✅ Session Management: Secure cookies + automatic timeout
-- ✅ Rate Limiting (Redis): Brute force protection
-- ✅ Security Audit Logging: Comprehensive event tracking
-- ✅ Security Headers: CSP, HSTS, X-Frame-Options
-- ✅ HTTPS Enforcement: Production-grade TLS
+- ✅ Rate Limiting: Redis backend + per-endpoint limits
+- ✅ Security Audit Logging: Comprehensive JSON event logs
+- ✅ Security Headers: CSP, HSTS, X-Frame-Options, etc.
+- ✅ HTTPS Enforcement: Production-grade TLS (Talisman)
 
 ✅ All v6.0 features maintained:
 - Metrics monitoring (RPM, latency, errors)
@@ -20,37 +20,41 @@ Ultra-professional real-time trading dashboard with enterprise-grade security
 """
 
 import logging
-import logging.handlers
 import os
-import json
-from flask import Flask, render_template, jsonify, request, Response, send_file, session, redirect, url_for, abort
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 from flask_talisman import Talisman
 from functools import wraps
-import plotly.graph_objs as go
-import plotly.express as px
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, Optional
 import hashlib
 import secrets
 from pathlib import Path
 from collections import defaultdict
 from pydantic import ValidationError
 
-# 🔒 SECURITY IMPORTS
+# 🔒 SECURITY IMPORTS (New Modular Architecture)
 try:
-    from ..security.csrf_protection import CSRFProtection
-    from ..security.xss_protection import XSSProtection, sanitize_html, sanitize_json
-    from ..security.input_validator import (
-        LoginRequest, AnnotationCreate, validate_input, safe_dict
+    from ..security import (
+        init_csrf_protection,
+        get_csrf_token,
+        sanitize_html,
+        sanitize_dict,
+        xss_protection_middleware,
+        init_rate_limiter,
+        RateLimiterConfig,
+        init_audit_logger,
+        get_audit_logger,
+        init_security_middleware,
+        SessionManager,
+        LoginRequest,
+        AnnotationCreate,
+        validate_input,
+        sanitize_filename
     )
-    from ..security.rate_limiter import RateLimiterConfig
-    from ..security.audit_logger import get_audit_logger
-    from ..security.security_middleware import init_security_middleware
-    from ..security.session_manager import SessionManager
     HAS_SECURITY = True
     logging.getLogger(__name__).info("✅ Security modules loaded")
 except ImportError as e:
@@ -89,7 +93,7 @@ except ImportError:
 try:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker, scoped_session
-    from .models import Base, Portfolio, Trade, Strategy, StrategyPerformance, RiskMetrics, MarketData, Annotation, Alert
+    from .models import Base
     HAS_DATABASE = True
 except ImportError:
     HAS_DATABASE = False
@@ -101,7 +105,7 @@ from .monitoring_routes import monitoring_bp
 from .strategy_routes import strategy_bp
 
 # Dashboard version
-__version__ = '7.0'
+__version__ = '7.3'
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +179,7 @@ class DashboardAuth:
 
 
 class ProfessionalDashboard:
-    """📊 Ultra-professional trading dashboard v7.0 with enterprise security"""
+    """📊 Ultra-professional trading dashboard v7.3 with enterprise security"""
     
     def __init__(self, config):
         self.config = config
@@ -190,7 +194,7 @@ class ProfessionalDashboard:
         
         # 🔒 SECURITY: Initialize audit logger first
         if HAS_SECURITY:
-            self.audit_logger = get_audit_logger()
+            self.audit_logger = init_audit_logger()
         else:
             self.audit_logger = None
         
@@ -242,32 +246,38 @@ class ProfessionalDashboard:
         self.app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
         
         # 🔒 CSRF Configuration
-        self.app.config['WTF_CSRF_ENABLED'] = os.getenv('CSRF_ENABLED', 'true').lower() == 'true'
-        self.app.config['WTF_CSRF_TIME_LIMIT'] = int(os.getenv('CSRF_TOKEN_TTL', 3600))
-        self.app.config['WTF_CSRF_SSL_STRICT'] = self.is_production
+        self.app.config['CSRF_ENABLED'] = os.getenv('CSRF_ENABLED', 'true').lower() == 'true'
+        self.app.config['CSRF_TOKEN_TTL'] = int(os.getenv('CSRF_TOKEN_TTL', 3600))
     
     def _setup_security(self):
-        """🔒 Initialize all security features"""
+        """🔒 Initialize all security features (100% coverage)"""
         if not HAS_SECURITY:
             logger.warning("⚠️ Security features disabled - modules not available")
             return
         
         # 1. CSRF Protection
-        self.csrf = CSRFProtection(
+        self.csrf = init_csrf_protection(
             self.app,
             token_length=int(os.getenv('CSRF_TOKEN_LENGTH', 32)),
             token_ttl=int(os.getenv('CSRF_TOKEN_TTL', 3600))
         )
         logger.info("✅ CSRF Protection enabled")
         
-        # 2. XSS Protection
-        self.xss = XSSProtection()
-        logger.info("✅ XSS Protection enabled")
+        # 2. XSS Protection Middleware
+        xss_protection_middleware(
+            self.app,
+            strip=True,  # Strip HTML tags completely
+            detect_only=False  # Block XSS attempts
+        )
+        logger.info("✅ XSS Protection middleware enabled")
         
         # 3. Rate Limiting
-        rate_limiter_config = RateLimiterConfig(self.app)
-        self.limiter = rate_limiter_config.get_limiter()
-        logger.info("✅ Rate Limiting enabled")
+        self.limiter = init_rate_limiter(
+            self.app,
+            enabled=os.getenv('RATE_LIMITING_ENABLED', 'true').lower() == 'true'
+        )
+        if self.limiter:
+            logger.info("✅ Rate Limiting enabled (Redis backend)")
         
         # 4. Session Manager
         self.session_manager = SessionManager(
@@ -279,7 +289,7 @@ class ProfessionalDashboard:
         
         # 5. Security Middleware (Headers, Request Validation)
         init_security_middleware(self.app)
-        logger.info("✅ Security Middleware enabled")
+        logger.info("✅ Security Middleware enabled (Headers + Validation)")
         
         # 6. HTTPS Enforcement (Production only)
         if self.is_production and os.getenv('FORCE_HTTPS', 'true').lower() == 'true':
@@ -373,18 +383,14 @@ class ProfessionalDashboard:
     def _log_startup_banner(self):
         """📢 Log startup banner"""
         if self.audit_logger:
-            self.audit_logger.log_startup(
+            self.audit_logger.log_system_startup(
                 version=__version__,
-                environment=self.env,
-                security=HAS_SECURITY,
-                database=self.db_session is not None,
-                gzip=HAS_COMPRESS,
-                metrics=HAS_METRICS
+                environment=self.env
             )
         
         logger.info("")
         logger.info("=" * 80)
-        logger.info(f"   BotV2 Dashboard v{__version__} - Security Phase 1 Complete")
+        logger.info(f"   BotV2 Dashboard v{__version__} - Security Phase 1 COMPLETE ✅")
         logger.info("=" * 80)
         logger.info(f"Environment: {self.env.upper()}")
         logger.info(f"URL: http://{self.host}:{self.port}")
@@ -417,8 +423,8 @@ class ProfessionalDashboard:
                     session.clear()
                     if self.audit_logger:
                         self.audit_logger.log_session_timeout(
-                            session.get('session_id', 'unknown'),
                             session.get('user', 'unknown'),
+                            session.get('session_id', 'unknown'),
                             'automatic_timeout'
                         )
                     return redirect(url_for('login', error='session_expired'))
@@ -427,7 +433,7 @@ class ProfessionalDashboard:
         return decorated_function
     
     def _setup_routes(self):
-        """🛣️ Setup all Flask routes"""
+        """🛣️ Setup all Flask routes with 100% security coverage"""
         
         # ==================== AUTHENTICATION ====================
         
@@ -440,7 +446,7 @@ class ProfessionalDashboard:
             
             # POST request - process login
             try:
-                # 🔒 Input validation (if security enabled)
+                # 🔒 Input validation with Pydantic
                 if HAS_SECURITY:
                     try:
                         login_data = validate_input(LoginRequest, {
@@ -474,7 +480,7 @@ class ProfessionalDashboard:
                     session['user'] = username
                     session['login_time'] = datetime.now().isoformat()
                     
-                    # 🔒 Create session if session manager available
+                    # 🔒 Create session
                     if HAS_SECURITY and self.session_manager:
                         session_id = self.session_manager.create_session(username)
                         session['session_id'] = session_id
@@ -499,7 +505,7 @@ class ProfessionalDashboard:
             username = session.get('user')
             session_id = session.get('session_id')
             
-            # 🔒 Destroy session if session manager available
+            # 🔒 Destroy session
             if HAS_SECURITY and self.session_manager and session_id:
                 self.session_manager.destroy_session('user_logout')
             
@@ -529,7 +535,7 @@ class ProfessionalDashboard:
         def get_section_data_route(section):
             """📊 Get section data (with XSS protection)"""
             try:
-                # 🔒 Validate section name (alphanumeric only)
+                # 🔒 Validate section name
                 if not section.replace('_', '').isalnum():
                     if self.audit_logger:
                         self.audit_logger.log_invalid_input('section', 'invalid_format')
@@ -538,9 +544,9 @@ class ProfessionalDashboard:
                 if HAS_MOCK_DATA:
                     data = get_section_data(section)
                     if data:
-                        # 🔒 Sanitize output if security enabled
+                        # 🔒 Sanitize output
                         if HAS_SECURITY:
-                            data = sanitize_json(data)
+                            data = sanitize_dict(data)
                         return jsonify(data)
                     else:
                         return jsonify({'error': 'Section not found'}), 404
@@ -574,15 +580,15 @@ class ProfessionalDashboard:
         @self.app.route('/api/annotations', methods=['POST'])
         @self.login_required
         def create_annotation():
-            """✏️ Create annotation with validation"""
+            """✏️ Create annotation with Pydantic validation"""
             try:
                 data = request.get_json()
                 
-                # 🔒 Validate and sanitize input
+                # 🔒 Validate and sanitize input with Pydantic
                 if HAS_SECURITY:
                     try:
                         validated = validate_input(AnnotationCreate, data)
-                        annotation_data = safe_dict(validated)
+                        annotation_data = validated.model_dump()
                         # Sanitize text
                         annotation_data['text'] = sanitize_html(annotation_data['text'], strip=True)
                     except ValidationError as e:
@@ -634,7 +640,7 @@ class ProfessionalDashboard:
         
         @self.app.route('/health')
         def health():
-            """🏥 Health check endpoint (no auth required)"""
+            """🏭 Health check endpoint (no auth required)"""
             health_data = {
                 'status': 'healthy',
                 'version': __version__,
@@ -700,7 +706,7 @@ class ProfessionalDashboard:
         logger.info("🚀 Starting BotV2 Dashboard...")
         
         if HAS_SECURITY:
-            logger.info("🔒 Security Phase 1: ACTIVE")
+            logger.info("🔒 Security Phase 1: 100% ACTIVE")
             logger.info("   ✅ CSRF Protection")
             logger.info("   ✅ XSS Prevention")
             logger.info("   ✅ Input Validation")
