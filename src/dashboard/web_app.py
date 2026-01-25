@@ -1,13 +1,16 @@
-"""BotV2 Professional Dashboard v5.3 - GZIP Compression Edition
-Ultra-professional real-time trading dashboard with production-grade security
+"""BotV2 Professional Dashboard v6.0 - Metrics Monitoring Edition
+Ultra-professional real-time trading dashboard with production-grade security and metrics
 
-🆕 VERSION 5.3 - GZIP COMPRESSION ADDED:
-- Flask-Compress integrated for automatic GZIP compression
-- Reduces response size by 60-85% (typical)
-- Compresses JSON, HTML, CSS, JS automatically
-- Configurable compression levels
-- Performance optimized
-- All previous features maintained
+🆕 VERSION 6.0 - METRICS MONITORING INTEGRATED:
+- Real-time metrics monitoring (RPM, errors, latency)
+- P50, P95, P99 latency percentiles
+- Active user tracking
+- WebSocket connection monitoring
+- System resource monitoring (CPU, Memory)
+- Historical metrics (60 minutes)
+- REST API for metrics access
+- JSON/CSV export capabilities
+- All v5.3 features maintained (GZIP compression, security, etc.)
 """
 
 import logging
@@ -40,6 +43,15 @@ except ImportError:
     HAS_COMPRESS = False
     logging.getLogger(__name__).warning("⚠️ Flask-Compress not installed - install with: pip install flask-compress")
 
+# ==================== METRICS MONITORING IMPORT ====================
+try:
+    from .metrics_monitor import get_metrics_monitor, MetricsMiddleware
+    from .metrics_routes import metrics_bp
+    HAS_METRICS = True
+except ImportError:
+    HAS_METRICS = False
+    logging.getLogger(__name__).warning("⚠️ Metrics monitoring not available")
+
 # ==================== MOCK DATA IMPORT ====================
 try:
     from .mock_data import get_section_data
@@ -70,7 +82,7 @@ from .monitoring_routes import monitoring_bp
 from .strategy_routes import strategy_bp
 
 # Dashboard version
-__version__ = '5.3'
+__version__ = '6.0'
 
 logger = logging.getLogger(__name__)
 limiter_logger = logging.getLogger('flask-limiter')
@@ -176,7 +188,7 @@ class DashboardAuth:
 
 
 class ProfessionalDashboard:
-    """Ultra-professional trading dashboard v5.3 with GZIP compression"""
+    """Ultra-professional trading dashboard v6.0 with metrics monitoring"""
     
     def __init__(self, config):
         self.config = config
@@ -214,9 +226,18 @@ class ProfessionalDashboard:
         self._setup_https_enforcement()
         self._setup_database()
         
+        # ✅ METRICS MONITORING SETUP
+        self._setup_metrics()
+        
+        # Register blueprints
         self.app.register_blueprint(control_bp)
         self.app.register_blueprint(monitoring_bp)
         self.app.register_blueprint(strategy_bp)
+        
+        # Register metrics blueprint if available
+        if HAS_METRICS:
+            self.app.register_blueprint(metrics_bp)
+            logger.info("✅ Metrics API registered at /api/metrics")
         
         self.alerts = []
         self.annotations = []
@@ -229,34 +250,34 @@ class ProfessionalDashboard:
     def _setup_compression(self):
         """✅ Setup GZIP compression for all responses"""
         if HAS_COMPRESS:
-            # Professional compression settings
             self.app.config['COMPRESS_MIMETYPES'] = [
-                'text/html',
-                'text/css',
-                'text/javascript',
-                'application/javascript',
-                'application/json',
-                'text/xml',
-                'application/xml',
-                'text/plain'
+                'text/html', 'text/css', 'text/javascript',
+                'application/javascript', 'application/json',
+                'text/xml', 'application/xml', 'text/plain'
             ]
-            
-            # Compression level: 1 (fast) to 9 (best compression)
-            # Level 6 is optimal balance between speed and compression ratio
             self.app.config['COMPRESS_LEVEL'] = 6
-            
-            # Minimum response size to compress (bytes)
-            # Don't compress tiny responses (overhead not worth it)
             self.app.config['COMPRESS_MIN_SIZE'] = 500
             
-            # Enable compression
             self.compress = Compress(self.app)
-            
             logger.info("✅ GZIP compression enabled (level 6, min 500 bytes)")
-            logger.info("📊 Expected compression ratio: 60-85% size reduction")
         else:
             self.compress = None
-            logger.warning("⚠️ GZIP compression disabled - install flask-compress")
+            logger.warning("⚠️ GZIP compression disabled")
+    
+    def _setup_metrics(self):
+        """✅ Setup metrics monitoring system"""
+        if HAS_METRICS:
+            # Initialize metrics monitor (5 minute rolling window)
+            self.metrics_monitor = get_metrics_monitor(window_seconds=300)
+            
+            # Register middleware for automatic request tracking
+            MetricsMiddleware(self.app, self.metrics_monitor)
+            
+            logger.info("✅ Metrics monitoring enabled (5min window)")
+            logger.info("📊 Tracking: RPM, errors, latency (P50/P95/P99), users, resources")
+        else:
+            self.metrics_monitor = None
+            logger.warning("⚠️ Metrics monitoring disabled")
     
     def _setup_database(self):
         self.db_session = None
@@ -341,18 +362,20 @@ class ProfessionalDashboard:
             environment=self.env, version=__version__,
             database=HAS_DATABASE and self.db_session is not None,
             mock_data=HAS_MOCK_DATA,
-            gzip_compression=HAS_COMPRESS
+            gzip_compression=HAS_COMPRESS,
+            metrics_monitoring=HAS_METRICS
         )
         
         logger.info("")
         logger.info("=" * 80)
-        logger.info(f"   BotV2 Dashboard v{__version__} - GZIP Compression Edition")
+        logger.info(f"   BotV2 Dashboard v{__version__} - Metrics Monitoring Edition")
         logger.info("=" * 80)
         logger.info(f"Environment: {self.env.upper()}")
         logger.info(f"URL: http://{self.host}:{self.port}")
         logger.info(f"Mock Data: {'✅ Loaded' if HAS_MOCK_DATA else '⚠️ Fallback'}")
         logger.info(f"Database: {'✅ Connected' if self.db_session else '⚠️ Mock Mode'}")
         logger.info(f"GZIP: {'✅ Enabled (60-85% reduction)' if HAS_COMPRESS else '⚠️ Disabled'}")
+        logger.info(f"Metrics: {'✅ Monitoring Active' if HAS_METRICS else '⚠️ Disabled'}")
         logger.info(f"Auth: {self.auth.username} / {'✓' if self.auth.password_hash else '✗'}")
         logger.info("=" * 80)
         logger.info("")
@@ -395,6 +418,11 @@ class ProfessionalDashboard:
                 session['user'] = username
                 session['login_time'] = datetime.now().isoformat()
                 self.auth.record_successful_login(ip, username)
+                
+                # ✅ Track user activity in metrics
+                if HAS_METRICS and self.metrics_monitor:
+                    self.metrics_monitor.record_user_activity(username)
+                
                 return jsonify({'success': True, 'redirect': '/'}), 200
             else:
                 self.auth.record_failed_attempt(ip, username)
@@ -411,9 +439,15 @@ class ProfessionalDashboard:
         @self.limiter.limit("20 per minute")
         @self.login_required
         def index():
+            # ✅ Track user activity
+            if HAS_METRICS and self.metrics_monitor:
+                user = session.get('user')
+                if user:
+                    self.metrics_monitor.record_user_activity(user)
+            
             return render_template('dashboard.html', user=session.get('user'))
         
-        # ==================== API - SECTION DATA (MOCK) ====================
+        # ==================== API - SECTION DATA ====================
         
         @self.app.route('/api/section/<section>')
         @self.limiter.limit("30 per minute")
@@ -425,7 +459,7 @@ class ProfessionalDashboard:
                     data = get_section_data(section)
                     if data:
                         logger.info(f"✅ Section '{section}' loaded from mock_data.py")
-                        return jsonify(data)  # ✅ Automatically compressed by Flask-Compress
+                        return jsonify(data)
                     else:
                         logger.warning(f"⚠️ Section '{section}' returned empty data")
                         return jsonify({'error': 'Section not found'}), 404
@@ -478,14 +512,12 @@ class ProfessionalDashboard:
             }
             
             minutes = timeframe_minutes.get(timeframe, 60)
-            
             base_prices = {
                 'AAPL': 175.0, 'GOOGL': 2850.0, 'MSFT': 295.0,
                 'BTC/USD': 43500.0, 'ETH/USD': 2300.0
             }
             
             base_price = base_prices.get(symbol.upper(), 100.0)
-            
             ohlcv_data = []
             current_time = datetime.now()
             current_price = base_price
@@ -594,13 +626,29 @@ class ProfessionalDashboard:
         
         @self.app.route('/health')
         def health():
-            return jsonify({
+            health_data = {
                 'status': 'healthy',
                 'version': __version__,
                 'mock_data': HAS_MOCK_DATA,
                 'database': self.db_session is not None,
-                'gzip': HAS_COMPRESS
-            })
+                'gzip': HAS_COMPRESS,
+                'metrics': HAS_METRICS
+            }
+            
+            # ✅ Add metrics snapshot if available
+            if HAS_METRICS and self.metrics_monitor:
+                try:
+                    snapshot = self.metrics_monitor.get_current_snapshot()
+                    health_data['metrics_snapshot'] = {
+                        'request_rate_rpm': snapshot.request_rate_rpm,
+                        'error_rate_pct': snapshot.error_rate_pct,
+                        'active_users': snapshot.active_users,
+                        'websocket_connections': snapshot.websocket_connections
+                    }
+                except Exception as e:
+                    logger.error(f"Error getting metrics snapshot: {e}")
+            
+            return jsonify(health_data)
     
     def _get_fallback_data(self, section: str) -> Dict:
         """Fallback data if mock_data.py not available"""
@@ -617,14 +665,26 @@ class ProfessionalDashboard:
     def _setup_websocket_handlers(self):
         @self.socketio.on('connect')
         def handle_connect():
+            # ✅ Track WebSocket connection
+            if HAS_METRICS and self.metrics_monitor:
+                self.metrics_monitor.increment_websocket_connections()
+                logger.debug(f"WebSocket connected (total: {self.metrics_monitor.get_websocket_connections()})")
+            
             emit('connected', {'message': f'Connected to BotV2 v{__version__}', 'version': __version__})
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            pass
+            # ✅ Track WebSocket disconnection
+            if HAS_METRICS and self.metrics_monitor:
+                self.metrics_monitor.decrement_websocket_connections()
+                logger.debug(f"WebSocket disconnected (total: {self.metrics_monitor.get_websocket_connections()})")
     
     def run(self):
         logger.info("🚀 Starting dashboard server...")
+        
+        if HAS_METRICS and self.metrics_monitor:
+            logger.info("📊 Metrics monitoring active - access at /api/metrics")
+        
         self.socketio.run(
             self.app,
             host=self.host,
