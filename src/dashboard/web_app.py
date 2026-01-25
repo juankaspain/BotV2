@@ -45,7 +45,6 @@ try:
         sanitize_dict,
         xss_protection_middleware,
         init_rate_limiter,
-        RateLimiterConfig,
         init_audit_logger,
         get_audit_logger,
         init_security_middleware,
@@ -279,12 +278,14 @@ class ProfessionalDashboard:
         if self.limiter:
             logger.info("✅ Rate Limiting enabled (Redis backend)")
         
-        # 4. Session Manager
-        self.session_manager = SessionManager(
-            self.app,
-            timeout_minutes=int(os.getenv('SESSION_TIMEOUT_MINUTES', 15)),
-            max_lifetime_hours=int(os.getenv('SESSION_MAX_LIFETIME_HOURS', 12))
-        )
+        # 4. Session Manager - ✅ FIXED: Pass config dict instead of kwargs
+        session_config = {
+            'session_timeout_minutes': int(os.getenv('SESSION_TIMEOUT_MINUTES', 15)),
+            'max_session_hours': int(os.getenv('SESSION_MAX_LIFETIME_HOURS', 12)),
+            'activity_timeout_minutes': int(os.getenv('ACTIVITY_TIMEOUT_MINUTES', 15)),
+            'secure_cookies': self.is_production
+        }
+        self.session_manager = SessionManager(self.app, config=session_config)
         logger.info("✅ Session Management enabled")
         
         # 5. Security Middleware (Headers, Request Validation)
@@ -417,9 +418,9 @@ class ProfessionalDashboard:
             if 'user' not in session:
                 return redirect(url_for('login'))
             
-            # 🔒 Validate session if session manager available
+            # 🔒 Validate session if session manager available - ✅ FIXED: Use _is_session_valid()
             if HAS_SECURITY and self.session_manager:
-                if not self.session_manager.validate_session():
+                if not self.session_manager._is_session_valid():
                     session.clear()
                     if self.audit_logger:
                         self.audit_logger.log_session_timeout(
@@ -482,8 +483,7 @@ class ProfessionalDashboard:
                     
                     # 🔒 Create session
                     if HAS_SECURITY and self.session_manager:
-                        session_id = self.session_manager.create_session(username)
-                        session['session_id'] = session_id
+                        self.session_manager.create_session(username)
                     
                     self.auth.record_successful_login(ip, username)
                     
@@ -503,11 +503,10 @@ class ProfessionalDashboard:
         @self.app.route('/logout')
         def logout():
             username = session.get('user')
-            session_id = session.get('session_id')
             
             # 🔒 Destroy session
-            if HAS_SECURITY and self.session_manager and session_id:
-                self.session_manager.destroy_session('user_logout')
+            if HAS_SECURITY and self.session_manager:
+                self.session_manager.clear_session()
             
             if self.audit_logger and username:
                 self.audit_logger.log_logout(username)
