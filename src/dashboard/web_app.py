@@ -292,28 +292,71 @@ class ProfessionalDashboard:
         init_security_middleware(self.app)
         logger.info("✅ Security Middleware enabled (Headers + Validation)")
         
-        # 6. HTTPS Enforcement (Production only)
-        if self.is_production and os.getenv('FORCE_HTTPS', 'true').lower() == 'true':
+        # 6. CSP and HTTPS Enforcement - ✅ FIXED: Configure for both dev and prod
+        csp_config = {
+            'default-src': "'self'",
+            'script-src': [
+                "'self'",
+                "'unsafe-inline'",  # Required for inline scripts
+                "'unsafe-eval'",     # Required for some JS frameworks
+                "https://cdn.jsdelivr.net",
+                "https://cdn.socket.io",
+                "https://cdn.plot.ly",
+                "https://unpkg.com"
+            ],
+            'style-src': [
+                "'self'",
+                "'unsafe-inline'",  # Required for inline styles
+                "https://fonts.googleapis.com",
+                "https://cdn.jsdelivr.net"
+            ],
+            'font-src': [
+                "'self'",
+                "https://fonts.gstatic.com",
+                "data:"
+            ],
+            'img-src': [
+                "'self'",
+                "data:",
+                "https:",
+                "blob:"
+            ],
+            'connect-src': [
+                "'self'",
+                "wss:",
+                "ws:",
+                "http://localhost:*",
+                "ws://localhost:*",
+                "wss://localhost:*"
+            ],
+            'frame-ancestors': "'none'",
+            'base-uri': "'self'",
+            'form-action': "'self'"
+        }
+        
+        if self.is_production:
+            # Production: Strict CSP with HTTPS enforcement
             Talisman(
                 self.app,
-                force_https=True,
+                force_https=os.getenv('FORCE_HTTPS', 'true').lower() == 'true',
                 strict_transport_security=True,
                 strict_transport_security_max_age=31536000,
                 strict_transport_security_include_subdomains=True,
                 strict_transport_security_preload=True,
-                content_security_policy={
-                    'default-src': "'self'",
-                    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://cdn.socket.io", "https://cdn.plot.ly"],
-                    'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-                    'font-src': ["'self'", "https://fonts.gstatic.com", "data:"],
-                    'img-src': ["'self'", "data:", "https:"],
-                    'connect-src': ["'self'", "wss:", "ws:"],
-                    'frame-ancestors': "'none'",
-                    'base-uri': "'self'",
-                    'form-action': "'self'"
-                }
+                content_security_policy=csp_config
             )
-            logger.info("✅ HTTPS Enforcement enabled (production)")
+            logger.info("✅ HTTPS Enforcement + CSP enabled (production)")
+        else:
+            # Development: Permissive CSP without HTTPS enforcement
+            Talisman(
+                self.app,
+                force_https=False,  # Don't force HTTPS in development
+                content_security_policy=csp_config,
+                content_security_policy_nonce_in=['script-src'],
+                feature_policy={},
+                strict_transport_security=False  # Disable HSTS in dev
+            )
+            logger.info("✅ CSP enabled (development mode)")
     
     def _setup_compression(self):
         """✅ Setup GZIP compression"""
@@ -403,7 +446,7 @@ class ProfessionalDashboard:
             logger.info("   - Rate Limiting: ✅")
             logger.info("   - Session Management: ✅")
             logger.info("   - Audit Logging: ✅")
-            logger.info("   - Security Headers: ✅")
+            logger.info(f"   - Security Headers: ✅ ({'Production' if self.is_production else 'Development'} mode)")
         logger.info(f"📊 Metrics: {'✅ Active' if HAS_METRICS else '⚠️ Disabled'}")
         logger.info(f"✅ GZIP: {'✅ Enabled' if HAS_COMPRESS else '⚠️ Disabled'}")
         logger.info(f"💾 Database: {'✅ Connected' if self.db_session else '⚠️ Mock Mode'}")
@@ -712,7 +755,7 @@ class ProfessionalDashboard:
             logger.info("   ✅ Rate Limiting")
             logger.info("   ✅ Session Management")
             logger.info("   ✅ Security Audit Logging")
-            logger.info("   ✅ Security Headers (CSP, HSTS, etc.)")
+            logger.info(f"   ✅ Security Headers (CSP, {'HSTS' if self.is_production else 'dev mode'})")
         else:
             logger.warning("⚠️ Security Phase 1: DISABLED (modules not available)")
         
