@@ -1,211 +1,356 @@
 /**
- * 🏆 Excel Export Manager - v7.6 Enterprise Edition
+ * Excel Export Manager v7.6
  * 
- * Purpose: Coordinate Excel exports between main thread and worker thread.
- * Provides backward-compatible API while using Web Worker internally.
+ * Manages communication with Excel Web Worker for secure Excel exports
+ * without requiring unsafe-eval in main thread CSP.
  * 
- * Security: This runs in main thread (eval-free) and communicates with
- * excel-worker.js for actual XLSX operations.
- * 
- * Author: Juan Carlos Garcia
- * Date: January 25, 2026
- * Version: 1.0.0
+ * @version 1.0.0
+ * @date January 25, 2026
  */
 
 class ExcelExportManager {
     constructor() {
         this.worker = null;
-        this.workerReady = false;
-        this.pendingOperations = new Map();
-        this.operationId = 0;
-        this.initWorker();
+        this.initialized = false;
+        this.pendingRequests = new Map();
+        this.requestId = 0;
+        this.workerPath = '/static/js/workers/excel-worker.js';
+        this.initPromise = null;
     }
     
     /**
-     * Initialize the Web Worker
+     * Initialize worker and wait for ready signal
+     * @returns {Promise<void>}
      */
-    initWorker() {
+    async init() {
+        // If already initialized, return immediately
+        if (this.initialized) return;
+        
+        // If initialization in progress, wait for it
+        if (this.initPromise) return this.initPromise;
+        
+        // Start new initialization
+        this.initPromise = new Promise((resolve, reject) => {
+            try {
+                console.log('[ExcelManager] Initializing worker...');
+                
+                // Create worker
+                this.worker = new Worker(this.workerPath);
+                
+                // Setup message handler
+                this.worker.onmessage = this._handleMessage.bind(this);
+                
+                // Setup error handler
+                this.worker.onerror = (error) => {
+                    console.error('[ExcelManager] Worker error:', error);
+                    this.initialized = false;
+                    reject(new Error(`Worker error: ${error.message}`));
+                };
+                
+                // Wait for ready signal
+                const readyHandler = (e) => {
+                    if (e.data.status === 'ready') {
+                        this.initialized = true;
+                        console.log('[ExcelManager] Worker ready:', e.data.version);
+                        this.worker.removeEventListener('message', readyHandler);
+                        resolve();
+                    }
+                };
+                
+                this.worker.addEventListener('message', readyHandler);
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    if (!this.initialized) {
+                        this.worker.removeEventListener('message', readyHandler);
+                        reject(new Error('Worker initialization timeout (10s)'));
+                    }
+                }, 10000);
+                
+            } catch (error) {
+                console.error('[ExcelManager] Init error:', error);
+                this.initialized = false;
+                reject(error);
+            }
+        });
+        
         try {
-            const workerUrl = '/static/js/excel-worker.js';
-            this.worker = new Worker(workerUrl);
-            
-            this.worker.addEventListener('message', (e) => this.handleWorkerMessage(e));
-            this.worker.addEventListener('error', (e) => this.handleWorkerError(e));
-            
-            // Health check
-            this.sendToWorker('health_check', null)
-                .then(result => {
-                    this.workerReady = true;
-                    console.log('%c✅ Excel Worker initialized', 'color:#3fb950;font-weight:600', result.data);
-                })
-                .catch(err => {
-                    console.error('%c❌ Excel Worker failed to initialize', 'color:#f85149;font-weight:600', err);
-                });
-        } catch (error) {
-            console.error('Failed to create Excel Worker:', error);
-            this.workerReady = false;
+            await this.initPromise;
+        } finally {
+            this.initPromise = null;
         }
     }
     
     /**
      * Handle messages from worker
+     * @private
      */
-    handleWorkerMessage(e) {
-        const { type, success, data, error, operationId } = e.data;
+    _handleMessage(e) {
+        const { id, status, data, error, message } = e.data;
         
-        if (type === 'worker_ready') {
-            console.log('%c📦 SheetJS loaded in worker', 'color:#3fb950;font-weight:600', data);
+        // Ignore ready signal (handled in init)
+        if (status === 'ready') return;
+        
+        // Find pending request
+        const request = this.pendingRequests.get(id);
+        if (!request) {
+            console.warn('[ExcelManager] Unknown request ID:', id);
             return;
         }
         
-        if (operationId && this.pendingOperations.has(operationId)) {
-            const { resolve, reject } = this.pendingOperations.get(operationId);
-            this.pendingOperations.delete(operationId);
-            
-            if (success) {
-                resolve(data);
-            } else {
-                reject(new Error(error || 'Worker operation failed'));
-            }
+        // Clear timeout
+        clearTimeout(request.timeout);
+        
+        // Remove from pending
+        this.pendingRequests.delete(id);
+        
+        // Resolve or reject
+        if (status === 'success') {
+            request.resolve(data);
+        } else if (status === 'error') {
+            request.reject(new Error(error || 'Unknown worker error'));
         }
     }
     
     /**
-     * Handle worker errors
+     * Send message to worker and wait for response
+     * @private
+     * @param {Object} message - Message to send
+     * @param {number} timeout - Timeout in ms
+     * @returns {Promise<any>}
      */
-    handleWorkerError(e) {
-        console.error('%c❌ Excel Worker error', 'color:#f85149;font-weight:600', e);
-        // Reject all pending operations
-        this.pendingOperations.forEach(({ reject }) => {
-            reject(new Error('Worker error: ' + e.message));
-        });
-        this.pendingOperations.clear();
-    }
-    
-    /**
-     * Send message to worker and get promise for result
-     */
-    sendToWorker(action, data, options = {}) {
+    _sendMessage(message, timeout = 30000) {
+        if (!this.initialized) {
+            return Promise.reject(new Error('Worker not initialized'));
+        }
+        
         return new Promise((resolve, reject) => {
-            if (!this.worker) {
-                reject(new Error('Excel Worker not available'));
-                return;
-            }
+            const id = ++this.requestId;
             
-            const operationId = ++this.operationId;
-            this.pendingOperations.set(operationId, { resolve, reject });
+            // Store request
+            const request = {
+                id,
+                resolve,
+                reject,
+                timestamp: Date.now(),
+                timeout: setTimeout(() => {
+                    this.pendingRequests.delete(id);
+                    reject(new Error(`Worker request timeout (${timeout}ms)`));
+                }, timeout)
+            };
             
-            this.worker.postMessage({
-                operationId,
-                action,
-                data,
-                options
-            });
+            this.pendingRequests.set(id, request);
             
-            // Timeout after 30 seconds
-            setTimeout(() => {
-                if (this.pendingOperations.has(operationId)) {
-                    this.pendingOperations.delete(operationId);
-                    reject(new Error('Excel Worker operation timeout'));
-                }
-            }, 30000);
+            // Send to worker
+            this.worker.postMessage({ id, ...message });
         });
     }
     
     /**
-     * Export data to Excel file
-     * @param {Array|Object} data - Data to export
+     * Export JSON data to Excel
+     * @param {Array} data - Array of objects
      * @param {Object} options - Export options
-     * @returns {Promise<void>}
+     * @param {string} [options.sheetName='Sheet1'] - Sheet name
+     * @param {Array<number>} [options.columnWidths] - Column widths
+     * @param {Array<string>} [options.headers] - Custom headers
+     * @param {boolean} [options.skipHeader=false] - Skip header row
+     * @param {boolean} [options.autoFilter=false] - Enable auto filter
+     * @param {string} [options.title] - Workbook title
+     * @returns {Promise<ArrayBuffer>}
      */
-    async exportToExcel(data, options = {}) {
-        if (!this.workerReady) {
-            throw new Error('Excel Worker not ready yet');
+    async exportJSON(data, options = {}) {
+        // Auto-initialize if needed
+        if (!this.initialized) {
+            await this.init();
         }
         
-        const defaultOptions = {
-            filename: 'dashboard_export_' + new Date().toISOString().slice(0,10) + '.xlsx',
-            sheetName: 'Data',
-            format: 'xlsx'
-        };
+        // Validate data
+        if (!Array.isArray(data)) {
+            throw new Error('Data must be an array');
+        }
         
-        const mergedOptions = { ...defaultOptions, ...options };
+        if (data.length === 0) {
+            throw new Error('Data array is empty');
+        }
+        
+        console.log(`[ExcelManager] Exporting ${data.length} rows to Excel...`);
+        
+        const startTime = performance.now();
         
         try {
-            const result = await this.sendToWorker('export_excel', data, mergedOptions);
+            const result = await this._sendMessage({
+                action: 'export-json',
+                data,
+                options
+            }, 60000);  // 60s timeout for large datasets
             
-            // Create blob from ArrayBuffer
-            const blob = new Blob([result.buffer], { type: result.mimeType });
-            
-            // Trigger download
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = result.filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            console.log(`%c✅ Excel export successful: ${result.filename} (${(result.size / 1024).toFixed(1)} KB)`, 'color:#3fb950;font-weight:600');
+            const duration = performance.now() - startTime;
+            console.log(`[ExcelManager] Export completed in ${Math.round(duration)}ms (${result.byteLength.toLocaleString()} bytes)`);
             
             return result;
         } catch (error) {
-            console.error('%c❌ Excel export failed', 'color:#f85149;font-weight:600', error);
+            console.error('[ExcelManager] Export failed:', error);
             throw error;
         }
     }
     
     /**
-     * Parse Excel file
-     * @param {File|ArrayBuffer} file - Excel file to parse
-     * @returns {Promise<Object>}
+     * Export HTML table to Excel
+     * @param {HTMLTableElement|string} table - Table element or HTML string
+     * @param {Object} options - Export options
+     * @param {string} [options.sheetName='Sheet1'] - Sheet name
+     * @param {Array<number>} [options.columnWidths] - Column widths
+     * @param {boolean} [options.raw=false] - Preserve raw values
+     * @param {string} [options.title] - Workbook title
+     * @returns {Promise<ArrayBuffer>}
      */
-    async parseExcel(file) {
-        if (!this.workerReady) {
-            throw new Error('Excel Worker not ready yet');
+    async exportTable(table, options = {}) {
+        // Auto-initialize if needed
+        if (!this.initialized) {
+            await this.init();
         }
         
-        let buffer;
-        if (file instanceof File) {
-            buffer = await file.arrayBuffer();
-        } else if (file instanceof ArrayBuffer) {
-            buffer = file;
-        } else {
-            throw new Error('Invalid file type. Expected File or ArrayBuffer.');
+        // Validate table
+        if (!table) {
+            throw new Error('Table element or HTML required');
         }
         
-        return await this.sendToWorker('parse_excel', buffer);
+        // Convert table to HTML string if element
+        const tableHTML = typeof table === 'string' 
+            ? table 
+            : table.outerHTML;
+        
+        console.log('[ExcelManager] Exporting HTML table to Excel...');
+        
+        try {
+            const result = await this._sendMessage({
+                action: 'export-table',
+                data: tableHTML,
+                options
+            }, 30000);
+            
+            console.log(`[ExcelManager] Table export completed (${result.byteLength.toLocaleString()} bytes)`);
+            
+            return result;
+        } catch (error) {
+            console.error('[ExcelManager] Table export failed:', error);
+            throw error;
+        }
     }
     
     /**
-     * Clean up worker
+     * Download Excel file to user's computer
+     * @param {ArrayBuffer} data - Excel file data
+     * @param {string} filename - Filename (default: 'export.xlsx')
      */
-    destroy() {
+    download(data, filename = 'export.xlsx') {
+        if (!filename.endsWith('.xlsx')) {
+            filename += '.xlsx';
+        }
+        
+        try {
+            const blob = new Blob([data], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Cleanup blob URL after a short delay
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            
+            console.log(`[ExcelManager] Downloaded: ${filename} (${data.byteLength.toLocaleString()} bytes)`);
+        } catch (error) {
+            console.error('[ExcelManager] Download failed:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Test worker connectivity
+     * @returns {Promise<boolean>}
+     */
+    async ping() {
+        if (!this.initialized) {
+            await this.init();
+        }
+        
+        try {
+            await this._sendMessage({ action: 'ping' }, 5000);
+            console.log('[ExcelManager] Ping successful');
+            return true;
+        } catch (error) {
+            console.error('[ExcelManager] Ping failed:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Get worker statistics
+     * @returns {Promise<Object>}
+     */
+    async getStats() {
+        if (!this.initialized) {
+            await this.init();
+        }
+        
+        try {
+            const stats = await this._sendMessage({ action: 'stats' }, 5000);
+            return stats;
+        } catch (error) {
+            console.error('[ExcelManager] Failed to get stats:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Terminate worker and clean up resources
+     */
+    terminate() {
         if (this.worker) {
+            console.log('[ExcelManager] Terminating worker...');
+            
+            // Clear all pending requests
+            for (const [id, request] of this.pendingRequests.entries()) {
+                clearTimeout(request.timeout);
+                request.reject(new Error('Worker terminated'));
+            }
+            this.pendingRequests.clear();
+            
+            // Terminate worker
             this.worker.terminate();
             this.worker = null;
-            this.workerReady = false;
-            console.log('%c🗑️ Excel Worker terminated', 'color:#8b949e');
+            this.initialized = false;
+            
+            console.log('[ExcelManager] Worker terminated');
         }
+    }
+    
+    /**
+     * Restart worker (terminate and reinitialize)
+     * @returns {Promise<void>}
+     */
+    async restart() {
+        console.log('[ExcelManager] Restarting worker...');
+        this.terminate();
+        await this.init();
+        console.log('[ExcelManager] Worker restarted');
     }
 }
 
-// Create global instance
-window.excelManager = new ExcelExportManager();
-
-// Backward compatibility: Add to window.XLSX namespace
-if (typeof window.XLSX === 'undefined') {
-    window.XLSX = {};
+// Create and export singleton instance
+if (typeof window !== 'undefined') {
+    window.ExcelExportManager = new ExcelExportManager();
+    console.log('[ExcelManager] Manager loaded and ready');
 }
 
-// Provide backward-compatible API
-window.XLSX.exportToExcel = (data, options) => {
-    return window.excelManager.exportToExcel(data, options);
-};
-
-window.XLSX.parseExcel = (file) => {
-    return window.excelManager.parseExcel(file);
-};
-
-console.log('%c🏆 Excel Export Manager initialized (Worker-Based)', 'background:#f59e0b;color:white;padding:4px 12px;border-radius:4px;font-weight:600');
+// Also export class for testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ExcelExportManager;
+}
