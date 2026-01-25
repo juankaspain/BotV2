@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- 🔒 SECURITY: CSRF Token Meta Tag -->
+    {% if csrf_token %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    {% endif %}
+    
+    <!-- 🔒 SECURITY: Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'">
+    
     <title>BotV2 Dashboard - Login</title>
     
     <!-- Professional Font -->
@@ -11,7 +20,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* ==================== PROFESSIONAL VARIABLES (MATCH DASHBOARD) ==================== */
+        /* SAME STYLES AS BEFORE - NOT DUPLICATING FOR BREVITY */
         :root {
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
@@ -31,14 +40,7 @@
             --radius-sm: 6px;
             --radius: 8px;
         }
-
-        /* ==================== RESET ==================== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-primary);
@@ -52,8 +54,6 @@
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
         }
-
-        /* ==================== LOGIN CARD - MINIMAL ==================== */
         .login-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border-default);
@@ -63,16 +63,9 @@
             width: 100%;
             box-shadow: var(--shadow);
         }
-
-        /* ==================== LOGO SECTION ==================== */
-        .logo-section {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
+        .logo-section { text-align: center; margin-bottom: 32px; }
         .logo {
-            width: 48px;
-            height: 48px;
+            width: 48px; height: 48px;
             background: var(--accent-primary);
             border-radius: var(--radius-sm);
             display: flex;
@@ -83,56 +76,15 @@
             font-weight: 700;
             color: white;
         }
-
-        .logo-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-
-        .logo-subtitle {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        /* ==================== FORM STYLES ==================== */
-        .login-form {
-            margin-top: 24px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 16px;
-            height: 16px;
-            color: var(--text-secondary);
-            pointer-events: none;
-        }
-
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 10px 12px 10px 36px;
+        .logo-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+        .logo-subtitle { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+        .login-form { margin-top: 24px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; }
+        .input-wrapper { position: relative; }
+        .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-secondary); pointer-events: none; }
+        input[type="text"], input[type="password"] {
+            width: 100%; padding: 10px 12px 10px 36px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-default);
             border-radius: var(--radius-sm);
@@ -142,18 +94,11 @@
             transition: all 150ms ease;
             outline: none;
         }
-
-        input[type="text"]:focus,
-        input[type="password"]:focus {
+        input[type="text"]:focus, input[type="password"]:focus {
             border-color: var(--accent-primary);
             background: var(--bg-secondary);
         }
-
-        input::placeholder {
-            color: var(--text-muted);
-        }
-
-        /* ==================== ERROR MESSAGE ==================== */
+        input::placeholder { color: var(--text-muted); }
         .error-message {
             display: none;
             background: var(--bg-tertiary);
@@ -166,26 +111,10 @@
             color: var(--accent-danger);
             animation: slideDown 200ms ease;
         }
-
-        .error-message.show {
-            display: block;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ==================== BUTTON ==================== */
+        .error-message.show { display: block; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .btn-login {
-            width: 100%;
-            padding: 10px 16px;
+            width: 100%; padding: 10px 16px;
             background: var(--accent-primary);
             color: white;
             font-size: 14px;
@@ -200,46 +129,14 @@
             justify-content: center;
             gap: 8px;
         }
-
-        .btn-login:hover:not(:disabled) {
-            background: var(--accent-hover);
-        }
-
-        .btn-login:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* Loading Spinner */
-        .spinner {
-            display: none;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-        }
-
-        .spinner.show {
-            display: block;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* ==================== SECURITY INFO ==================== */
-        .security-info {
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-default);
-        }
-
+        .btn-login:hover:not(:disabled) { background: var(--accent-hover); }
+        .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+        .spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        .spinner.show { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .security-info { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-default); }
         .security-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+            display: inline-flex; align-items: center; gap: 6px;
             padding: 4px 10px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-default);
@@ -249,64 +146,35 @@
             font-weight: 500;
             margin-bottom: 12px;
         }
-
-        .security-badge svg {
-            width: 12px;
-            height: 12px;
-        }
-
-        .security-text {
-            font-size: 12px;
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-
-        /* ==================== FOOTER ==================== */
-        .footer {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .footer a {
-            color: var(--accent-primary);
-            text-decoration: none;
-            transition: color 150ms ease;
-        }
-
-        .footer a:hover {
-            color: var(--accent-hover);
-        }
-
-        /* ==================== RESPONSIVE ==================== */
+        .security-badge svg { width: 12px; height: 12px; }
+        .security-text { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+        .footer { margin-top: 20px; text-align: center; font-size: 12px; color: var(--text-muted); }
+        .footer a { color: var(--accent-primary); text-decoration: none; transition: color 150ms ease; }
+        .footer a:hover { color: var(--accent-hover); }
         @media (max-width: 480px) {
-            .login-card {
-                padding: 32px 24px;
-            }
-
-            .logo-title {
-                font-size: 18px;
-            }
+            .login-card { padding: 32px 24px; }
+            .logo-title { font-size: 18px; }
         }
     </style>
 </head>
 <body>
     <div class="login-card">
-        <!-- Logo Section -->
         <div class="logo-section">
             <div class="logo">B2</div>
             <h1 class="logo-title">BotV2 Dashboard</h1>
             <p class="logo-subtitle">Sign in to continue</p>
         </div>
 
-        <!-- Error Message -->
         <div class="error-message" id="errorMessage" role="alert">
             Invalid credentials. Please try again.
         </div>
 
-        <!-- Login Form -->
         <form class="login-form" id="loginForm" method="POST" action="/login">
+            <!-- 🔒 CSRF Protection Token (Hidden Field) -->
+            {% if csrf_token %}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% endif %}
+            
             <div class="form-group">
                 <label for="username">Username</label>
                 <div class="input-wrapper">
@@ -320,6 +188,7 @@
                         placeholder="Enter username"
                         required
                         autocomplete="username"
+                        maxlength="20"
                     >
                 </div>
             </div>
@@ -337,6 +206,7 @@
                         placeholder="Enter password"
                         required
                         autocomplete="current-password"
+                        maxlength="128"
                     >
                 </div>
             </div>
@@ -347,7 +217,6 @@
             </button>
         </form>
 
-        <!-- Security Info -->
         <div class="security-info">
             <div class="security-badge">
                 <svg fill="currentColor" viewBox="0 0 20 20">
@@ -356,52 +225,43 @@
                 <span>Secure Login</span>
             </div>
             <div class="security-text">
-                Protected by rate limiting and brute force protection<br>
-                Maximum 10 attempts per minute
+                🔒 CSRF Protection Enabled<br>
+                ⚡ Rate Limiting Active (5 attempts/min)<br>
+                🚫 Brute Force Protection
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
-            BotV2 v7.2 Enterprise Edition<br>
+            BotV2 v7.3 Enterprise Edition - Security Phase 1<br>
             <a href="https://github.com/juankaspain/BotV2" target="_blank">Documentation</a>
         </div>
     </div>
 
+    <!-- 🔒 SECURITY: DOMPurify for XSS Protection -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    
     <script>
-        // ==================== OPTIMAL FOCUS MANAGEMENT ====================
-        // Prevents "Autofocus processing was blocked" warning by using
-        // requestAnimationFrame for proper timing after DOM is fully ready
-        
         function initializeFocus() {
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
-            
-            // Check if username was saved
             const savedUsername = localStorage.getItem('botv2_username');
             
-            // Use requestAnimationFrame for optimal timing
             requestAnimationFrame(() => {
                 if (savedUsername && savedUsername.trim() !== '') {
-                    // If username is saved, populate and focus password
                     usernameInput.value = savedUsername;
                     passwordInput.focus();
                 } else {
-                    // Otherwise focus username
                     usernameInput.focus();
                 }
             });
         }
 
-        // Wait for DOM to be fully loaded before setting focus
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeFocus);
         } else {
-            // DOM already loaded
             initializeFocus();
         }
 
-        // ==================== FORM SUBMISSION ====================
         const form = document.getElementById('loginForm');
         const btn = document.getElementById('loginBtn');
         const btnText = document.getElementById('btnText');
@@ -414,15 +274,11 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            // Hide error
             errorMessage.classList.remove('show');
-
-            // Show loading
             btn.disabled = true;
             btnText.textContent = 'Signing in...';
             spinner.classList.add('show');
 
-            // Submit
             fetch('/login', {
                 method: 'POST',
                 headers: {
@@ -442,33 +298,21 @@
                 }
             })
             .then(data => {
-                // Success
+                localStorage.setItem('botv2_username', username);
                 window.location.href = data.redirect || '/';
             })
             .catch(error => {
-                // Error
-                errorMessage.textContent = error.message;
+                errorMessage.textContent = DOMPurify.sanitize(error.message);
                 errorMessage.classList.add('show');
-
-                // Reset button
                 btn.disabled = false;
                 btnText.textContent = 'Sign In';
                 spinner.classList.remove('show');
-
-                // Clear password and refocus
                 document.getElementById('password').value = '';
-                requestAnimationFrame(() => {
-                    document.getElementById('password').focus();
-                });
-
-                // Auto-hide error after 5s
-                setTimeout(() => {
-                    errorMessage.classList.remove('show');
-                }, 5000);
+                requestAnimationFrame(() => { document.getElementById('password').focus(); });
+                setTimeout(() => { errorMessage.classList.remove('show'); }, 5000);
             });
         });
 
-        // ==================== USERNAME PERSISTENCE ====================
         document.getElementById('username').addEventListener('change', function() {
             const username = this.value.trim();
             if (username) {
@@ -478,7 +322,6 @@
             }
         });
 
-        // ==================== ERROR FROM URL PARAMS ====================
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('error')) {
             errorMessage.textContent = 'Authentication failed. Please try again.';
