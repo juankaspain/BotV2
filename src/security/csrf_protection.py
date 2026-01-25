@@ -7,9 +7,8 @@ Implements token-based validation for all state-changing operations.
 import secrets
 import logging
 from functools import wraps
-from flask import session, request, jsonify, abort
+from flask import session, request, jsonify, abort, Flask
 from typing import Optional, Callable
-import hashlib
 import time
 
 logger = logging.getLogger(__name__)
@@ -38,27 +37,45 @@ class CSRFProtection:
         self.token_length = token_length
         self.token_ttl = token_ttl
         self.app = app
+        self._enabled = True
         
         if app is not None:
             self.init_app(app)
     
-    def init_app(self, app):
+    def init_app(self, app: Flask):
         """Initialize CSRF protection for Flask app"""
         self.app = app
+        
+        # Check if CSRF is enabled
+        self._enabled = app.config.get('CSRF_ENABLED', True)
+        
+        if not self._enabled:
+            logger.warning("⚠️ CSRF Protection DISABLED")
+            return
         
         # Register before_request handler
         @app.before_request
         def csrf_protect():
+            # Skip if disabled
+            if not self._enabled:
+                return
+            
             # Skip CSRF for safe methods (GET, HEAD, OPTIONS)
-            if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            if request.method in ('GET', 'HEAD', 'OPTIONS', 'TRACE'):
+                return
+            
+            # Skip CSRF for exempt endpoints
+            if hasattr(request, '_csrf_exempt') and request._csrf_exempt:
                 return
             
             # Skip CSRF for health/metrics endpoints
-            if request.path in ('/health', '/api/metrics', '/api/metrics/export'):
-                return
-            
-            # Skip CSRF for login (uses different validation)
-            if request.path == '/login' and request.method == 'POST':
+            exempt_paths = [
+                '/health',
+                '/api/metrics',
+                '/api/metrics/export',
+                '/api/metrics/snapshot'
+            ]
+            if request.path in exempt_paths:
                 return
             
             # Validate CSRF token for state-changing requests
@@ -67,12 +84,41 @@ class CSRFProtection:
                     f"CSRF validation failed for {request.method} {request.path} "
                     f"from {request.remote_addr}"
                 )
+                
+                # Log to security audit if available
+                try:
+                    from .audit_logger import get_audit_logger
+                    audit_logger = get_audit_logger()
+                    audit_logger.log_csrf_failure(
+                        reason='invalid_or_missing_token'
+                    )
+                except Exception:
+                    pass
+                
                 abort(403, description="CSRF validation failed")
         
         # Register context processor to inject CSRF token into templates
         @app.context_processor
         def csrf_token_processor():
             return {'csrf_token': self.generate_token}
+        
+        # Add after_request handler for token rotation
+        @app.after_request
+        def rotate_csrf_token(response):
+            # Only rotate on successful POST/PUT/DELETE
+            if request.method in ('POST', 'PUT', 'DELETE', 'PATCH') and response.status_code < 400:
+                # Generate new token for next request
+                new_token = self.generate_token()
+                # Add token to response cookie (optional double-submit pattern)
+                response.set_cookie(
+                    'csrf_token',
+                    new_token,
+                    max_age=self.token_ttl,
+                    secure=app.config.get('SESSION_COOKIE_SECURE', True),
+                    httponly=False,  # Needs to be readable by JavaScript
+                    samesite='Lax'
+                )
+            return response
         
         logger.info("✅ CSRF Protection enabled")
     
@@ -97,7 +143,13 @@ class CSRFProtection:
         Returns:
             Current CSRF token or None if not found
         """
-        return session.get('csrf_token')
+        token = session.get('csrf_token')
+        
+        # Generate new token if not exists
+        if not token:
+            token = self.generate_token()
+        
+        return token
     
     def validate_csrf(self) -> bool:
         """Validate CSRF token from request
@@ -131,12 +183,20 @@ class CSRFProtection:
         # Check X-CSRF-Token header (preferred for AJAX requests)
         if 'X-CSRF-Token' in request.headers:
             request_token = request.headers.get('X-CSRF-Token')
+        # Check X-CSRFToken header (alternative)
+        elif 'X-CSRFToken' in request.headers:
+            request_token = request.headers.get('X-CSRFToken')
         # Check form data (for regular form submissions)
         elif request.form and 'csrf_token' in request.form:
             request_token = request.form.get('csrf_token')
         # Check JSON payload
-        elif request.is_json and request.get_json():
-            request_token = request.get_json().get('csrf_token')
+        elif request.is_json:
+            try:
+                json_data = request.get_json(silent=True)
+                if json_data and 'csrf_token' in json_data:
+                    request_token = json_data.get('csrf_token')
+            except Exception:
+                pass
         
         if not request_token:
             logger.debug("CSRF token not found in request")
@@ -193,12 +253,54 @@ def require_csrf(f: Callable) -> Callable:
     return decorated_function
 
 
-# Convenience function for templates
+# Global CSRF instance
+_csrf_protection: Optional[CSRFProtection] = None
+
+
+def init_csrf_protection(
+    app: Flask,
+    token_length: int = 32,
+    token_ttl: int = 3600
+) -> CSRFProtection:
+    """Initialize CSRF protection for Flask app
+    
+    Args:
+        app: Flask application instance
+        token_length: Length of CSRF token in bytes (default: 32)
+        token_ttl: Token time-to-live in seconds (default: 3600 = 1 hour)
+        
+    Returns:
+        CSRFProtection instance
+    """
+    global _csrf_protection
+    _csrf_protection = CSRFProtection(app, token_length, token_ttl)
+    return _csrf_protection
+
+
+def get_csrf_token() -> Optional[str]:
+    """Get current CSRF token from session
+    
+    Returns:
+        CSRF token string or None
+    """
+    global _csrf_protection
+    if _csrf_protection:
+        return _csrf_protection.get_token()
+    
+    # Fallback: try to get from session directly
+    return session.get('csrf_token')
+
+
+# Convenience function for templates (deprecated, use csrf_token() instead)
 def generate_csrf_token() -> str:
     """Generate CSRF token for use in templates
     
     Returns:
         CSRF token string
     """
-    csrf = CSRFProtection()
-    return csrf.generate_token()
+    token = get_csrf_token()
+    if not token:
+        # Generate new one
+        csrf = CSRFProtection()
+        token = csrf.generate_token()
+    return token

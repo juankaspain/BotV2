@@ -1,264 +1,299 @@
 """XSS Protection Module
 
-Provides Cross-Site Scripting (XSS) protection through input sanitization.
-Uses bleach for HTML sanitization and provides utilities for safe output.
+Provides Cross-Site Scripting (XSS) protection through HTML sanitization.
+Uses bleach library for whitelist-based sanitization.
 """
 
 import logging
 import re
-from typing import Optional, List, Dict, Any
-import html
+from typing import Dict, List, Any, Optional, Callable
+from functools import wraps
+from flask import request, Flask
 
+logger = logging.getLogger(__name__)
+
+# Try to import bleach
 try:
     import bleach
     HAS_BLEACH = True
 except ImportError:
     HAS_BLEACH = False
+    logger.warning("⚠️ bleach not installed - XSS protection limited to basic escaping")
 
-logger = logging.getLogger(__name__)
+
+# Whitelist configuration
+ALLOWED_TAGS = [
+    'p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'code', 'pre', 'blockquote',
+    'span', 'div'
+]
+
+ALLOWED_ATTRIBUTES = {
+    'a': ['href', 'title', 'target', 'rel'],
+    'img': ['src', 'alt', 'width', 'height'],
+    'span': ['class'],
+    'div': ['class']
+}
+
+ALLOWED_PROTOCOLS = ['http', 'https', 'mailto']
+
+# Dangerous patterns to detect
+XSS_PATTERNS = [
+    re.compile(r'<script', re.IGNORECASE),
+    re.compile(r'javascript:', re.IGNORECASE),
+    re.compile(r'on\w+\s*=', re.IGNORECASE),  # onerror=, onclick=, etc.
+    re.compile(r'<iframe', re.IGNORECASE),
+    re.compile(r'<embed', re.IGNORECASE),
+    re.compile(r'<object', re.IGNORECASE),
+    re.compile(r'eval\(', re.IGNORECASE),
+    re.compile(r'expression\(', re.IGNORECASE),
+]
 
 
-class XSSProtection:
-    """XSS Protection Manager
+def sanitize_html(html: str, strip: bool = False) -> str:
+    """Sanitize HTML input to prevent XSS
     
-    Provides comprehensive XSS protection through:
-    - HTML sanitization (removes dangerous tags/attributes)
-    - URL validation
-    - JavaScript escaping
-    - Safe output encoding
+    Args:
+        html: HTML string to sanitize
+        strip: If True, strip tags instead of escaping (default: False)
+        
+    Returns:
+        Sanitized HTML string
     """
+    if not html:
+        return ''
     
-    # Safe HTML tags (whitelist)
-    ALLOWED_TAGS = [
-        'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'a', 'span', 'div'
-    ]
+    if HAS_BLEACH:
+        return bleach.clean(
+            html,
+            tags=ALLOWED_TAGS if not strip else [],
+            attributes=ALLOWED_ATTRIBUTES,
+            protocols=ALLOWED_PROTOCOLS,
+            strip=strip
+        )
+    else:
+        # Fallback: basic HTML escaping
+        import html as html_lib
+        return html_lib.escape(html)
+
+
+def sanitize_dict(data: Dict[str, Any], strip: bool = False) -> Dict[str, Any]:
+    """Recursively sanitize dictionary values
     
-    # Safe HTML attributes (whitelist)
-    ALLOWED_ATTRIBUTES = {
-        'a': ['href', 'title', 'target'],
-        'span': ['class'],
-        'div': ['class'],
-        'code': ['class']
-    }
-    
-    # Safe URL protocols
-    ALLOWED_PROTOCOLS = ['http', 'https', 'mailto']
-    
-    # Dangerous patterns to block
-    DANGEROUS_PATTERNS = [
-        r'javascript:',
-        r'data:text/html',
-        r'vbscript:',
-        r'file:',
-        r'<script',
-        r'onerror=',
-        r'onload=',
-        r'onclick=',
-        r'eval\(',
-        r'expression\(',
-    ]
-    
-    def __init__(self, allowed_tags: Optional[List[str]] = None,
-                 allowed_attributes: Optional[Dict[str, List[str]]] = None):
-        """
-        Initialize XSS protection
+    Args:
+        data: Dictionary to sanitize
+        strip: If True, strip HTML tags
         
-        Args:
-            allowed_tags: Custom list of allowed HTML tags
-            allowed_attributes: Custom dict of allowed attributes per tag
-        """
-        self.allowed_tags = allowed_tags or self.ALLOWED_TAGS
-        self.allowed_attributes = allowed_attributes or self.ALLOWED_ATTRIBUTES
-        
-        if not HAS_BLEACH:
-            logger.warning(
-                "⚠️ bleach not installed - XSS protection will use basic escaping only. "
-                "Install with: pip install bleach"
-            )
+    Returns:
+        Sanitized dictionary
+    """
+    if not isinstance(data, dict):
+        return data
     
-    def sanitize_html(self, text: str, strip: bool = False) -> str:
-        """Sanitize HTML content to prevent XSS
-        
-        Args:
-            text: HTML content to sanitize
-            strip: If True, remove all HTML tags; if False, allow safe tags
-        
-        Returns:
-            Sanitized HTML string
-        """
-        if not text:
-            return ""
-        
-        if HAS_BLEACH:
-            if strip:
-                # Remove all HTML tags
-                return bleach.clean(text, tags=[], strip=True)
-            else:
-                # Allow only safe tags and attributes
-                return bleach.clean(
-                    text,
-                    tags=self.allowed_tags,
-                    attributes=self.allowed_attributes,
-                    protocols=self.ALLOWED_PROTOCOLS,
-                    strip=True
-                )
+    sanitized = {}
+    for key, value in data.items():
+        if isinstance(value, str):
+            sanitized[key] = sanitize_html(value, strip=strip)
+        elif isinstance(value, dict):
+            sanitized[key] = sanitize_dict(value, strip=strip)
+        elif isinstance(value, list):
+            sanitized[key] = [
+                sanitize_html(v, strip=strip) if isinstance(v, str)
+                else sanitize_dict(v, strip=strip) if isinstance(v, dict)
+                else v
+                for v in value
+            ]
         else:
-            # Fallback: HTML escape everything
-            return html.escape(text)
+            sanitized[key] = value
     
-    def sanitize_json(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Sanitize all string values in a JSON object
+    return sanitized
+
+
+def contains_xss(text: str) -> bool:
+    """Check if string contains potential XSS patterns
+    
+    Args:
+        text: String to check
         
-        Args:
-            data: Dictionary to sanitize
+    Returns:
+        True if XSS patterns detected, False otherwise
+    """
+    if not text:
+        return False
+    
+    return any(pattern.search(text) for pattern in XSS_PATTERNS)
+
+
+def detect_xss_attempt(data: Any) -> Optional[str]:
+    """Detect XSS attempts in data
+    
+    Args:
+        data: Data to check (string, dict, or list)
         
-        Returns:
-            Sanitized dictionary
-        """
-        if not isinstance(data, dict):
-            return data
-        
-        sanitized = {}
+    Returns:
+        Field name where XSS was detected, or None
+    """
+    if isinstance(data, str):
+        if contains_xss(data):
+            return 'value'
+    elif isinstance(data, dict):
         for key, value in data.items():
-            if isinstance(value, str):
-                sanitized[key] = self.sanitize_html(value, strip=True)
-            elif isinstance(value, dict):
-                sanitized[key] = self.sanitize_json(value)
-            elif isinstance(value, list):
-                sanitized[key] = [
-                    self.sanitize_json(item) if isinstance(item, dict)
-                    else self.sanitize_html(item, strip=True) if isinstance(item, str)
-                    else item
-                    for item in value
-                ]
-            else:
-                sanitized[key] = value
-        
-        return sanitized
+            if isinstance(value, str) and contains_xss(value):
+                return key
+            elif isinstance(value, (dict, list)):
+                nested = detect_xss_attempt(value)
+                if nested:
+                    return f"{key}.{nested}"
+    elif isinstance(data, list):
+        for i, value in enumerate(data):
+            if isinstance(value, str) and contains_xss(value):
+                return f"[{i}]"
+            elif isinstance(value, (dict, list)):
+                nested = detect_xss_attempt(value)
+                if nested:
+                    return f"[{i}].{nested}"
     
-    def validate_url(self, url: str) -> bool:
-        """Validate URL to prevent XSS through href attributes
-        
-        Args:
-            url: URL to validate
-        
-        Returns:
-            True if URL is safe, False otherwise
-        """
-        if not url:
-            return False
-        
-        # Check for dangerous patterns
-        url_lower = url.lower()
-        for pattern in self.DANGEROUS_PATTERNS:
-            if re.search(pattern, url_lower, re.IGNORECASE):
-                logger.warning(f"Dangerous pattern detected in URL: {pattern}")
-                return False
-        
-        # Check protocol
-        if '://' in url:
-            protocol = url.split('://')[0].lower()
-            if protocol not in self.ALLOWED_PROTOCOLS:
-                logger.warning(f"Disallowed protocol in URL: {protocol}")
-                return False
-        
-        return True
+    return None
+
+
+def sanitize_request_data(strip: bool = False):
+    """Decorator to automatically sanitize request data
     
-    def escape_js(self, text: str) -> str:
-        """Escape text for safe use in JavaScript context
+    Args:
+        strip: If True, strip HTML tags completely
         
-        Args:
-            text: Text to escape
+    Example:
+        @app.route('/api/create', methods=['POST'])
+        @sanitize_request_data(strip=True)
+        def create_item():
+            data = request.get_json()
+            # data is now sanitized
+            return jsonify(data)
+    """
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            # Sanitize form data
+            if request.form:
+                request.form = sanitize_dict(request.form.to_dict(), strip=strip)
+            
+            # Sanitize JSON data
+            if request.is_json:
+                try:
+                    json_data = request.get_json(silent=True)
+                    if json_data:
+                        if isinstance(json_data, dict):
+                            request._sanitized_json = sanitize_dict(json_data, strip=strip)
+                        elif isinstance(json_data, list):
+                            request._sanitized_json = [
+                                sanitize_dict(item, strip=strip) if isinstance(item, dict)
+                                else sanitize_html(item, strip=strip) if isinstance(item, str)
+                                else item
+                                for item in json_data
+                            ]
+                except Exception as e:
+                    logger.error(f"Error sanitizing JSON: {e}")
+            
+            return f(*args, **kwargs)
         
-        Returns:
-            JavaScript-safe escaped string
-        """
-        if not text:
-            return ""
-        
-        # Escape special characters for JavaScript
-        replacements = {
-            '\\': '\\\\',
-            '"': '\\"',
-            "'": "\\'",
-            '\n': '\\n',
-            '\r': '\\r',
-            '\t': '\\t',
-            '<': '\\x3C',  # Prevent </script> injection
-            '>': '\\x3E',
-            '&': '\\x26'
-        }
-        
-        for old, new in replacements.items():
-            text = text.replace(old, new)
-        
-        return text
+        return wrapper
+    return decorator
+
+
+def xss_protection_middleware(app: Flask, strip: bool = False, detect_only: bool = False):
+    """Add XSS protection middleware to Flask app
     
-    def safe_format(self, template: str, **kwargs) -> str:
-        """Safely format a template string with sanitized values
+    Args:
+        app: Flask application instance
+        strip: If True, strip HTML tags completely
+        detect_only: If True, only detect and log XSS attempts without sanitizing
+    """
+    @app.before_request
+    def check_xss():
+        # Skip for safe methods
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return
         
-        Args:
-            template: Template string with {key} placeholders
-            **kwargs: Values to substitute (will be sanitized)
+        # Check JSON data
+        if request.is_json:
+            try:
+                json_data = request.get_json(silent=True)
+                if json_data:
+                    xss_field = detect_xss_attempt(json_data)
+                    if xss_field:
+                        logger.warning(
+                            f"XSS attempt detected in field '{xss_field}' "
+                            f"from {request.remote_addr} on {request.path}"
+                        )
+                        
+                        # Log to security audit if available
+                        try:
+                            from .audit_logger import get_audit_logger
+                            audit_logger = get_audit_logger()
+                            audit_logger.log_xss_attempt(
+                                field=xss_field,
+                                value=str(json_data.get(xss_field, ''))[:100]
+                            )
+                        except Exception:
+                            pass
+                        
+                        if detect_only:
+                            # Just log, don't block
+                            pass
+                        else:
+                            # Sanitize the data
+                            if isinstance(json_data, dict):
+                                request._sanitized_json = sanitize_dict(json_data, strip=strip)
+                            elif isinstance(json_data, list):
+                                request._sanitized_json = [
+                                    sanitize_dict(item, strip=strip) if isinstance(item, dict) else item
+                                    for item in json_data
+                                ]
+            except Exception as e:
+                logger.error(f"Error checking XSS: {e}")
         
-        Returns:
-            Formatted string with sanitized values
-        """
-        sanitized_kwargs = {
-            key: self.sanitize_html(str(value), strip=True)
-            for key, value in kwargs.items()
-        }
-        return template.format(**sanitized_kwargs)
+        # Check form data
+        if request.form:
+            form_dict = request.form.to_dict()
+            xss_field = detect_xss_attempt(form_dict)
+            if xss_field:
+                logger.warning(
+                    f"XSS attempt detected in form field '{xss_field}' "
+                    f"from {request.remote_addr} on {request.path}"
+                )
+                
+                if not detect_only:
+                    # Sanitize form data
+                    request.form = sanitize_dict(form_dict, strip=strip)
     
-    def check_input(self, text: str) -> bool:
-        """Check if input contains potential XSS attacks
+    logger.info(f"✅ XSS Protection middleware enabled (strip={strip}, detect_only={detect_only})")
+
+
+def escape_html(text: str) -> str:
+    """Escape HTML entities in text
+    
+    Args:
+        text: Text to escape
         
-        Args:
-            text: Input text to check
+    Returns:
+        Escaped text
+    """
+    import html as html_lib
+    return html_lib.escape(text)
+
+
+def strip_tags(html: str) -> str:
+    """Strip all HTML tags from string
+    
+    Args:
+        html: HTML string
         
-        Returns:
-            True if input is safe, False if suspicious
-        """
-        if not text:
-            return True
-        
-        text_lower = text.lower()
-        
-        # Check for dangerous patterns
-        for pattern in self.DANGEROUS_PATTERNS:
-            if re.search(pattern, text_lower, re.IGNORECASE):
-                logger.warning(f"Suspicious pattern detected: {pattern}")
-                return False
-        
-        return True
-
-
-# Singleton instance
-_xss_protection = XSSProtection()
-
-
-# Convenience functions
-def sanitize_html(text: str, strip: bool = False) -> str:
-    """Sanitize HTML content (convenience function)"""
-    return _xss_protection.sanitize_html(text, strip)
-
-
-def sanitize_json(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Sanitize JSON data (convenience function)"""
-    return _xss_protection.sanitize_json(data)
-
-
-def validate_url(url: str) -> bool:
-    """Validate URL (convenience function)"""
-    return _xss_protection.validate_url(url)
-
-
-def escape_js(text: str) -> str:
-    """Escape for JavaScript (convenience function)"""
-    return _xss_protection.escape_js(text)
-
-
-def safe_format(template: str, **kwargs) -> str:
-    """Safe string formatting (convenience function)"""
-    return _xss_protection.safe_format(template, **kwargs)
+    Returns:
+        Plain text without HTML tags
+    """
+    if HAS_BLEACH:
+        return bleach.clean(html, tags=[], strip=True)
+    else:
+        # Basic tag stripping with regex
+        return re.sub(r'<[^>]+>', '', html)
