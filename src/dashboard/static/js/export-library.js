@@ -1,385 +1,600 @@
-/**
- * BotV2 Dashboard Export Library v7.4
- * Professional Export System with SheetJS and jsPDF
- * 
- * @author Juan Carlos Garcia
- * @version 7.4.0
- * @date 25-01-2026
- * 
- * Dependencies (loaded from CDN):
- * - SheetJS: https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js
- * - jsPDF: https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js
- * - jsPDF-AutoTable: https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js
- */
+// ==================== ExportLibrary v1.0 - Professional Data Export ====================
+// 📥 Complete export system for CSV, Excel, PDF
+// 🎯 Integration with Dashboard v7.4
+// 📦 Dependencies: SheetJS (xlsx), jsPDF, jsPDF-AutoTable
+// Author: Juan Carlos Garcia
+// Date: 25-01-2026
+// Version: 1.0.0
 
 'use strict';
 
+// ==================== DISPLAY BANNER ====================
+(function showBanner() {
+    console.log(
+        '%c📥 ExportLibrary v1.0 ',
+        'background:#8338ec;color:white;padding:4px 12px;border-radius:4px;font-weight:600',
+        '- Professional data export system loaded'
+    );
+})();
+
 // ==================== EXPORT LIBRARY ====================
-const ExportLibrary = (() => {
+window.ExportLibrary = (() => {
     
-    // Check if libraries are loaded
-    const checkDependencies = () => {
-        const deps = {
-            xlsx: typeof XLSX !== 'undefined',
-            jspdf: typeof window.jspdf !== 'undefined'
-        };
-        
-        if (!deps.xlsx) {
-            console.warn('SheetJS not loaded. Excel exports will be limited.');
-        }
-        
-        if (!deps.jspdf) {
-            console.warn('jsPDF not loaded. PDF exports will be limited.');
-        }
-        
-        return deps;
+    // Configuration
+    const CONFIG = {
+        maxRowsCSV: 1000000,
+        maxRowsExcel: 100000,
+        maxRowsPDF: 10000,
+        chunkSize: 1000,
+        dateFormat: 'YYYY-MM-DD HH:mm:ss',
+        timezone: 'Europe/Madrid'
     };
+    
+    // State
+    const state = {
+        exporting: false,
+        currentExport: null,
+        history: []
+    };
+    
+    // ==================== LOGGER ====================
+    const Logger = {
+        info: (msg) => console.log(`%c[EXPORT]%c ℹ️ ${msg}`, 'background:#8338ec;color:white;padding:2px 8px;border-radius:3px;font-weight:600', 'color:#7d8590'),
+        success: (msg) => console.log(`%c[EXPORT]%c ✅ ${msg}`, 'background:#3fb950;color:white;padding:2px 8px;border-radius:3px;font-weight:600', 'color:#7d8590'),
+        error: (msg, err) => {
+            console.error(`%c[EXPORT]%c ❌ ${msg}`, 'background:#f85149;color:white;padding:2px 8px;border-radius:3px;font-weight:600', 'color:#7d8590');
+            if (err) console.error(err);
+        },
+        progress: (msg, percent) => console.log(`%c[EXPORT]%c 📊 ${msg} (${percent}%)`, 'background:#8338ec;color:white;padding:2px 8px;border-radius:3px;font-weight:600', 'color:#7d8590')
+    };
+    
+    // ==================== UTILITIES ====================
+    
+    /**
+     * Format date according to config
+     */
+    function formatDate(date) {
+        if (!date) return '';
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const seconds = String(d.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+    
+    /**
+     * Format number with locale
+     */
+    function formatNumber(num, decimals = 2) {
+        if (typeof num !== 'number') return num;
+        return num.toLocaleString('es-ES', { 
+            minimumFractionDigits: decimals, 
+            maximumFractionDigits: decimals 
+        });
+    }
+    
+    /**
+     * Escape CSV field
+     */
+    function escapeCSV(field) {
+        if (field === null || field === undefined) return '';
+        const str = String(field);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    }
+    
+    /**
+     * Download file to browser
+     */
+    function downloadFile(content, filename, mimeType) {
+        try {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            Logger.success(`File downloaded: ${filename}`);
+        } catch (error) {
+            Logger.error('Download failed', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Show progress indicator
+     */
+    function showProgress(message, percent) {
+        Logger.progress(message, percent);
+        
+        // Update UI if progress element exists
+        const progressEl = document.getElementById('export-progress');
+        if (progressEl) {
+            progressEl.style.display = 'block';
+            progressEl.querySelector('.progress-bar').style.width = `${percent}%`;
+            progressEl.querySelector('.progress-text').textContent = `${message} ${percent}%`;
+        }
+    }
+    
+    /**
+     * Hide progress indicator
+     */
+    function hideProgress() {
+        const progressEl = document.getElementById('export-progress');
+        if (progressEl) {
+            progressEl.style.display = 'none';
+        }
+    }
     
     // ==================== CSV EXPORT ====================
-    const exportToCSV = (data, filename = 'export.csv', options = {}) => {
-        console.log('[Export] Starting CSV export:', filename);
+    
+    /**
+     * Export data to CSV format
+     * @param {Array} data - Array of objects
+     * @param {Object} options - Export options
+     */
+    function toCSV(data, options = {}) {
+        Logger.info('Starting CSV export...');
+        
+        const {
+            filename = 'export.csv',
+            headers = null,
+            metadata = true,
+            delimiter = ',',
+            includeTimestamp = true
+        } = options;
+        
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('Data must be a non-empty array');
+        }
+        
+        if (data.length > CONFIG.maxRowsCSV) {
+            throw new Error(`Data exceeds maximum rows for CSV (${CONFIG.maxRowsCSV})`);
+        }
         
         try {
-            // Convert data to CSV
             let csv = '';
             
-            // Add metadata headers
-            if (options.includeMetadata !== false) {
-                csv += `# BotV2 Dashboard Export\n`;
-                csv += `# Generated: ${new Date().toISOString()}\n`;
-                csv += `# Section: ${options.section || 'dashboard'}\n`;
-                csv += `\n`;
+            // Add metadata header
+            if (metadata) {
+                csv += '# BotV2 Dashboard Export\n';
+                csv += `# Generated: ${formatDate(new Date())}\n`;
+                csv += `# Rows: ${data.length}\n`;
+                csv += `# Format: CSV\n`;
+                csv += '\n';
             }
             
-            // Handle array of objects
-            if (Array.isArray(data) && data.length > 0) {
-                // Headers
-                const headers = Object.keys(data[0]);
-                csv += headers.join(',') + '\n';
+            // Get headers
+            const cols = headers || Object.keys(data[0]);
+            
+            // Add header row
+            csv += cols.map(escapeCSV).join(delimiter) + '\n';
+            
+            // Add data rows
+            const totalRows = data.length;
+            data.forEach((row, index) => {
+                const values = cols.map(col => {
+                    const value = row[col];
+                    if (value instanceof Date) return formatDate(value);
+                    if (typeof value === 'number') return value;
+                    return escapeCSV(value);
+                });
+                csv += values.join(delimiter) + '\n';
                 
-                // Rows
-                data.forEach(row => {
-                    const values = headers.map(header => {
-                        const value = row[header];
-                        // Handle special characters and commas
-                        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-                            return `"${value.replace(/"/g, '""')}"`;
-                        }
-                        return value !== null && value !== undefined ? value : '';
-                    });
-                    csv += values.join(',') + '\n';
-                });
-            } else {
-                // Handle simple key-value data
-                csv += 'Metric,Value\n';
-                Object.entries(data).forEach(([key, value]) => {
-                    csv += `${key},${value}\n`;
-                });
-            }
+                // Show progress every 10%
+                if (index % Math.floor(totalRows / 10) === 0) {
+                    const percent = Math.floor((index / totalRows) * 100);
+                    showProgress('Exporting CSV', percent);
+                }
+            });
             
-            // Create and download
-            downloadFile(csv, filename, 'text/csv');
+            showProgress('Exporting CSV', 100);
             
-            console.log('[Export] CSV export completed');
-            return { success: true, format: 'csv', filename };
+            // Add timestamp to filename
+            const finalFilename = includeTimestamp 
+                ? filename.replace('.csv', `_${Date.now()}.csv`)
+                : filename;
+            
+            // Download
+            downloadFile(csv, finalFilename, 'text/csv;charset=utf-8;');
+            
+            hideProgress();
+            
+            // Track in history
+            addToHistory('csv', finalFilename, data.length);
+            
+            Logger.success(`CSV export completed: ${data.length} rows`);
+            return { success: true, filename: finalFilename, rows: data.length };
             
         } catch (error) {
-            console.error('[Export] CSV export failed:', error);
-            return { success: false, error: error.message };
+            hideProgress();
+            Logger.error('CSV export failed', error);
+            throw error;
         }
-    };
+    }
     
     // ==================== EXCEL EXPORT ====================
-    const exportToExcel = (data, filename = 'export.xlsx', options = {}) => {
-        console.log('[Export] Starting Excel export:', filename);
+    
+    /**
+     * Export data to Excel format (requires SheetJS)
+     * @param {Array|Object} data - Array of objects or object with sheet names as keys
+     * @param {Object} options - Export options
+     */
+    function toExcel(data, options = {}) {
+        Logger.info('Starting Excel export...');
         
-        const deps = checkDependencies();
-        
-        if (!deps.xlsx) {
-            console.error('[Export] SheetJS not loaded. Falling back to CSV.');
-            return exportToCSV(data, filename.replace('.xlsx', '.csv'), options);
+        // Check if SheetJS is loaded
+        if (typeof XLSX === 'undefined') {
+            Logger.error('SheetJS (XLSX) library not loaded. Please include: <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>');
+            throw new Error('SheetJS library required for Excel export');
         }
         
+        const {
+            filename = 'export.xlsx',
+            sheetName = 'Data',
+            includeTimestamp = true,
+            autoFilter = true,
+            freezeHeader = true
+        } = options;
+        
         try {
-            // Create workbook
-            const wb = XLSX.utils.book_new();
+            const workbook = XLSX.utils.book_new();
             
             // Handle multiple sheets
-            if (options.multiSheet && typeof data === 'object' && !Array.isArray(data)) {
-                // data is { sheetName: sheetData }
-                Object.entries(data).forEach(([sheetName, sheetData]) => {
-                    const ws = XLSX.utils.json_to_sheet(sheetData);
-                    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-                });
-            } else {
-                // Single sheet
-                const ws = XLSX.utils.json_to_sheet(Array.isArray(data) ? data : [data]);
-                XLSX.utils.book_append_sheet(wb, ws, options.sheetName || 'Data');
-            }
+            const sheets = Array.isArray(data) 
+                ? { [sheetName]: data }
+                : data;
             
-            // Add metadata sheet if requested
-            if (options.includeMetadata !== false) {
-                const metadata = [
-                    { Property: 'Export Source', Value: 'BotV2 Dashboard' },
-                    { Property: 'Generated', Value: new Date().toISOString() },
-                    { Property: 'Section', Value: options.section || 'dashboard' },
-                    { Property: 'Version', Value: '7.4.0' }
-                ];
-                const metaWs = XLSX.utils.json_to_sheet(metadata);
-                XLSX.utils.book_append_sheet(wb, metaWs, 'Metadata');
-            }
+            let totalRows = 0;
+            Object.entries(sheets).forEach(([name, sheetData]) => {
+                if (!Array.isArray(sheetData) || sheetData.length === 0) {
+                    Logger.error(`Sheet "${name}" has no data`);
+                    return;
+                }
+                
+                if (sheetData.length > CONFIG.maxRowsExcel) {
+                    Logger.error(`Sheet "${name}" exceeds maximum rows (${CONFIG.maxRowsExcel})`);
+                    return;
+                }
+                
+                totalRows += sheetData.length;
+                
+                // Convert to worksheet
+                const worksheet = XLSX.utils.json_to_sheet(sheetData);
+                
+                // Add auto-filter
+                if (autoFilter) {
+                    const range = XLSX.utils.decode_range(worksheet['!ref']);
+                    worksheet['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+                }
+                
+                // Freeze header row
+                if (freezeHeader) {
+                    worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
+                }
+                
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(workbook, worksheet, name);
+                
+                showProgress(`Creating Excel sheets`, 50);
+            });
             
-            // Write file
-            XLSX.writeFile(wb, filename);
+            showProgress('Generating Excel file', 75);
             
-            console.log('[Export] Excel export completed');
-            return { success: true, format: 'excel', filename };
+            // Generate Excel file
+            const excelBuffer = XLSX.write(workbook, { 
+                bookType: 'xlsx', 
+                type: 'array',
+                compression: true
+            });
+            
+            showProgress('Preparing download', 90);
+            
+            // Add timestamp to filename
+            const finalFilename = includeTimestamp 
+                ? filename.replace('.xlsx', `_${Date.now()}.xlsx`)
+                : filename;
+            
+            // Download
+            const blob = new Blob([excelBuffer], { 
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = finalFilename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showProgress('Excel export complete', 100);
+            hideProgress();
+            
+            // Track in history
+            addToHistory('excel', finalFilename, totalRows);
+            
+            Logger.success(`Excel export completed: ${totalRows} rows, ${Object.keys(sheets).length} sheets`);
+            return { 
+                success: true, 
+                filename: finalFilename, 
+                rows: totalRows, 
+                sheets: Object.keys(sheets).length 
+            };
             
         } catch (error) {
-            console.error('[Export] Excel export failed:', error);
-            return { success: false, error: error.message };
+            hideProgress();
+            Logger.error('Excel export failed', error);
+            throw error;
         }
-    };
+    }
     
     // ==================== PDF EXPORT ====================
-    const exportToPDF = (data, filename = 'export.pdf', options = {}) => {
-        console.log('[Export] Starting PDF export:', filename);
+    
+    /**
+     * Export data to PDF format (requires jsPDF and jsPDF-AutoTable)
+     * @param {Array} data - Array of objects
+     * @param {Object} options - Export options
+     */
+    function toPDF(data, options = {}) {
+        Logger.info('Starting PDF export...');
         
-        const deps = checkDependencies();
+        // Check if jsPDF is loaded
+        if (typeof jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+            Logger.error('jsPDF library not loaded. Please include: <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>');
+            throw new Error('jsPDF library required for PDF export');
+        }
         
-        if (!deps.jspdf) {
-            console.error('[Export] jsPDF not loaded. Cannot export to PDF.');
-            alert('PDF export requires jsPDF library. Falling back to CSV.');
-            return exportToCSV(data, filename.replace('.pdf', '.csv'), options);
+        const {
+            filename = 'export.pdf',
+            title = 'BotV2 Dashboard Export',
+            orientation = 'portrait',
+            includeTimestamp = true,
+            pageNumbers = true,
+            metadata = true
+        } = options;
+        
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('Data must be a non-empty array');
+        }
+        
+        if (data.length > CONFIG.maxRowsPDF) {
+            throw new Error(`Data exceeds maximum rows for PDF (${CONFIG.maxRowsPDF})`);
         }
         
         try {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+            showProgress('Initializing PDF', 10);
             
-            // Add header
-            doc.setFontSize(20);
-            doc.setTextColor(47, 129, 247); // Primary blue
-            doc.text('BotV2 Dashboard Export', 14, 20);
+            // Initialize jsPDF
+            const { jsPDF } = window.jspdf || window;
+            const doc = new jsPDF({
+                orientation: orientation,
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            showProgress('Adding metadata', 20);
             
             // Add metadata
+            if (metadata) {
+                doc.setProperties({
+                    title: title,
+                    subject: 'Trading Dashboard Export',
+                    author: 'BotV2',
+                    creator: 'ExportLibrary v1.0',
+                    created: new Date()
+                });
+            }
+            
+            // Add title
+            doc.setFontSize(20);
+            doc.setFont('helvetica', 'bold');
+            doc.text(title, 14, 20);
+            
+            // Add generation info
             doc.setFontSize(10);
-            doc.setTextColor(125, 133, 144); // Secondary gray
-            doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
-            doc.text(`Section: ${options.section || 'Dashboard'}`, 14, 33);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Generated: ${formatDate(new Date())}`, 14, 28);
+            doc.text(`Total Records: ${data.length}`, 14, 34);
             
-            // Add line separator
-            doc.setDrawColor(48, 54, 61);
-            doc.line(14, 36, 196, 36);
+            showProgress('Preparing table', 40);
             
-            let yPosition = 45;
-            
-            // Handle table data
-            if (Array.isArray(data) && data.length > 0 && typeof doc.autoTable === 'function') {
-                // Use autoTable plugin if available
+            // Check if autoTable is available
+            if (doc.autoTable) {
+                // Get headers
                 const headers = Object.keys(data[0]);
-                const rows = data.map(row => headers.map(h => row[h]));
+                const tableData = data.map(row => headers.map(header => {
+                    const value = row[header];
+                    if (value instanceof Date) return formatDate(value);
+                    if (typeof value === 'number') return formatNumber(value);
+                    return String(value || '');
+                }));
                 
+                showProgress('Generating table', 60);
+                
+                // Add table
                 doc.autoTable({
                     head: [headers],
-                    body: rows,
-                    startY: yPosition,
+                    body: tableData,
+                    startY: 40,
                     theme: 'grid',
                     headStyles: {
                         fillColor: [47, 129, 247],
                         textColor: [255, 255, 255],
                         fontStyle: 'bold'
                     },
-                    alternateRowStyles: {
-                        fillColor: [246, 248, 250]
-                    },
                     styles: {
-                        fontSize: 9,
-                        cellPadding: 3
+                        fontSize: 8,
+                        cellPadding: 2
+                    },
+                    alternateRowStyles: {
+                        fillColor: [245, 245, 245]
+                    },
+                    margin: { top: 40 },
+                    didDrawPage: function(data) {
+                        // Page numbers
+                        if (pageNumbers) {
+                            doc.setFontSize(8);
+                            doc.text(
+                                `Page ${doc.internal.getNumberOfPages()}`,
+                                doc.internal.pageSize.width / 2,
+                                doc.internal.pageSize.height - 10,
+                                { align: 'center' }
+                            );
+                        }
                     }
                 });
-                
             } else {
-                // Simple key-value display
-                doc.setFontSize(12);
-                doc.setTextColor(31, 35, 40);
+                Logger.error('jsPDF-AutoTable plugin not loaded. Tables will not be formatted properly.');
                 
-                Object.entries(data).forEach(([key, value]) => {
-                    if (yPosition > 270) {
+                // Fallback: simple text output
+                let yPos = 45;
+                data.slice(0, 50).forEach((row, index) => {
+                    const text = Object.values(row).join(' | ');
+                    doc.text(text, 14, yPos);
+                    yPos += 6;
+                    
+                    if (yPos > 280) {
                         doc.addPage();
-                        yPosition = 20;
+                        yPos = 20;
                     }
-                    
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`${key}:`, 14, yPosition);
-                    doc.setFont(undefined, 'normal');
-                    doc.text(String(value), 80, yPosition);
-                    
-                    yPosition += 7;
                 });
             }
             
-            // Add footer
-            const pageCount = doc.internal.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(125, 133, 144);
-                doc.text(`Page ${i} of ${pageCount}`, 14, 287);
-                doc.text('BotV2 Dashboard v7.4', 196, 287, { align: 'right' });
-            }
+            showProgress('Finalizing PDF', 90);
             
-            // Save
-            doc.save(filename);
+            // Add timestamp to filename
+            const finalFilename = includeTimestamp 
+                ? filename.replace('.pdf', `_${Date.now()}.pdf`)
+                : filename;
             
-            console.log('[Export] PDF export completed');
-            return { success: true, format: 'pdf', filename };
+            // Save PDF
+            doc.save(finalFilename);
+            
+            showProgress('PDF export complete', 100);
+            hideProgress();
+            
+            // Track in history
+            addToHistory('pdf', finalFilename, data.length);
+            
+            Logger.success(`PDF export completed: ${data.length} rows`);
+            return { success: true, filename: finalFilename, rows: data.length };
             
         } catch (error) {
-            console.error('[Export] PDF export failed:', error);
-            return { success: false, error: error.message };
+            hideProgress();
+            Logger.error('PDF export failed', error);
+            throw error;
         }
-    };
+    }
     
-    // ==================== HELPER FUNCTIONS ====================
+    // ==================== HISTORY MANAGEMENT ====================
     
-    const downloadFile = (content, filename, mimeType) => {
-        const blob = new Blob([content], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    };
-    
-    const showProgress = (message) => {
-        console.log(`[Export] ${message}`);
-        // Could add UI progress indicator here
-    };
-    
-    // ==================== UNIFIED EXPORT FUNCTION ====================
-    
-    const exportData = (format, data, filename, options = {}) => {
-        showProgress(`Starting ${format.toUpperCase()} export...`);
+    function addToHistory(format, filename, rows) {
+        state.history.push({
+            format,
+            filename,
+            rows,
+            timestamp: new Date().toISOString()
+        });
         
-        let result;
-        
-        switch (format.toLowerCase()) {
-            case 'csv':
-                result = exportToCSV(data, filename || 'export.csv', options);
-                break;
-            case 'excel':
-            case 'xlsx':
-                result = exportToExcel(data, filename || 'export.xlsx', options);
-                break;
-            case 'pdf':
-                result = exportToPDF(data, filename || 'export.pdf', options);
-                break;
-            default:
-                console.error('[Export] Unknown format:', format);
-                result = { success: false, error: 'Unknown format' };
+        // Keep only last 50 exports
+        if (state.history.length > 50) {
+            state.history.shift();
         }
-        
-        if (result.success) {
-            showProgress(`Export completed: ${result.filename}`);
-        } else {
-            showProgress(`Export failed: ${result.error}`);
-        }
-        
-        return result;
-    };
+    }
+    
+    function getHistory() {
+        return [...state.history];
+    }
+    
+    function clearHistory() {
+        state.history = [];
+        Logger.info('Export history cleared');
+    }
     
     // ==================== BATCH EXPORT ====================
     
-    const exportBatch = async (exports) => {
-        console.log('[Export] Starting batch export:', exports.length, 'files');
+    /**
+     * Export same data to multiple formats
+     */
+    async function batchExport(data, formats = ['csv', 'excel', 'pdf'], options = {}) {
+        Logger.info(`Starting batch export: ${formats.join(', ')}`);
         
         const results = [];
         
-        for (const exp of exports) {
-            const { format, data, filename, options } = exp;
-            const result = exportData(format, data, filename, options);
-            results.push(result);
-            
-            // Small delay between exports
-            await new Promise(resolve => setTimeout(resolve, 100));
+        for (const format of formats) {
+            try {
+                let result;
+                switch(format.toLowerCase()) {
+                    case 'csv':
+                        result = toCSV(data, options.csv || {});
+                        break;
+                    case 'excel':
+                    case 'xlsx':
+                        result = toExcel(data, options.excel || {});
+                        break;
+                    case 'pdf':
+                        result = toPDF(data, options.pdf || {});
+                        break;
+                    default:
+                        Logger.error(`Unknown format: ${format}`);
+                        continue;
+                }
+                results.push({ format, ...result });
+                
+                // Small delay between exports
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+            } catch (error) {
+                Logger.error(`Batch export failed for ${format}`, error);
+                results.push({ format, success: false, error: error.message });
+            }
         }
         
-        console.log('[Export] Batch export completed');
+        Logger.success(`Batch export completed: ${results.filter(r => r.success).length}/${formats.length} successful`);
         return results;
-    };
+    }
     
     // ==================== PUBLIC API ====================
     
     return {
         // Export functions
-        exportToCSV,
-        exportToExcel,
-        exportToPDF,
-        exportData,
-        exportBatch,
+        toCSV,
+        toExcel,
+        toPDF,
+        batchExport,
+        
+        // History
+        getHistory,
+        clearHistory,
         
         // Utilities
-        checkDependencies,
+        formatDate,
+        formatNumber,
         
-        // Info
-        version: '7.4.0',
-        supportedFormats: ['csv', 'excel', 'xlsx', 'pdf']
+        // Config
+        getConfig: () => ({ ...CONFIG }),
+        
+        // State
+        isExporting: () => state.exporting,
+        
+        // Version
+        version: '1.0.0'
     };
     
 })();
 
-// ==================== LOAD EXTERNAL LIBRARIES ====================
-
-(function loadExportLibraries() {
-    console.log('[Export] Loading external libraries...');
-    
-    // SheetJS for Excel
-    if (typeof XLSX === 'undefined') {
-        const xlsxScript = document.createElement('script');
-        xlsxScript.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
-        xlsxScript.onload = () => {
-            console.log('[Export] SheetJS loaded successfully');
-        };
-        xlsxScript.onerror = () => {
-            console.warn('[Export] Failed to load SheetJS. Excel exports will be limited.');
-        };
-        document.head.appendChild(xlsxScript);
-    }
-    
-    // jsPDF for PDF
-    if (typeof window.jspdf === 'undefined') {
-        const jspdfScript = document.createElement('script');
-        jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        jspdfScript.onload = () => {
-            console.log('[Export] jsPDF loaded successfully');
-            
-            // Load autoTable plugin
-            const autoTableScript = document.createElement('script');
-            autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js';
-            autoTableScript.onload = () => {
-                console.log('[Export] jsPDF-AutoTable loaded successfully');
-            };
-            autoTableScript.onerror = () => {
-                console.warn('[Export] Failed to load jsPDF-AutoTable. PDF tables will be limited.');
-            };
-            document.head.appendChild(autoTableScript);
-        };
-        jspdfScript.onerror = () => {
-            console.warn('[Export] Failed to load jsPDF. PDF exports will be unavailable.');
-        };
-        document.head.appendChild(jspdfScript);
-    }
-})();
-
-// ==================== EXPORT TO GLOBAL ====================
-
-window.ExportLibrary = ExportLibrary;
-
-console.log('%c📥 Export Library v7.4.0 loaded', 'background:#8338ec;color:white;padding:4px 8px;border-radius:3px;font-weight:600');
-console.log('  ✅ CSV export ready');
-console.log('  ⏳ Loading SheetJS for Excel...');
-console.log('  ⏳ Loading jsPDF for PDF...');
+// ==================== EXPORT ====================
+console.log(
+    '%c✅ ExportLibrary ready',
+    'color:#3fb950;font-weight:600',
+    '- Use ExportLibrary.toCSV(), .toExcel(), .toPDF()'
+);
