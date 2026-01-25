@@ -1,58 +1,81 @@
-"""Security Module - Phase 1 Implementation
+"""Security Module
 
-Provides comprehensive security features:
+Provides comprehensive security features for BotV2:
 - CSRF Protection
 - XSS Prevention
-- Security Headers & CSP
 - Session Management
+- Rate Limiting
+- Security Headers
 - Input Validation
+- Audit Logging
 """
 
-from .csrf_protection import CSRFProtection, require_csrf, generate_csrf_token
-from .xss_protection import (
-    XSSProtection,
-    sanitize_html,
-    sanitize_json,
-    validate_url,
-    escape_js,
-    safe_format
-)
+from .csrf_protection import init_csrf_protection, get_csrf_token
+from .xss_protection import sanitize_html, sanitize_dict, xss_protection_middleware
+from .session_manager import SessionManager
 from .security_middleware import (
     SecurityHeadersMiddleware,
     RequestValidationMiddleware,
     ResponseTimeMiddleware,
     init_security_middleware
 )
-from .session_manager import (
-    SessionManager,
-    get_session_manager,
-    init_session_manager
+from .input_validator import (
+    LoginRequest,
+    AnnotationCreate,
+    OrderCreate,
+    StrategyConfig,
+    BacktestConfig,
+    SettingsUpdate,
+    MarketDataRequest,
+    AlertCreate,
+    ExportRequest,
+    validate_input,
+    sanitize_filename
 )
+from .audit_logger import SecurityAuditLogger, get_audit_logger, init_audit_logger
+from .rate_limiter import init_rate_limiter, RateLimiterConfig, get_rate_limits
 
 __all__ = [
-    # CSRF Protection
-    'CSRFProtection',
-    'require_csrf',
-    'generate_csrf_token',
+    # CSRF
+    'init_csrf_protection',
+    'get_csrf_token',
     
-    # XSS Protection
-    'XSSProtection',
+    # XSS
     'sanitize_html',
-    'sanitize_json',
-    'validate_url',
-    'escape_js',
-    'safe_format',
+    'sanitize_dict',
+    'xss_protection_middleware',
     
-    # Security Middleware
+    # Session
+    'SessionManager',
+    
+    # Middleware
     'SecurityHeadersMiddleware',
     'RequestValidationMiddleware',
     'ResponseTimeMiddleware',
     'init_security_middleware',
     
-    # Session Management
-    'SessionManager',
-    'get_session_manager',
-    'init_session_manager',
+    # Validation
+    'LoginRequest',
+    'AnnotationCreate',
+    'OrderCreate',
+    'StrategyConfig',
+    'BacktestConfig',
+    'SettingsUpdate',
+    'MarketDataRequest',
+    'AlertCreate',
+    'ExportRequest',
+    'validate_input',
+    'sanitize_filename',
+    
+    # Audit
+    'SecurityAuditLogger',
+    'get_audit_logger',
+    'init_audit_logger',
+    
+    # Rate Limiting
+    'init_rate_limiter',
+    'RateLimiterConfig',
+    'get_rate_limits'
 ]
 
 __version__ = '1.0.0'
