@@ -309,15 +309,14 @@ class ProfessionalDashboard:
         init_security_middleware(self.app)
         logger.info("✅ Security Middleware enabled (Headers + Validation)")
         
-        # 6. 🔐 NONCE-BASED CSP - v7.5 MAJOR SECURITY ENHANCEMENT
+        # 6. 🔐 CSP Configuration
+        # ⚠️ CRITICAL: No lambdas or callable objects - strings only!
         csp_config = {
             'default-src': "'self'",
             'script-src': [
                 "'self'",
-                # ✅ REMOVED: "'unsafe-inline'",  # No longer needed with nonces!
-                "'unsafe-eval'",  # Still needed for SheetJS
-                lambda: f"'nonce-{g.csp_nonce}'",  # 🔐 Dynamic nonce per request
-                # Core CDNs with SRI protection
+                "'unsafe-eval'",  # Required for SheetJS
+                # Core CDNs
                 "https://cdn.jsdelivr.net",
                 "https://cdn.socket.io",
                 "https://cdn.plot.ly",
@@ -328,7 +327,7 @@ class ProfessionalDashboard:
             ],
             'style-src': [
                 "'self'",
-                "'unsafe-inline'",  # Still needed for inline styles (future improvement)
+                "'unsafe-inline'",
                 "https://fonts.googleapis.com",
                 "https://cdn.jsdelivr.net",
                 "https://cdnjs.cloudflare.com"
@@ -366,7 +365,7 @@ class ProfessionalDashboard:
         }
         
         if self.is_production:
-            # Production: Strict nonce-based CSP with HTTPS
+            # Production: Strict CSP with HTTPS
             Talisman(
                 self.app,
                 force_https=os.getenv('FORCE_HTTPS', 'true').lower() == 'true',
@@ -374,11 +373,12 @@ class ProfessionalDashboard:
                 strict_transport_security_max_age=31536000,
                 strict_transport_security_include_subdomains=True,
                 strict_transport_security_preload=True,
-                content_security_policy=csp_config
+                content_security_policy=csp_config,
+                content_security_policy_nonce_in=['script-src']
             )
-            logger.info("✅ HTTPS Enforcement + Nonce-Based CSP enabled (production)")
+            logger.info("✅ HTTPS Enforcement + CSP enabled (production)")
         else:
-            # Development: Nonce-based CSP without HTTPS enforcement
+            # Development: CSP without HTTPS enforcement
             Talisman(
                 self.app,
                 force_https=False,
@@ -387,7 +387,7 @@ class ProfessionalDashboard:
                 feature_policy={},
                 strict_transport_security=False
             )
-            logger.info("✅ Nonce-Based CSP enabled (development mode)")
+            logger.info("✅ CSP enabled (development mode)")
     
     def _setup_compression(self):
         """✅ Setup GZIP compression"""
@@ -465,7 +465,7 @@ class ProfessionalDashboard:
         
         logger.info("")
         logger.info("=" * 80)
-        logger.info(f"   BotV2 Dashboard v{__version__} - Nonce-Based Security 🔐 ✅")
+        logger.info(f"   BotV2 Dashboard v{__version__} - Security Phase 1 COMPLETE ✅")
         logger.info("=" * 80)
         logger.info(f"Environment: {self.env.upper()}")
         logger.info(f"URL: http://{self.host}:{self.port}")
@@ -478,8 +478,6 @@ class ProfessionalDashboard:
             logger.info("   - Session Management: ✅")
             logger.info("   - Audit Logging: ✅")
             logger.info(f"   - Security Headers: ✅ ({'Production' if self.is_production else 'Development'} mode)")
-            logger.info("   - Nonce-Based CSP: ✅ 🔐 (unsafe-inline ELIMINATED!)")
-            logger.info("   - SRI Protection: ✅ (All CDN libraries)")
         logger.info(f"📊 Metrics: {'✅ Active' if HAS_METRICS else '⚠️ Disabled'}")
         logger.info(f"✅ GZIP: {'✅ Enabled' if HAS_COMPRESS else '⚠️ Disabled'}")
         logger.info(f"💾 Database: {'✅ Connected' if self.db_session else '⚠️ Mock Mode'}")
@@ -729,8 +727,7 @@ class ProfessionalDashboard:
                 'mock_data': HAS_MOCK_DATA,
                 'database': self.db_session is not None,
                 'gzip': HAS_COMPRESS,
-                'metrics': HAS_METRICS,
-                'nonce_based_csp': True  # 🔐 NEW in v7.5
+                'metrics': HAS_METRICS
             }
             
             # 📊 Add metrics snapshot
@@ -773,8 +770,7 @@ class ProfessionalDashboard:
             emit('connected', {
                 'message': f'Connected to BotV2 v{__version__}',
                 'version': __version__,
-                'security': HAS_SECURITY,
-                'nonce_based_csp': True  # 🔐 NEW
+                'security': HAS_SECURITY
             })
         
         @self.socketio.on('disconnect')
@@ -789,18 +785,16 @@ class ProfessionalDashboard:
         logger.info("🚀 Starting BotV2 Dashboard...")
         
         if HAS_SECURITY:
-            logger.info("🔒 Security Phase 2: NONCE-BASED CSP ACTIVE 🔐")
+            logger.info("🔒 Security Phase 1: ACTIVE")
             logger.info("   ✅ CSRF Protection")
             logger.info("   ✅ XSS Prevention")
             logger.info("   ✅ Input Validation")
             logger.info("   ✅ Rate Limiting")
             logger.info("   ✅ Session Management")
             logger.info("   ✅ Security Audit Logging")
-            logger.info(f"   ✅ Security Headers (CSP with nonces, {'HSTS' if self.is_production else 'dev mode'})")
-            logger.info("   ✅ Nonce-Based Scripts (🔐 unsafe-inline ELIMINATED)")
-            logger.info("   ✅ SRI Protection (All CDNs)")
+            logger.info(f"   ✅ Security Headers (CSP, {'HSTS' if self.is_production else 'dev mode'})")
         else:
-            logger.warning("⚠️ Security Phase 2: DISABLED (modules not available)")
+            logger.warning("⚠️ Security Phase 1: DISABLED (modules not available)")
         
         if HAS_METRICS and self.metrics_monitor:
             logger.info("📊 Metrics monitoring: /api/metrics")
