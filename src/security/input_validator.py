@@ -1,378 +1,232 @@
 """Input Validation Module
 
-Provides comprehensive input validation using Pydantic models.
-Ensures type safety and prevents injection attacks through strict validation.
+Provides Pydantic-based input validation for all user inputs.
+Ensures data integrity and prevents injection attacks.
 """
 
 import logging
 import re
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any
 from datetime import datetime
-from decimal import Decimal
-from pydantic import BaseModel, validator, Field, constr, conint, confloat
-from enum import Enum
+from pydantic import BaseModel, validator, Field, EmailStr
 
 logger = logging.getLogger(__name__)
 
 
-# ==================== ENUMS ====================
-
-class OrderType(str, Enum):
-    """Order type enumeration"""
-    MARKET = "market"
-    LIMIT = "limit"
-    STOP = "stop"
-    STOP_LIMIT = "stop_limit"
-
-
-class OrderSide(str, Enum):
-    """Order side enumeration"""
-    BUY = "buy"
-    SELL = "sell"
-
-
-class TimeframeType(str, Enum):
-    """Timeframe enumeration"""
-    M1 = "1m"
-    M5 = "5m"
-    M15 = "15m"
-    M30 = "30m"
-    H1 = "1h"
-    H4 = "4h"
-    D1 = "1d"
-
-
-class AnnotationType(str, Enum):
-    """Annotation type enumeration"""
-    NOTE = "note"
-    BUY_SIGNAL = "buy_signal"
-    SELL_SIGNAL = "sell_signal"
-    SUPPORT = "support"
-    RESISTANCE = "resistance"
-    ALERT = "alert"
-
-
-# ==================== BASE VALIDATORS ====================
-
-def validate_symbol(symbol: str) -> str:
-    """Validate trading symbol format"""
-    if not re.match(r'^[A-Z]{2,10}(/[A-Z]{2,10})?$', symbol):
-        raise ValueError('Invalid symbol format. Use: AAPL or BTC/USD')
-    return symbol.upper()
-
-
-def validate_username(username: str) -> str:
-    """Validate username format"""
-    if not re.match(r'^[a-zA-Z0-9_-]{3,20}$', username):
-        raise ValueError(
-            'Username must be 3-20 characters, alphanumeric with _ or - only'
-        )
-    return username
-
-
-def validate_password(password: str, min_length: int = 8) -> str:
-    """Validate password strength"""
-    if len(password) < min_length:
-        raise ValueError(f'Password must be at least {min_length} characters')
-    
-    # Check for common weak passwords
-    weak_passwords = [
-        'password', '12345678', 'admin', 'admin123', 'qwerty',
-        'password123', 'letmein', 'welcome', 'monkey'
-    ]
-    if password.lower() in weak_passwords:
-        raise ValueError('Password is too common. Choose a stronger password.')
-    
-    return password
-
-
-def validate_color(color: str) -> str:
-    """Validate hex color format"""
-    if not re.match(r'^#[0-9A-Fa-f]{6}$', color):
-        raise ValueError('Color must be in hex format: #RRGGBB')
-    return color.upper()
-
-
-# ==================== REQUEST MODELS ====================
-
 class LoginRequest(BaseModel):
-    """Login request validation"""
-    username: constr(min_length=3, max_length=20)
-    password: constr(min_length=8, max_length=128)
+    """Validate login request"""
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8, max_length=128)
     
     @validator('username')
-    def validate_username_format(cls, v):
-        return validate_username(v)
+    def validate_username(cls, v):
+        """Validate username format (alphanumeric + underscore/dash only)"""
+        if not re.match(r'^[a-zA-Z0-9_-]+$', v):
+            raise ValueError('Username must contain only letters, numbers, underscore, and dash')
+        return v.strip()
     
     @validator('password')
-    def validate_password_strength(cls, v):
-        return validate_password(v)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "username": "admin",
-                "password": "SecurePass123!"
-            }
-        }
+    def validate_password(cls, v):
+        """Validate password strength"""
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters')
+        return v
 
 
-class AnnotationRequest(BaseModel):
-    """Annotation creation request"""
-    chart_id: constr(min_length=1, max_length=50)
-    type: AnnotationType
-    x: Union[str, float, int]  # Timestamp or numeric value
-    y: confloat(ge=-1e10, le=1e10)  # Numeric value with reasonable bounds
-    text: constr(min_length=1, max_length=500)
-    color: Optional[str] = "#FFFFFF"
+class AnnotationCreate(BaseModel):
+    """Validate annotation creation"""
+    chart_id: str = Field(..., min_length=1, max_length=100)
+    type: str = Field(..., regex=r'^(note|alert|marker)$')
+    x: float
+    y: float
+    text: str = Field(..., min_length=1, max_length=500)
+    color: Optional[str] = Field(default='#ffffff', regex=r'^#[0-9A-Fa-f]{6}$')
     
-    @validator('color')
-    def validate_color_format(cls, v):
-        if v:
-            return validate_color(v)
-        return "#FFFFFF"
+    @validator('chart_id')
+    def validate_chart_id(cls, v):
+        """Validate chart ID format"""
+        if not re.match(r'^[a-zA-Z0-9_-]+$', v):
+            raise ValueError('Invalid chart ID format')
+        return v.strip()
     
     @validator('text')
-    def sanitize_text(cls, v):
-        # Remove potential XSS attempts
+    def validate_text(cls, v):
+        """Validate annotation text (no HTML/scripts)"""
+        # Check for dangerous patterns
         dangerous_patterns = ['<script', 'javascript:', 'onerror=', 'onload=']
         v_lower = v.lower()
         for pattern in dangerous_patterns:
             if pattern in v_lower:
-                raise ValueError(f'Text contains dangerous pattern: {pattern}')
-        return v
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "chart_id": "equity_chart",
-                "type": "note",
-                "x": "2026-01-25T12:00:00Z",
-                "y": 10500.50,
-                "text": "Important market event",
-                "color": "#FF5733"
-            }
-        }
+                raise ValueError('Annotation text contains dangerous content')
+        return v.strip()
 
 
-class OrderRequest(BaseModel):
-    """Trading order request"""
-    symbol: str
-    side: OrderSide
-    order_type: OrderType
-    quantity: confloat(gt=0, le=1e9)
-    price: Optional[confloat(gt=0, le=1e9)] = None
-    stop_price: Optional[confloat(gt=0, le=1e9)] = None
-    
-    @validator('symbol')
-    def validate_symbol_format(cls, v):
-        return validate_symbol(v)
-    
-    @validator('price')
-    def validate_price_required(cls, v, values):
-        if values.get('order_type') in [OrderType.LIMIT, OrderType.STOP_LIMIT]:
-            if v is None:
-                raise ValueError('Price is required for limit orders')
-        return v
-    
-    @validator('stop_price')
-    def validate_stop_price_required(cls, v, values):
-        if values.get('order_type') in [OrderType.STOP, OrderType.STOP_LIMIT]:
-            if v is None:
-                raise ValueError('Stop price is required for stop orders')
-        return v
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "symbol": "BTC/USD",
-                "side": "buy",
-                "order_type": "limit",
-                "quantity": 0.5,
-                "price": 43500.00
-            }
-        }
-
-
-class StrategyConfigRequest(BaseModel):
-    """Strategy configuration request"""
-    name: constr(min_length=1, max_length=100)
-    description: Optional[constr(max_length=500)] = None
-    enabled: bool = True
-    parameters: Optional[Dict[str, Any]] = None
+class StrategyCreate(BaseModel):
+    """Validate strategy creation"""
+    name: str = Field(..., min_length=3, max_length=100)
+    description: Optional[str] = Field(default='', max_length=500)
+    type: str = Field(..., regex=r'^(momentum|mean_reversion|arbitrage|ml_based)$')
+    parameters: Dict[str, Any] = Field(default_factory=dict)
+    active: bool = Field(default=True)
     
     @validator('name')
-    def validate_name_safe(cls, v):
-        # Allow alphanumeric, spaces, underscores, hyphens
-        if not re.match(r'^[a-zA-Z0-9 _-]+$', v):
-            raise ValueError(
-                'Strategy name can only contain letters, numbers, spaces, _ and -'
-            )
-        return v
+    def validate_name(cls, v):
+        """Validate strategy name"""
+        if not re.match(r'^[a-zA-Z0-9_\s-]+$', v):
+            raise ValueError('Strategy name contains invalid characters')
+        return v.strip()
     
     @validator('parameters')
     def validate_parameters(cls, v):
-        if v:
-            # Limit parameter keys to safe characters
-            for key in v.keys():
-                if not re.match(r'^[a-zA-Z0-9_]+$', key):
-                    raise ValueError(f'Invalid parameter key: {key}')
+        """Validate strategy parameters"""
+        if not isinstance(v, dict):
+            raise ValueError('Parameters must be a dictionary')
+        
+        # Limit depth to prevent DoS
+        if len(str(v)) > 10000:
+            raise ValueError('Parameters too large')
+        
         return v
+
+
+class StrategyUpdate(BaseModel):
+    """Validate strategy update"""
+    name: Optional[str] = Field(None, min_length=3, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    parameters: Optional[Dict[str, Any]] = None
+    active: Optional[bool] = None
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "name": "Mean Reversion Strategy",
-                "description": "Trades based on price reversion to mean",
-                "enabled": true,
-                "parameters": {
-                    "lookback_period": 20,
-                    "threshold": 2.0
-                }
-            }
-        }
+    @validator('name')
+    def validate_name(cls, v):
+        if v and not re.match(r'^[a-zA-Z0-9_\s-]+$', v):
+            raise ValueError('Strategy name contains invalid characters')
+        return v.strip() if v else v
+
+
+class TradeCreate(BaseModel):
+    """Validate trade creation"""
+    symbol: str = Field(..., min_length=1, max_length=20)
+    side: str = Field(..., regex=r'^(buy|sell)$')
+    quantity: float = Field(..., gt=0, le=1000000)
+    price: Optional[float] = Field(None, gt=0)
+    order_type: str = Field(..., regex=r'^(market|limit|stop|stop_limit)$')
+    strategy_id: Optional[int] = None
+    
+    @validator('symbol')
+    def validate_symbol(cls, v):
+        """Validate trading symbol format"""
+        # Allow letters, numbers, slash, dash
+        if not re.match(r'^[A-Z0-9/-]+$', v.upper()):
+            raise ValueError('Invalid symbol format')
+        return v.upper().strip()
+    
+    @validator('quantity')
+    def validate_quantity(cls, v):
+        """Validate quantity is positive and reasonable"""
+        if v <= 0:
+            raise ValueError('Quantity must be positive')
+        if v > 1000000:
+            raise ValueError('Quantity too large')
+        return v
 
 
 class MarketDataRequest(BaseModel):
-    """Market data request"""
-    symbol: str
-    timeframe: TimeframeType = TimeframeType.H1
-    limit: conint(ge=1, le=1000) = 100
+    """Validate market data request"""
+    symbol: str = Field(..., min_length=1, max_length=20)
+    timeframe: str = Field(..., regex=r'^(1m|5m|15m|30m|1h|4h|1d)$')
+    limit: int = Field(default=100, ge=1, le=1000)
     
     @validator('symbol')
-    def validate_symbol_format(cls, v):
-        return validate_symbol(v)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "symbol": "ETH/USD",
-                "timeframe": "1h",
-                "limit": 100
-            }
-        }
+    def validate_symbol(cls, v):
+        if not re.match(r'^[A-Z0-9/-]+$', v.upper()):
+            raise ValueError('Invalid symbol format')
+        return v.upper().strip()
 
 
-class SettingsUpdateRequest(BaseModel):
-    """Settings update request"""
-    trading_enabled: Optional[bool] = None
-    max_position_size: Optional[confloat(gt=0, le=1e9)] = None
-    risk_per_trade: Optional[confloat(ge=0, le=100)] = None  # Percentage
-    notification_enabled: Optional[bool] = None
-    email: Optional[str] = None
+class AlertCreate(BaseModel):
+    """Validate alert creation"""
+    title: str = Field(..., min_length=1, max_length=200)
+    message: str = Field(..., min_length=1, max_length=1000)
+    severity: str = Field(..., regex=r'^(info|warning|error|critical)$')
+    category: str = Field(..., regex=r'^(trade|system|risk|strategy)$')
     
-    @validator('email')
-    def validate_email_format(cls, v):
-        if v and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
-            raise ValueError('Invalid email format')
+    @validator('title', 'message')
+    def validate_text_fields(cls, v):
+        """Validate text fields for XSS"""
+        dangerous_patterns = ['<script', 'javascript:', 'onerror=', 'onload=']
+        v_lower = v.lower()
+        for pattern in dangerous_patterns:
+            if pattern in v_lower:
+                raise ValueError('Text contains dangerous content')
+        return v.strip()
+
+
+class ConfigUpdate(BaseModel):
+    """Validate configuration update"""
+    key: str = Field(..., min_length=1, max_length=100)
+    value: Any
+    
+    @validator('key')
+    def validate_key(cls, v):
+        """Validate config key format"""
+        if not re.match(r'^[a-zA-Z0-9_.-]+$', v):
+            raise ValueError('Invalid config key format')
+        return v.strip()
+    
+    @validator('value')
+    def validate_value(cls, v):
+        """Validate config value size"""
+        # Prevent DoS through large values
+        if isinstance(v, str) and len(v) > 10000:
+            raise ValueError('Config value too large')
+        if isinstance(v, (list, dict)) and len(str(v)) > 50000:
+            raise ValueError('Config value too large')
         return v
-    
-    @validator('risk_per_trade')
-    def validate_risk_range(cls, v):
-        if v is not None and v > 10:
-            raise ValueError('Risk per trade should not exceed 10%')
-        return v
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "trading_enabled": true,
-                "max_position_size": 5000.00,
-                "risk_per_trade": 2.0,
-                "notification_enabled": true,
-                "email": "user@example.com"
-            }
-        }
 
 
 class ExportRequest(BaseModel):
-    """Export data request"""
-    format: str = Field(..., pattern='^(json|csv)$')
+    """Validate export request"""
+    format: str = Field(..., regex=r'^(json|csv|xlsx)$')
+    data_type: str = Field(..., regex=r'^(trades|portfolio|strategies|metrics)$')
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     
     @validator('end_date')
     def validate_date_range(cls, v, values):
+        """Validate date range is logical"""
         if v and 'start_date' in values and values['start_date']:
             if v < values['start_date']:
                 raise ValueError('End date must be after start date')
         return v
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "format": "csv",
-                "start_date": "2026-01-01T00:00:00Z",
-                "end_date": "2026-01-31T23:59:59Z"
-            }
-        }
 
 
-# ==================== RESPONSE MODELS ====================
-
-class APIResponse(BaseModel):
-    """Standard API response"""
-    success: bool
-    message: Optional[str] = None
-    data: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": true,
-                "message": "Operation completed successfully",
-                "data": {"id": 123}
-            }
-        }
-
-
-class ErrorResponse(BaseModel):
-    """Standard error response"""
-    success: bool = False
-    error: str
-    details: Optional[Dict[str, Any]] = None
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": false,
-                "error": "Validation failed",
-                "details": {"field": "username", "message": "Username too short"}
-            }
-        }
-
-
-# ==================== VALIDATION HELPERS ====================
-
-def validate_request(model: type[BaseModel], data: Dict[str, Any]) -> BaseModel:
-    """Validate request data against Pydantic model
+def validate_input(model_class: type[BaseModel], data: Dict[str, Any]) -> BaseModel:
+    """Validate input data against a Pydantic model
     
     Args:
-        model: Pydantic model class
-        data: Request data dictionary
+        model_class: Pydantic model class to validate against
+        data: Input data dictionary
     
     Returns:
         Validated model instance
     
     Raises:
-        ValueError: If validation fails
+        ValidationError: If validation fails
     """
     try:
-        return model(**data)
+        return model_class(**data)
     except Exception as e:
-        logger.warning(f"Validation failed for {model.__name__}: {e}")
-        raise ValueError(f"Validation error: {e}")
+        logger.warning(f"Validation failed for {model_class.__name__}: {e}")
+        raise
 
 
-def sanitize_request_data(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Sanitize request data by removing dangerous patterns
+def safe_dict(model: BaseModel) -> Dict[str, Any]:
+    """Convert Pydantic model to safe dictionary
     
     Args:
-        data: Request data dictionary
+        model: Pydantic model instance
     
     Returns:
-        Sanitized data dictionary
+        Dictionary with validated data
     """
-    from .xss_protection import sanitize_json
-    return sanitize_json(data)
+    return model.dict()

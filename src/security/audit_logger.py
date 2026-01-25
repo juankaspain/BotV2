@@ -1,244 +1,275 @@
 """Security Audit Logger Module
 
 Provides comprehensive security event logging for compliance and forensics.
-Logs all security-relevant events in structured JSON format.
 """
 
 import logging
 import logging.handlers
 import json
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Dict, Any, Optional
 from flask import request, session
+import os
+
+logger = logging.getLogger(__name__)
 
 
 class SecurityAuditLogger:
-    """Professional security audit logger
+    """Professional Security Audit Logger
     
-    Features:
-    - JSON-formatted logs for easy parsing
-    - Automatic log rotation (daily, keep 30 days)
-    - Contextual information (IP, user, session, etc.)
-    - Severity levels (INFO, WARNING, ERROR, CRITICAL)
-    - Integration with Flask request context
+    Logs all security-relevant events:
+    - Authentication (login/logout)
+    - Authorization failures
+    - CSRF validation failures
+    - Rate limit violations
+    - XSS attempt detections
+    - Session management events
+    - Configuration changes
+    - Suspicious activity
     """
     
-    # Event severity levels
-    INFO = 'INFO'
-    WARNING = 'WARNING'
-    ERROR = 'ERROR'
-    CRITICAL = 'CRITICAL'
-    
-    def __init__(self, log_file: str = 'logs/security_audit.log'):
+    def __init__(self, log_file: str = 'logs/security_audit.log',
+                 max_bytes: int = 10 * 1024 * 1024,  # 10MB
+                 backup_count: int = 30):  # Keep 30 days
         """
         Initialize security audit logger
         
         Args:
-            log_file: Path to log file
+            log_file: Path to security audit log file
+            max_bytes: Maximum size of log file before rotation
+            backup_count: Number of backup files to keep
         """
-        # Create logs directory if it doesn't exist
+        # Ensure log directory exists
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Setup logger
+        # Create dedicated logger for security events
         self.logger = logging.getLogger('security_audit')
         self.logger.setLevel(logging.INFO)
         
         # Prevent duplicate handlers
-        if self.logger.handlers:
-            self.logger.handlers.clear()
+        if not self.logger.handlers:
+            # Rotating file handler
+            handler = logging.handlers.RotatingFileHandler(
+                log_file,
+                maxBytes=max_bytes,
+                backupCount=backup_count
+            )
+            
+            # JSON formatter for structured logging
+            handler.setFormatter(logging.Formatter('%(message)s'))
+            self.logger.addHandler(handler)
         
-        # Rotating file handler (daily rotation, keep 30 days)
-        handler = logging.handlers.TimedRotatingFileHandler(
-            log_file,
-            when='midnight',
-            interval=1,
-            backupCount=30,
-            encoding='utf-8'
-        )
-        
-        # Simple formatter (we format as JSON ourselves)
-        handler.setFormatter(logging.Formatter('%(message)s'))
-        self.logger.addHandler(handler)
-        
-        # Also log to console in development
-        if os.getenv('FLASK_ENV') == 'development':
-            console_handler = logging.StreamHandler()
-            console_handler.setFormatter(logging.Formatter('%(message)s'))
-            self.logger.addHandler(console_handler)
+        logger.info(f"✅ Security Audit Logger initialized: {log_file}")
     
-    def log_event(self, event_type: str, level: str = INFO, **kwargs):
-        """
-        Log a security event
+    def log_event(self, event_type: str, severity: str = 'INFO', **kwargs):
+        """Log a security event
         
         Args:
-            event_type: Type of event (e.g., 'auth.login.success')
-            level: Severity level (INFO, WARNING, ERROR, CRITICAL)
-            **kwargs: Additional event data
+            event_type: Type of security event (e.g., 'auth.login.success')
+            severity: Log level (INFO, WARNING, ERROR, CRITICAL)
+            **kwargs: Additional event details
         """
         # Build log entry
         log_entry = {
             'timestamp': datetime.utcnow().isoformat() + 'Z',
-            'level': level,
             'event_type': event_type,
+            'severity': severity.upper(),
+            **self._get_request_context(),
+            **kwargs
         }
         
-        # Add Flask request context if available
+        # Log at appropriate level
+        log_method = getattr(self.logger, severity.lower(), self.logger.info)
+        log_method(json.dumps(log_entry))
+    
+    def _get_request_context(self) -> Dict[str, Any]:
+        """Get context from current request
+        
+        Returns:
+            Dictionary with request context (IP, user agent, session, etc.)
+        """
+        context = {}
+        
+        # Try to get request context (may not be available in all contexts)
         try:
             if request:
-                log_entry.update({
-                    'ip': kwargs.get('ip', request.remote_addr),
-                    'method': kwargs.get('method', request.method),
-                    'path': kwargs.get('path', request.path),
-                    'user_agent': kwargs.get('user_agent', request.headers.get('User-Agent', 'Unknown'))
-                })
+                context['ip_address'] = request.remote_addr
+                context['user_agent'] = request.headers.get('User-Agent', 'Unknown')
+                context['method'] = request.method
+                context['path'] = request.path
+                context['endpoint'] = request.endpoint
                 
                 # Add session info if available
                 if session:
-                    log_entry['user'] = kwargs.get('user', session.get('user', 'anonymous'))
-                    log_entry['session_id'] = session.get('session_id')
+                    context['user'] = session.get('user', 'anonymous')
+                    context['session_id'] = session.get('session_id', 'none')
         except RuntimeError:
             # Outside request context
             pass
         
-        # Add custom kwargs
-        for key, value in kwargs.items():
-            if key not in log_entry:
-                log_entry[key] = value
-        
-        # Log as JSON
-        log_method = getattr(self.logger, level.lower(), self.logger.info)
-        log_method(json.dumps(log_entry, default=str))
+        return context
     
-    # Convenience methods for common event types
+    # ==================== Authentication Events ====================
     
-    def log_login_success(self, username: str, ip: Optional[str] = None):
+    def log_login_success(self, username: str, **kwargs):
         """Log successful login"""
         self.log_event(
             'auth.login.success',
-            level=self.INFO,
+            severity='INFO',
             user=username,
-            ip=ip or (request.remote_addr if request else 'unknown')
+            **kwargs
         )
     
-    def log_login_failure(self, username: str, reason: str = 'invalid_credentials',
-                          ip: Optional[str] = None):
+    def log_login_failure(self, username: str, reason: str = 'invalid_credentials', **kwargs):
         """Log failed login attempt"""
         self.log_event(
-            'auth.login.failed',
-            level=self.WARNING,
+            'auth.login.failure',
+            severity='WARNING',
             user=username,
             reason=reason,
-            ip=ip or (request.remote_addr if request else 'unknown')
+            **kwargs
         )
     
-    def log_logout(self, username: str, ip: Optional[str] = None):
-        """Log logout"""
+    def log_logout(self, username: str, **kwargs):
+        """Log logout event"""
         self.log_event(
             'auth.logout',
-            level=self.INFO,
+            severity='INFO',
             user=username,
-            ip=ip or (request.remote_addr if request else 'unknown')
+            **kwargs
         )
     
-    def log_session_created(self, username: str, session_id: str):
-        """Log session creation"""
-        self.log_event(
-            'session.created',
-            level=self.INFO,
-            user=username,
-            session_id=session_id
-        )
-    
-    def log_session_destroyed(self, username: str, session_id: str, reason: str):
-        """Log session destruction"""
-        self.log_event(
-            'session.destroyed',
-            level=self.INFO,
-            user=username,
-            session_id=session_id,
-            reason=reason
-        )
-    
-    def log_csrf_failure(self, path: str, ip: Optional[str] = None):
-        """Log CSRF validation failure"""
-        self.log_event(
-            'security.csrf.failed',
-            level=self.WARNING,
-            path=path,
-            ip=ip or (request.remote_addr if request else 'unknown')
-        )
-    
-    def log_xss_attempt(self, field: str, value: str, ip: Optional[str] = None):
-        """Log potential XSS attempt"""
-        self.log_event(
-            'security.xss.attempt',
-            level=self.CRITICAL,
-            field=field,
-            value=value[:100],  # Truncate to 100 chars
-            ip=ip or (request.remote_addr if request else 'unknown')
-        )
-    
-    def log_rate_limit_exceeded(self, path: str, limit: str, ip: Optional[str] = None):
-        """Log rate limit violation"""
-        self.log_event(
-            'security.rate_limit.exceeded',
-            level=self.WARNING,
-            path=path,
-            limit=limit,
-            ip=ip or (request.remote_addr if request else 'unknown')
-        )
-    
-    def log_config_change(self, setting: str, old_value: Any, new_value: Any,
-                          user: Optional[str] = None):
-        """Log configuration change"""
-        self.log_event(
-            'config.changed',
-            level=self.WARNING,
-            setting=setting,
-            old_value=str(old_value),
-            new_value=str(new_value),
-            user=user or (session.get('user') if session else 'unknown')
-        )
-    
-    def log_password_change(self, username: str, ip: Optional[str] = None):
-        """Log password change"""
-        self.log_event(
-            'auth.password.changed',
-            level=self.INFO,
-            user=username,
-            ip=ip or (request.remote_addr if request else 'unknown')
-        )
-    
-    def log_account_locked(self, username: str, reason: str, locked_until: str,
-                           ip: Optional[str] = None):
+    def log_account_locked(self, username: str, reason: str, **kwargs):
         """Log account lockout"""
         self.log_event(
             'auth.account.locked',
-            level=self.ERROR,
+            severity='ERROR',
             user=username,
             reason=reason,
-            locked_until=locked_until,
-            ip=ip or (request.remote_addr if request else 'unknown')
+            **kwargs
+        )
+    
+    # ==================== Session Events ====================
+    
+    def log_session_created(self, session_id: str, user: str, **kwargs):
+        """Log session creation"""
+        self.log_event(
+            'session.created',
+            severity='INFO',
+            session_id=session_id,
+            user=user,
+            **kwargs
+        )
+    
+    def log_session_destroyed(self, session_id: str, user: str, reason: str, **kwargs):
+        """Log session destruction"""
+        self.log_event(
+            'session.destroyed',
+            severity='INFO',
+            session_id=session_id,
+            user=user,
+            reason=reason,
+            **kwargs
+        )
+    
+    def log_session_timeout(self, session_id: str, user: str, timeout_type: str, **kwargs):
+        """Log session timeout"""
+        self.log_event(
+            'session.timeout',
+            severity='INFO',
+            session_id=session_id,
+            user=user,
+            timeout_type=timeout_type,
+            **kwargs
+        )
+    
+    # ==================== Security Violations ====================
+    
+    def log_csrf_failure(self, reason: str = 'invalid_token', **kwargs):
+        """Log CSRF validation failure"""
+        self.log_event(
+            'security.csrf.failure',
+            severity='WARNING',
+            reason=reason,
+            **kwargs
+        )
+    
+    def log_xss_attempt(self, input_field: str, malicious_content: str, **kwargs):
+        """Log XSS attempt detection"""
+        self.log_event(
+            'security.xss.attempt',
+            severity='CRITICAL',
+            input_field=input_field,
+            malicious_content=malicious_content[:200],  # Truncate for log size
+            **kwargs
+        )
+    
+    def log_rate_limit_exceeded(self, limit: str, **kwargs):
+        """Log rate limit violation"""
+        self.log_event(
+            'security.rate_limit.exceeded',
+            severity='WARNING',
+            limit=limit,
+            **kwargs
+        )
+    
+    def log_invalid_input(self, field: str, error: str, **kwargs):
+        """Log invalid input rejection"""
+        self.log_event(
+            'security.input.invalid',
+            severity='WARNING',
+            field=field,
+            error=error,
+            **kwargs
+        )
+    
+    # ==================== System Events ====================
+    
+    def log_config_change(self, key: str, old_value: Any, new_value: Any, **kwargs):
+        """Log configuration change"""
+        self.log_event(
+            'system.config.change',
+            severity='WARNING',
+            key=key,
+            old_value=str(old_value)[:100],
+            new_value=str(new_value)[:100],
+            **kwargs
+        )
+    
+    def log_startup(self, version: str, environment: str, **kwargs):
+        """Log system startup"""
+        self.log_event(
+            'system.startup',
+            severity='INFO',
+            version=version,
+            environment=environment,
+            **kwargs
+        )
+    
+    def log_shutdown(self, reason: str = 'normal', **kwargs):
+        """Log system shutdown"""
+        self.log_event(
+            'system.shutdown',
+            severity='INFO',
+            reason=reason,
+            **kwargs
         )
 
 
 # Singleton instance
-_audit_logger = None
+_audit_logger: Optional[SecurityAuditLogger] = None
 
 
 def get_audit_logger() -> SecurityAuditLogger:
-    """Get singleton audit logger instance"""
+    """Get the singleton audit logger instance
+    
+    Returns:
+        SecurityAuditLogger instance
+    """
     global _audit_logger
     if _audit_logger is None:
-        _audit_logger = SecurityAuditLogger()
+        log_file = os.getenv('SECURITY_AUDIT_LOG', 'logs/security_audit.log')
+        _audit_logger = SecurityAuditLogger(log_file)
     return _audit_logger
-
-
-# Convenience function
-def log_security_event(event_type: str, level: str = SecurityAuditLogger.INFO, **kwargs):
-    """Log a security event (convenience function)"""
-    logger = get_audit_logger()
-    logger.log_event(event_type, level, **kwargs)
