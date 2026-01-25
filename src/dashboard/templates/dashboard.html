@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     
     <!-- Primary Meta Tags -->
-    <title>BotV2 Dashboard v7.2 - Professional Algorithmic Trading Platform</title>
+    <title>BotV2 Dashboard v7.3 - Professional Algorithmic Trading Platform</title>
     <meta name="title" content="BotV2 Dashboard - Professional Trading Platform">
     <meta name="description" content="Advanced algorithmic trading dashboard with real-time monitoring, AI insights, command palette, and professional analytics tools.">
     <meta name="keywords" content="trading, algorithmic trading, bot, dashboard, portfolio, analytics, strategies, fintech, AI">
@@ -52,6 +52,7 @@
     
     <!-- Preload Critical Assets -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" as="style">
+    <link rel="preload" href="{{ url_for('static', filename='js/performance-optimizer.js') }}" as="script">
     <link rel="preload" href="{{ url_for('static', filename='js/dashboard.js') }}" as="script">
     <link rel="preload" href="{{ url_for('static', filename='css/visual-excellence-v7.css') }}" as="style">
     <link rel="preload" href="{{ url_for('static', filename='css/advanced-features-v7.2.css') }}" as="style">
@@ -551,49 +552,49 @@
             <nav class="sidebar-menu">
                 <div class="menu-section">
                     <div class="menu-section-title">Main</div>
-                    <div class="menu-item active" data-section="dashboard">
+                    <div class="menu-item active" data-section="dashboard" data-prefetch="portfolio">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/></svg>
                         <span>Dashboard</span>
                     </div>
-                    <div class="menu-item" data-section="portfolio">
+                    <div class="menu-item" data-section="portfolio" data-prefetch="trades">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/></svg>
                         <span>Portfolio</span>
                     </div>
-                    <div class="menu-item" data-section="trades">
+                    <div class="menu-item" data-section="trades" data-prefetch="performance">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h7a1 1 0 100-2H3z"/></svg>
                         <span>Trades</span>
                     </div>
-                    <div class="menu-item" data-section="performance">
+                    <div class="menu-item" data-section="performance" data-prefetch="risk">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7z"/></svg>
                         <span>Performance</span>
                     </div>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">Analytics</div>
-                    <div class="menu-item" data-section="risk">
+                    <div class="menu-item" data-section="risk" data-prefetch="markets">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z"/></svg>
                         <span>Risk Analysis</span>
                     </div>
-                    <div class="menu-item" data-section="markets">
+                    <div class="menu-item" data-section="markets" data-prefetch="strategies">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/></svg>
                         <span>Market Overview</span>
                     </div>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">System</div>
-                    <div class="menu-item" data-section="live_monitor">
+                    <div class="menu-item" data-section="live_monitor" data-prefetch="control_panel">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/></svg>
                         <span>Live Monitor</span>
                     </div>
-                    <div class="menu-item" data-section="control_panel">
+                    <div class="menu-item" data-section="control_panel" data-prefetch="strategies">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
                         <span>Control Panel</span>
                     </div>
-                    <div class="menu-item" data-section="strategies">
+                    <div class="menu-item" data-section="strategies" data-prefetch="backtesting">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5z"/></svg>
                         <span>Strategies</span>
                     </div>
-                    <div class="menu-item" data-section="backtesting">
+                    <div class="menu-item" data-section="backtesting" data-prefetch="settings">
                         <svg class="menu-icon" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/></svg>
                         <span>Backtesting</span>
                     </div>
@@ -607,7 +608,7 @@
         <main class="main-content">
             <header class="topbar">
                 <div class="topbar-left">
-                    <h1 id="page-title">Dashboard v7.2</h1>
+                    <h1 id="page-title">Dashboard v7.3 🚀</h1>
                 </div>
                 <div class="topbar-right">
                     <!-- Command Palette Trigger -->
@@ -648,6 +649,9 @@
         </main>
     </div>
     
+    <!-- ⚡ PERFORMANCE OPTIMIZER v1.0 - LOAD FIRST -->
+    <script src="{{ url_for('static', filename='js/performance-optimizer.js') }}"></script>
+    
     <!-- Chart Mastery v7.1 JS -->
     <script src="{{ url_for('static', filename='js/chart-mastery-v7.1.js') }}"></script>
     
@@ -660,11 +664,36 @@
     <!-- PWA Installer -->
     <script src="{{ url_for('static', filename='js/pwa-installer.js') }}"></script>
     
-    <!-- Main dashboard script -->
+    <!-- Main dashboard script (now optimized) -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     
+    <!-- ⚡ Performance Optimizer Integration -->
     <script>
-        // Theme switcher
+        // Phase 1: Basic Integration
+        console.log('%c⚡ Performance Optimizer v1.0 Active', 'background:#10b981;color:white;padding:4px 8px;border-radius:4px;font-weight:600');
+        
+        // Phase 2: Advanced Optimizations
+        
+        // 1. Prefetch on nav hover
+        document.addEventListener('DOMContentLoaded', () => {
+            const navItems = document.querySelectorAll('.menu-item');
+            navItems.forEach(item => {
+                item.addEventListener('mouseenter', () => {
+                    const prefetchSection = item.dataset.prefetch;
+                    if (prefetchSection && typeof PerformanceOptimizer !== 'undefined') {
+                        PerformanceOptimizer.prefetchManager.prefetch(
+                            `section-${prefetchSection}`,
+                            async () => {
+                                const response = await fetch(`/api/section/${prefetchSection}`);
+                                return response.json();
+                            }
+                        );
+                    }
+                });
+            });
+        });
+        
+        // 2. Theme switcher
         function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
@@ -682,11 +711,19 @@
         const savedTheme = localStorage.getItem('theme') || 'dark';
         setTheme(savedTheme);
         
-        console.log('🚀 BotV2 Dashboard v7.2 loaded');
+        console.log('🚀 BotV2 Dashboard v7.3 loaded with Performance Optimizer');
         console.log('✅ Chart Mastery v7.1: 7 advanced charts');
         console.log('✅ Advanced Features v7.2: AI Insights, Command Palette, Layouts, Snapshots');
+        console.log('✅ Performance Optimizer v1.0: Debounce, Throttle, Mutex, Cache, Prefetch');
         console.log('💡 Press Ctrl+K for quick actions');
         console.log('💡 Press Ctrl+/ for insights panel');
+        console.log('');
+        console.log('%c🎯 OPTIMIZATIONS ACTIVE:', 'font-weight:bold;color:#2f81f7');
+        console.log('   ✅ Section cache with LRU eviction');
+        console.log('   ✅ Mutex lock prevents concurrent loads');
+        console.log('   ✅ Prefetch on nav hover');
+        console.log('   ✅ Request deduplication');
+        console.log('   ✅ Performance monitoring');
     </script>
 </body>
 </html>
