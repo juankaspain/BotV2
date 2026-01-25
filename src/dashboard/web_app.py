@@ -1,7 +1,7 @@
-"""BotV2 Professional Dashboard v7.3 - Security Phase 1 COMPLETE ✅
+"""BotV2 Professional Dashboard v7.4 - Security Phase 1 + Export Libraries
 Ultra-professional real-time trading dashboard with enterprise-grade security
 
-🔒 VERSION 7.3 - SECURITY PHASE 1 100% COMPLETE:
+🔒 VERSION 7.4 - SECURITY + EXPORTS:
 - ✅ CSRF Protection: Token-based validation (all forms + AJAX)
 - ✅ XSS Prevention: bleach backend + DOMPurify frontend
 - ✅ Input Validation: Pydantic models for type-safe validation
@@ -10,6 +10,7 @@ Ultra-professional real-time trading dashboard with enterprise-grade security
 - ✅ Security Audit Logging: Comprehensive JSON event logs
 - ✅ Security Headers: CSP, HSTS, X-Frame-Options, etc.
 - ✅ HTTPS Enforcement: Production-grade TLS (Talisman)
+- ✅ Export Libraries: SheetJS (Excel) + jsPDF (PDF) with CDN support
 
 ✅ All v6.0 features maintained:
 - Metrics monitoring (RPM, latency, errors)
@@ -104,7 +105,7 @@ from .monitoring_routes import monitoring_bp
 from .strategy_routes import strategy_bp
 
 # Dashboard version
-__version__ = '7.3'
+__version__ = '7.4'
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +179,7 @@ class DashboardAuth:
 
 
 class ProfessionalDashboard:
-    """📊 Ultra-professional trading dashboard v7.3 with enterprise security"""
+    """📊 Ultra-professional trading dashboard v7.4 with enterprise security + exports"""
     
     def __init__(self, config):
         self.config = config
@@ -226,7 +227,7 @@ class ProfessionalDashboard:
         self.alerts = []
         self.annotations = []
         
-        # 🛣️ Setup routes
+        # 🛛️ Setup routes
         self._setup_routes()
         self._setup_websocket_handlers()
         
@@ -292,27 +293,33 @@ class ProfessionalDashboard:
         init_security_middleware(self.app)
         logger.info("✅ Security Middleware enabled (Headers + Validation)")
         
-        # 6. CSP and HTTPS Enforcement - ✅ FIXED: Configure for both dev and prod
+        # 6. CSP and HTTPS Enforcement - ✅ FIXED: Updated CSP for export libraries
         csp_config = {
             'default-src': "'self'",
             'script-src': [
                 "'self'",
                 "'unsafe-inline'",  # Required for inline scripts
-                "'unsafe-eval'",     # Required for some JS frameworks
+                "'unsafe-eval'",     # Required for some JS frameworks and SheetJS
+                # Core CDNs
                 "https://cdn.jsdelivr.net",
                 "https://cdn.socket.io",
                 "https://cdn.plot.ly",
-                "https://unpkg.com"
+                "https://unpkg.com",
+                # Export Library CDNs - ✅ ADDED
+                "https://cdn.sheetjs.com",       # SheetJS for Excel exports
+                "https://cdnjs.cloudflare.com"   # jsPDF + AutoTable + html2canvas
             ],
             'style-src': [
                 "'self'",
                 "'unsafe-inline'",  # Required for inline styles
                 "https://fonts.googleapis.com",
-                "https://cdn.jsdelivr.net"
+                "https://cdn.jsdelivr.net",
+                "https://cdnjs.cloudflare.com"
             ],
             'font-src': [
                 "'self'",
                 "https://fonts.gstatic.com",
+                "https://fonts.googleapis.com",
                 "data:"
             ],
             'img-src': [
@@ -326,8 +333,15 @@ class ProfessionalDashboard:
                 "wss:",
                 "ws:",
                 "http://localhost:*",
+                "https://localhost:*",
                 "ws://localhost:*",
-                "wss://localhost:*"
+                "wss://localhost:*",
+                # Allow CDN connections for library loading
+                "https://cdn.sheetjs.com",
+                "https://cdnjs.cloudflare.com",
+                "https://cdn.jsdelivr.net",
+                "https://cdn.plot.ly",
+                "https://cdn.socket.io"
             ],
             'frame-ancestors': "'none'",
             'base-uri': "'self'",
@@ -345,7 +359,7 @@ class ProfessionalDashboard:
                 strict_transport_security_preload=True,
                 content_security_policy=csp_config
             )
-            logger.info("✅ HTTPS Enforcement + CSP enabled (production)")
+            logger.info("✅ HTTPS Enforcement + CSP enabled (production) with export libraries")
         else:
             # Development: Permissive CSP without HTTPS enforcement
             Talisman(
@@ -356,7 +370,7 @@ class ProfessionalDashboard:
                 feature_policy={},
                 strict_transport_security=False  # Disable HSTS in dev
             )
-            logger.info("✅ CSP enabled (development mode)")
+            logger.info("✅ CSP enabled (development mode) with export libraries")
     
     def _setup_compression(self):
         """✅ Setup GZIP compression"""
@@ -434,7 +448,7 @@ class ProfessionalDashboard:
         
         logger.info("")
         logger.info("=" * 80)
-        logger.info(f"   BotV2 Dashboard v{__version__} - Security Phase 1 COMPLETE ✅")
+        logger.info(f"   BotV2 Dashboard v{__version__} - Security + Exports ✅")
         logger.info("=" * 80)
         logger.info(f"Environment: {self.env.upper()}")
         logger.info(f"URL: http://{self.host}:{self.port}")
@@ -447,6 +461,7 @@ class ProfessionalDashboard:
             logger.info("   - Session Management: ✅")
             logger.info("   - Audit Logging: ✅")
             logger.info(f"   - Security Headers: ✅ ({'Production' if self.is_production else 'Development'} mode)")
+            logger.info("   - Export CDNs: ✅ (SheetJS + jsPDF allowed)")
         logger.info(f"📊 Metrics: {'✅ Active' if HAS_METRICS else '⚠️ Disabled'}")
         logger.info(f"✅ GZIP: {'✅ Enabled' if HAS_COMPRESS else '⚠️ Disabled'}")
         logger.info(f"💾 Database: {'✅ Connected' if self.db_session else '⚠️ Mock Mode'}")
@@ -477,7 +492,7 @@ class ProfessionalDashboard:
         return decorated_function
     
     def _setup_routes(self):
-        """🛣️ Setup all Flask routes with 100% security coverage"""
+        """🛛️ Setup all Flask routes with 100% security coverage"""
         
         # ==================== AUTHENTICATION ====================
         
@@ -756,6 +771,7 @@ class ProfessionalDashboard:
             logger.info("   ✅ Session Management")
             logger.info("   ✅ Security Audit Logging")
             logger.info(f"   ✅ Security Headers (CSP, {'HSTS' if self.is_production else 'dev mode'})")
+            logger.info("   ✅ Export CDNs (SheetJS + jsPDF)")
         else:
             logger.warning("⚠️ Security Phase 1: DISABLED (modules not available)")
         
