@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 class RateLimiterConfig:
     """Rate limiter configuration"""
     
-    # Default limits
-    DEFAULT_LIMIT = "10 per minute"
-    API_LIMIT = "30 per minute"
-    LOGIN_LIMIT = "5 per minute"
-    EXPORT_LIMIT = "5 per minute"
-    HEAVY_LIMIT = "2 per minute"  # For resource-intensive operations
+    # Default limits - AUMENTADOS PARA DESARROLLO
+    DEFAULT_LIMIT = "100 per minute"  # Antes: 10 per minute
+    API_LIMIT = "200 per minute"      # Antes: 30 per minute
+    LOGIN_LIMIT = "20 per minute"     # Antes: 5 per minute  <- CRÍTICO
+    EXPORT_LIMIT = "20 per minute"    # Antes: 5 per minute
+    HEAVY_LIMIT = "10 per minute"     # Antes: 2 per minute
     
     # Storage
     REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -76,7 +76,7 @@ def init_rate_limiter(
         app: Flask application instance
         enabled: Whether rate limiting is enabled
         storage_uri: Custom storage URI (defaults to auto-detect)
-        default_limits: Default rate limits (defaults to 10 per minute)
+        default_limits: Default rate limits (defaults to 100 per minute)
         
     Returns:
         Limiter instance or None if disabled
