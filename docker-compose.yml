@@ -3,27 +3,27 @@
 # Services: Trading Bot (Demo) + Dashboard v5.1 (Mock Data)
 
 # ARCHITECTURE (DEMO MODE):
-#   Trading Bot → Paper Trading Mode (No real money)
-#   Dashboard v5.1 → Professional dashboard with mock data fallback
-#   No Database Required → All data is simulated/demo
+# Trading Bot -> Paper Trading Mode (No real money)
+# Dashboard v5.1 -> Professional dashboard with mock data fallback
+# No Database Required -> All data is simulated/demo
 
 # ARCHITECTURE (PRODUCTION MODE):
-#   Trading Bot → Writes to → PostgreSQL/Redis
-#   Dashboard v5.1 → Reads from → PostgreSQL/Redis (with mock fallback)
-#   (Uncomment PostgreSQL and Redis services below)
+# Trading Bot -> Writes to -> PostgreSQL/Redis
+# Dashboard v5.1 -> Reads from -> PostgreSQL/Redis (with mock fallback)
+# (Uncomment PostgreSQL and Redis services below)
 
 # QUICK START (DEMO MODE):
-#   cp local.env .env
-#   docker compose up -d
-#   Access: http://localhost:8050 (Dashboard v5.1)
-#   Login: admin / admin (change in production)
+# cp local.env .env
+# docker compose up -d
+# Access: http://localhost:8050 (Dashboard v5.1)
+# Login: admin / admin (change in production)
 
 # PRODUCTION MODE:
-#   1. Uncomment botv2-postgres and botv2-redis services
-#   2. Uncomment depends_on sections in botv2-app and botv2-dashboard
-#   3. Set TRADING_MODE=live in .env
-#   4. Set DEMO_MODE=false in .env
-#   5. Set strong DASHBOARD_PASSWORD in .env
+# 1. Uncomment botv2-postgres and botv2-redis services
+# 2. Uncomment depends_on sections in botv2-app and botv2-dashboard
+# 3. Set TRADING_MODE=live in .env
+# 4. Set DEMO_MODE=false in .env
+# 5. Set strong DASHBOARD_PASSWORD in .env
 
 services:
   # ============================================================================
@@ -36,26 +36,26 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env  # CRITICAL: Loads all environment variables from .env file
+      - .env # CRITICAL: Loads all environment variables from .env file
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - TRADING_MODE=${TRADING_MODE:-paper}  # paper = demo mode (no real money)
+      - TRADING_MODE=${TRADING_MODE:-paper} # paper = demo mode (no real money)
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - DEMO_MODE=true  # Enable demo/simulation mode
-    command: ["python", "src/main.py"]  # Trading bot entry point
+      - DEMO_MODE=true # Enable demo/simulation mode
+    command: ["python", "bot/main.py"] # Trading bot entry point
     # NOTE: No port mapping - this is a background process, not an HTTP server
-    
+
     # PRODUCTION: Uncomment for database dependencies
     # depends_on:
     #   botv2-postgres:
     #     condition: service_healthy
     #   botv2-redis:
     #     condition: service_healthy
-    
+
     networks:
       - botv2-network
-    restart: on-failure:3  # Stop after 3 failures (no infinite restart loop)
+    restart: on-failure:3 # Stop after 3 failures (no infinite restart loop)
     healthcheck:
       test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
       interval: 30s
@@ -77,18 +77,18 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env  # CRITICAL: Loads all environment variables from .env file
+      - .env # CRITICAL: Loads all environment variables from .env file
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - FLASK_ENV=development  # development mode (HTTP only) for demo
+      - FLASK_ENV=development # development mode (HTTP only) for demo
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - FLASK_APP=src.dashboard.web_app
+      - FLASK_APP=dashboard.web_app
       - DASHBOARD_HOST=0.0.0.0
       - DASHBOARD_PORT=8050
       # Demo mode environment variables
-      - DEMO_MODE=true  # Enables mock data generation
-      - INITIAL_CAPITAL=3000  # Demo portfolio starting capital
+      - DEMO_MODE=true # Enables mock data generation
+      - INITIAL_CAPITAL=3000 # Demo portfolio starting capital
       # Redis (optional for demo, required for production rate limiting)
       - REDIS_HOST=${REDIS_HOST:-localhost}
       - REDIS_PORT=${REDIS_PORT:-6379}
@@ -99,20 +99,20 @@ services:
       # Database (optional - will use mock data if not available)
       - DATABASE_URL=${DATABASE_URL:-sqlite:///data/dashboard.db}
     # ⚠️ UPDATED: Use web_app.py v5.1 (dashboard_standalone.py was removed)
-    command: ["python", "-u", "-m", "src.dashboard.web_app"]  # v5.1 entry point
+    command: ["python", "-u", "-m", "dashboard.web_app"] # v5.1 entry point
     ports:
-      - "${DASHBOARD_PORT:-8050}:8050"  # Dashboard web interface
-    
+      - "${DASHBOARD_PORT:-8050}:8050" # Dashboard web interface
+
     # PRODUCTION: Uncomment for database dependencies
     # depends_on:
     #   botv2-postgres:
     #     condition: service_healthy
     #   botv2-redis:
     #     condition: service_healthy
-    
+
     networks:
       - botv2-network
-    restart: on-failure:3  # Stop after 3 failures (no infinite restart loop)
+    restart: on-failure:3 # Stop after 3 failures (no infinite restart loop)
     healthcheck:
       test: |
         python -c "
@@ -131,8 +131,8 @@ services:
       retries: 5
       start_period: 60s
     volumes:
-      - ./logs:/app/logs  # Dashboard logs
-      - ./data:/app/data  # Persistent data and SQLite DB
+      - ./logs:/app/logs # Dashboard logs
+      - ./data:/app/data # Persistent data and SQLite DB
     labels:
       - "com.botv2.service=dashboard"
       - "com.botv2.version=5.1"
@@ -175,12 +175,12 @@ services:
   #   image: redis:7-alpine
   #   command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:-}
   #   env_file:
-  #     - .env  # Reads REDIS_* variables
+  #     - .env # Reads REDIS_* variables
   #   ports:
   #     - "${REDIS_PORT:-6379}:6379"
   #   networks:
   #     - botv2-network
-  #   restart: unless-stopped  # Cache should always restart
+  #   restart: unless-stopped # Cache should always restart
   #   healthcheck:
   #     test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-}", "ping"]
   #     interval: 10s
