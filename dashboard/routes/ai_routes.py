@@ -7,7 +7,7 @@ Provides REST API endpoints for AI features:
 - Market regime classification (coming soon)
 
 Integration:
-    from src.dashboard.ai_routes import register_ai_routes
+    from bot.dashboard.ai_routes import register_ai_routes
     from flask import Flask
     from flask_socketio import SocketIO
     
@@ -29,7 +29,7 @@ import sys
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from src.ai.anomaly_detector import AnomalyDetector
+from bot.ai.anomaly_detector import AnomalyDetector
 
 # Initialize AI components
 anomal_detector = AnomalyDetector(model_path='models/anomaly_detector.pkl')

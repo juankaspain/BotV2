@@ -825,7 +825,7 @@ TradingDashboard = ProfessionalDashboard
 
 
 if __name__ == "__main__":
-    from src.config.config_manager import ConfigManager
+    from bot.config.config_manager import ConfigManager
     config = ConfigManager()
     dashboard = ProfessionalDashboard(config)
     dashboard.run()
