@@ -9,17 +9,14 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {% endif %}
     
-    <!-- 🔒 CSP is managed by Talisman in web_app.py - don't override here -->
-    
     <title>BotV2 Dashboard - Login</title>
     
-    <!-- Professional Font (Google Fonts doesn't support SRI - dynamic CSS) -->
+    <!-- Professional Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* SAME STYLES AS BEFORE - NOT DUPLICATING FOR BREVITY */
         :root {
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
@@ -236,52 +233,61 @@
         </div>
     </div>
 
-    <!-- 🔒 SECURITY: DOMPurify for XSS Protection (SRI Protected) -->
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js" 
-            integrity="sha512-KqUc2SPCA2gKEZLjRm/2FLuV1Y9LN+3j+w3xHmYEu/1KF+VqeaCqBqCZcQrDSiDPbdlPWPKH/aqnVR3KzRCXKw==" 
-            crossorigin="anonymous"
-            referrerpolicy="no-referrer"></script>
-    
-    <!-- 🔐 CSP NONCE: All inline scripts use server-generated nonce -->
+    <!-- 🔐 CSP NONCE: Inline script with server-generated nonce -->
     <script nonce="{{ csp_nonce }}">
-        function initializeFocus() {
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const savedUsername = localStorage.getItem('botv2_username');
-            
-            requestAnimationFrame(function() {
-                if (savedUsername && savedUsername.trim() !== '') {
-                    usernameInput.value = savedUsername;
-                    passwordInput.focus();
-                } else {
-                    usernameInput.focus();
-                }
-            });
+    (function() {
+        'use strict';
+        
+        // 📝 Simple HTML escaping (no DOMPurify needed for login)
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
-
+        
+        // 🎯 Initialize focus on page load
+        function initializeFocus() {
+            var usernameInput = document.getElementById('username');
+            var passwordInput = document.getElementById('password');
+            var savedUsername = localStorage.getItem('botv2_username');
+            
+            if (savedUsername && savedUsername.trim() !== '') {
+                usernameInput.value = savedUsername;
+                passwordInput.focus();
+            } else {
+                usernameInput.focus();
+            }
+        }
+        
+        // Run on DOM ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeFocus);
         } else {
             initializeFocus();
         }
-
-        const form = document.getElementById('loginForm');
-        const btn = document.getElementById('loginBtn');
-        const btnText = document.getElementById('btnText');
-        const spinner = document.getElementById('spinner');
-        const errorMessage = document.getElementById('errorMessage');
-
+        
+        // 🔐 Form submission handler
+        var form = document.getElementById('loginForm');
+        var btn = document.getElementById('loginBtn');
+        var btnText = document.getElementById('btnText');
+        var spinner = document.getElementById('spinner');
+        var errorMessage = document.getElementById('errorMessage');
+        
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
+            
+            var username = document.getElementById('username').value;
+            var password = document.getElementById('password').value;
+            
+            // Clear previous errors
             errorMessage.classList.remove('show');
+            
+            // Show loading state
             btn.disabled = true;
             btnText.textContent = 'Signing in...';
             spinner.classList.add('show');
-
+            
+            // Submit via fetch
             fetch('/login', {
                 method: 'POST',
                 headers: {
@@ -296,44 +302,56 @@
                     throw new Error('Invalid credentials');
                 } else if (response.status === 429) {
                     throw new Error('Too many attempts. Please wait.');
+                } else if (response.status === 400) {
+                    throw new Error('Invalid input. Check username and password.');
                 } else {
                     throw new Error('Login failed');
                 }
             })
             .then(function(data) {
+                // Save username for next time
                 localStorage.setItem('botv2_username', username);
+                // Redirect
                 window.location.href = data.redirect || '/';
             })
             .catch(function(error) {
-                errorMessage.textContent = DOMPurify.sanitize(error.message);
+                // Show error
+                errorMessage.textContent = escapeHtml(error.message);
                 errorMessage.classList.add('show');
+                
+                // Reset form state
                 btn.disabled = false;
                 btnText.textContent = 'Sign In';
                 spinner.classList.remove('show');
+                
+                // Clear password
                 document.getElementById('password').value = '';
-                requestAnimationFrame(function() { 
-                    document.getElementById('password').focus(); 
-                });
-                setTimeout(function() { 
-                    errorMessage.classList.remove('show'); 
+                document.getElementById('password').focus();
+                
+                // Auto-hide error after 5s
+                setTimeout(function() {
+                    errorMessage.classList.remove('show');
                 }, 5000);
             });
         });
-
+        
+        // 💾 Save username on change
         document.getElementById('username').addEventListener('change', function() {
-            const username = this.value.trim();
+            var username = this.value.trim();
             if (username) {
                 localStorage.setItem('botv2_username', username);
             } else {
                 localStorage.removeItem('botv2_username');
             }
         });
-
-        const urlParams = new URLSearchParams(window.location.search);
+        
+        // ⚠️ Show error from URL param
+        var urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('error')) {
             errorMessage.textContent = 'Authentication failed. Please try again.';
             errorMessage.classList.add('show');
         }
+    })();
     </script>
 </body>
 </html>
