@@ -552,13 +552,16 @@ class ProfessionalDashboard:
                 
                 # Verify credentials
                 if self.auth.check_credentials(username, password):
+                    # ✅ CRITICAL: Set session data FIRST
                     session.permanent = True
                     session['user'] = username
                     session['login_time'] = datetime.now().isoformat()
+                    session['last_activity'] = datetime.now().isoformat()  # NUEVO
                     
-                    # 🔒 Create session
+                    # 🔒 Create session with session_manager
                     if HAS_SECURITY and self.session_manager:
-                        self.session_manager.create_session(username)
+                        session_id = self.session_manager.create_session(username)
+                        session['session_id'] = session_id  # NUEVO - Guardar session_id
                     
                     self.auth.record_successful_login(ip, username)
                     
@@ -566,7 +569,15 @@ class ProfessionalDashboard:
                     if HAS_METRICS and self.metrics_monitor:
                         self.metrics_monitor.record_user_activity(username)
                     
-                    return jsonify({'success': True, 'redirect': '/'}), 200
+                    # ✅ Force session save before response
+                    session.modified = True  # NUEVO - CRÍTICO
+                    
+                    # ✅ Return JSON with success
+                    return jsonify({
+                        'success': True, 
+                        'redirect': '/',
+                        'message': 'Login successful'  # NUEVO
+                    }), 200
                 else:
                     self.auth.record_failed_attempt(ip, username)
                     return jsonify({'error': 'Invalid credentials'}), 401
