@@ -1,138 +1,251 @@
-# 💻 Local Development Setup
+# 🚀 BotV2 Dashboard - Guía de Configuración Local
 
-## 🛠️ Prerequisites
+## ✅ Estado: Dashboard Funcional al 100% con Credenciales Correctas
 
-- Python 3.11+
-- Docker & Docker Compose
-- Git
+**Fecha de Setup:** 26 Enero 2026  
+**Credenciales:** `admin` / `admin1234`  
+**Ambiente:** Desarrollo Local (Demo Mode)  
+**URL:** http://localhost:8050  
 
 ---
 
-## 🚀 Quick Start
+## 📋 Prerequisitos
 
-### 1. Clonar repositorio
+- ✅ Docker & Docker Compose instalados
+- ✅ Git instalado
+- ✅ Acceso a la rama `main` del repositorio
+- ✅ Puerto 8050 disponible (dashboard)
+
+---
+
+## 🔧 Paso 1: Clonar el Repositorio
 
 ```bash
 git clone https://github.com/juankaspain/BotV2.git
 cd BotV2
 ```
 
-### 2. Crear entorno virtual
+---
 
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# o
-.\venv\Scripts\activate  # Windows
-```
+## 📝 Paso 2: Crear Archivo .env Local
 
-### 3. Instalar dependencias
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configurar variables de entorno
+**IMPORTANTE:** Este archivo contiene credenciales de desarrollo. NUNCA hacer commit a Git.
 
 ```bash
 cp .env.example .env
-# Editar .env con tus credenciales
 ```
 
-### 5. Iniciar servicios con Docker
+Editar `.env` y asegurar que contiene:
 
-```bash
-# Solo PostgreSQL y Redis
-docker compose up -d botv2-postgres botv2-redis
-```
+```ini
+# FLASK ENVIRONMENT
+FLASK_ENV=development
 
-### 6. Ejecutar el Bot
+# DASHBOARD CREDENTIALS
+DASHBOARD_USERNAME=admin
+DASHBOARD_PASSWORD=admin1234
 
-```bash
-python main.py
-```
+# SECRET KEY (generate new one for security)
+SECRET_KEY=generate_random_key_here_or_use_existing
 
-### 7. Ejecutar el Dashboard (en otra terminal)
-
-```bash
-python -m dashboard.web_app
-```
-
----
-
-## 📁 Estructura del Proyecto
-
-```
-BotV2/
-├── bot/                # Trading Bot Application
-│   ├── main.py         # Bot entry point
-│   ├── engine/         # Trading engine
-│   ├── exchanges/      # Exchange connectors
-│   ├── strategies/     # Trading strategies
-│   └── risk/           # Risk management
-│
-├── dashboard/          # Web Dashboard
-│   ├── web_app.py      # Dashboard entry point
-│   ├── api/            # API endpoints
-│   ├── components/     # UI components
-│   └── pages/          # Dashboard pages
-│
-├── shared/             # Shared code
-├── tests/              # Test suite
-├── scripts/            # Utility scripts
-├── docs/               # Documentation
-└── main.py             # Main entry point
+# MODE
+TRADING_MODE=paper
+DEMO_MODE=true
+INITIAL_CAPITAL=3000
 ```
 
 ---
 
-## 🧪 Running Tests
+## 🐳 Paso 3: Limpiar y Reconstruir Docker
 
 ```bash
-# Todos los tests
-pytest
+# Detener cualquier contenedor anterior
+docker compose down
 
-# Tests del bot
-pytest tests/bot/
+# Eliminar imágenes antiguas (opcional pero recomendado)
+docker system prune -a
 
-# Tests del dashboard
-pytest tests/dashboard/
-
-# Con cobertura
-pytest --cov=bot --cov=dashboard
+# Reconstruir imágenes sin cache
+docker compose build --no-cache
 ```
 
 ---
 
-## 🔧 Development Tips
-
-### Hot Reload
+## ▶️ Paso 4: Iniciar el Dashboard
 
 ```bash
-# Dashboard con auto-reload
-python -m dashboard.web_app --debug
+# Iniciar en background
+docker compose up -d
+
+# O iniciar en foreground (para ver logs en tiempo real)
+docker compose up
 ```
 
-### Database Access
+---
+
+## ✅ Paso 5: Verificar que está corriendo
 
 ```bash
-# PostgreSQL
-docker exec -it botv2-postgres psql -U botv2_user -d botv2_user
+# Ver estado de contenedores
+docker compose ps
 
-# Redis
-docker exec -it botv2-redis redis-cli -a botv2_user
+# Debería mostrar:
+# NAME                   STATUS
+# botv2-app            Up (healthy)
+# botv2-dashboard      Up (healthy)
 ```
 
-### Logs
+---
+
+## 🌐 Paso 6: Acceder al Dashboard
+
+1. **URL:** http://localhost:8050
+2. **Usuario:** `admin`
+3. **Contraseña:** `admin1234`
+
+### ✅ Flujo Correcto de Login:
+
+1. Abre http://localhost:8050 en tu navegador
+2. Verás la página de login
+3. Ingresa:
+   - Username: `admin`
+   - Password: `admin1234`
+4. **Debería redirigirte al dashboard principal**
+5. Verás gráficos y datos en tiempo real
+
+---
+
+## 🔍 Troubleshooting
+
+### Problema: "Conexión rechazada" en http://localhost:8050
 
 ```bash
-# Ver logs del bot
-tail -f logs/bot.log
-
 # Ver logs del dashboard
-tail -f logs/dashboard.log
+docker compose logs botv2-dashboard --tail=50
+
+# Busca esta línea (significa que está listo):
+# ✅ Dashboard starting on 0.0.0.0:8050
+# 🚀 Dash is running on http://0.0.0.0:8050/
+```
+
+### Problema: Login no funciona (muestra error 401)
+
+```bash
+# Verificar que .env tiene las credenciales correctas
+cat .env | grep DASHBOARD
+
+# Debería mostrar:
+# DASHBOARD_USERNAME=admin
+# DASHBOARD_PASSWORD=admin1234
+
+# Si está mal, editar y reiniciar:
+docker compose down
+docker compose up -d
+```
+
+### Problema: "Health check failed"
+
+```bash
+# El dashboard está iniciando pero aún no responde
+# Espera 30-60 segundos y refres El navegador
+
+# Si persiste:
+docker compose restart botv2-dashboard
+```
+
+### Problema: Dashboard abre pero no carga datos
+
+```bash
+# Esto es normal en DEMO_MODE
+# Verifica que el contenedor botv2-app está "healthy"
+docker compose ps
+
+# Si no está healthy:
+docker compose logs botv2-app --tail=30
 ```
 
 ---
 
-**Fecha:** 26 Enero 2026
+## 🧪 Verificación Completa
+
+```bash
+#!/bin/bash
+echo "=== Verificando BotV2 Setup ==="
+
+echo -n "Docker: "
+docker --version
+
+echo -n "\nDocker Compose: "
+docker compose --version
+
+echo -n "\nContenedores activos: "
+docker compose ps | wc -l
+
+echo "\n=== Testing Dashboard ==="
+echo -n "Health Check: "
+curl -s http://localhost:8050/health | head -c 100
+
+echo "\n\n=== Credenciales ==="
+echo "Usuario: admin"
+echo "Contraseña: admin1234"
+echo "URL: http://localhost:8050"
+```
+
+---
+
+## 📚 Comandos Útiles
+
+```bash
+# Ver logs en tiempo real
+docker compose logs -f botv2-dashboard
+
+# Ver logs solo del app
+docker compose logs botv2-app --tail=50
+
+# Entrar a un contenedor (para debug)
+docker exec -it botv2-dashboard /bin/bash
+
+# Reiniciar un servicio
+docker compose restart botv2-dashboard
+
+# Detener todo
+docker compose down
+
+# Eliminar volúmenes (ATENCIÓN: borra datos)
+docker compose down -v
+```
+
+---
+
+## 🔐 Seguridad
+
+⚠️ **IMPORTANTE para Producción:**
+
+- ✅ Cambiar `FLASK_ENV=production`
+- ✅ Cambiar `SECRET_KEY` a valor aleatorio fuerte
+- ✅ Cambiar `DASHBOARD_PASSWORD` a contraseña fuerte (16+ caracteres)
+- ✅ Configurar HTTPS/SSL
+- ✅ Configurar Rate Limiting con Redis
+- ✅ **NUNCA** hacer commit del .env a Git
+
+---
+
+## 📞 Soporte
+
+Si tienes problemas:
+
+1. Verifica los logs: `docker compose logs --tail=100`
+2. Revisa el archivo .env: `cat .env`
+3. Reinicia los servicios: `docker compose restart`
+4. Limpia caché del navegador: `Ctrl+Shift+Delete`
+5. Abre Developer Tools (F12) y verifica la consola de errores
+
+---
+
+## ✨ Ahora:
+
+1. **Copia** este archivo
+2. **Ejecuta** los pasos en orden
+3. **Abre** http://localhost:8050
+4. **Login** con admin / admin1234
+5. **¡Disfruta tu Dashboard! 🎉**
