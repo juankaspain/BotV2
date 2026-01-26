@@ -47,8 +47,7 @@ class ExecutionConfig:
 class ConfigManager:
     """
     Singleton Configuration Manager
-    Loads settings.yaml and provides typed access to config
-    """
+    Loads config.yaml from root and provides typed access to config    """
     
     _instance = None
     _config = None
@@ -64,8 +63,7 @@ class ConfigManager:
         
         if config_path is None:
             # Default path
-            config_path = Path(__file__).parent / "settings.yaml"
-        else:
+config_path = Path(__file__).parents[2] / "config.yaml"        else:
             config_path = Path(config_path)
         
         if not config_path.exists():
