@@ -1,583 +1,469 @@
-# 🎛️ Control Panel v4.2 - Complete Documentation
+# Control Panel v4.2 - Guía de Integración
 
-## 📝 Overview
+## 🎛️ Descripción General
 
-El **Control Panel v4.2** es una interfaz web profesional para gestionar completamente BotV2 sin necesidad de editar código o acceder a la consola.
+El **Control Panel v4.2** es un módulo de administración avanzada integrado en el Dashboard de BotV2 que permite:
 
-### ✨ Características Principales
-
-#### 1. **Bot Operations** 🤖
-- **Start/Stop/Restart**: Control completo del bot
-- **Emergency Stop**: Cierre inmediato de posiciones + shutdown
-- **Pause/Resume**: Pausar trading sin detener el bot
-- **Status Monitor**: Estado en tiempo real (running/stopped/paused)
-- **Uptime Tracking**: Tiempo de actividad del bot
-- **Process Info**: PID del proceso para debugging
-
-#### 2. **Quick Actions** ⚡
-- **Close All Positions**: Cierra todas las posiciones abiertas
-- **Reduce Positions 50%**: Reduce el tamaño de todas las posiciones
-- **Pause Trading**: Detiene ejecución de nuevos trades
-- **One-Click**: Acciones críticas con confirmación
-
-#### 3. **Risk Parameters** 🛡️
-- **Max Drawdown**: 5-30% (slider)
-- **Position Size**: 1-10% (slider)
-- **Stop Loss**: 0.5-5% (slider)
-- **Take Profit**: 1-20% (slider)
-- **Live Preview**: Valores actualizados en tiempo real
-- **Validation**: Rangos seguros automáticos
-
-#### 4. **Strategy Management** 📊
-- **List All Strategies**: 22 estrategias disponibles
-- **Enable/Disable**: Toggle individual por estrategia
-- **Bulk Actions**: Activar/Desactivar todas
-- **Categories**: Agrupadas por tipo (momentum, mean reversion, etc.)
-- **Status Indicators**: Visual feedback de estado
+- ✅ Iniciar/Detener el bot de trading
+- ✅ Monitorizar el estado en tiempo real
+- ✅ Configurar estrategias dinámicamente
+- ✅ Gestionar parámetros de riesgo
+- ✅ Visualizar logs del sistema
+- ✅ Control remoto completo del bot
 
 ---
 
-## 🚀 Instalación e Integración
-
-### Prerequisitos
-
-El Control Panel ya está instalado con los commits recientes:
-
-```bash
-Commit 029c6f5: Bot Controller (backend)
-Commit 8c7b6d9: API Routes (REST endpoints)
-Commit b7fc2a5: UI Template (frontend)
-Commit be1b31c: Integration scripts
-```
-
-### Paso 1: Integrar en web_app.py
-
-Añade estas líneas a `src/dashboard/web_app.py`:
-
-```python
-# Import control routes (añadir con otros imports)
-from .control_routes import control_bp
-
-# Register blueprint (añadir después de otros blueprints)
-app.register_blueprint(control_bp)
-
-# Add control panel route (añadir con otras rutas)
-@app.route('/control')
-@login_required
-def control_panel():
-    """Control panel page"""
-    return render_template('control.html')
-```
-
-### Paso 2: Actualizar Dashboard Navigation
-
-Edita el template principal del dashboard para añadir el enlace:
-
-```html
-<!-- En el sidebar del dashboard -->
-<nav>
-    <a href="/dashboard">Dashboard</a>
-    <a href="/control" class="active">Control Panel</a> <!-- NUEVO -->
-    <a href="/portfolio">Portfolio</a>
-    <a href="/strategies">Strategies</a>
-</nav>
-```
-
-### Paso 3: Restart Dashboard
-
-```bash
-cd ~/BotV2
-bash UPDATE.sh
-```
-
-### Paso 4: Acceder
-
-```
-URL: http://localhost:8050/control
-Login: admin / tu_password
-```
-
----
-
-## 📚 API Reference
-
-### Bot Control Endpoints
-
-#### `GET /api/control/status`
-Obtiene el estado actual del bot.
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "status": "running",
-    "pid": 12345,
-    "uptime": 3600,
-    "start_time": "2026-01-22T20:00:00",
-    "is_trading": true
-  }
-}
-```
-
-#### `POST /api/control/start`
-Inicia el bot.
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Bot started successfully",
-  "data": {"pid": 12345}
-}
-```
-
-#### `POST /api/control/stop?graceful=true`
-Detiene el bot gracefully.
-
-**Query Params:**
-- `graceful`: `true|false` (default: `true`)
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Bot stopping gracefully"
-}
-```
-
-#### `POST /api/control/restart`
-Reinicia el bot (stop + start).
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Bot restarted",
-  "data": {"pid": 54321}
-}
-```
-
-#### `POST /api/control/emergency-stop`
-Parada de emergencia (cierra posiciones + shutdown inmediato).
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Emergency stop executed"
-}
-```
-
-#### `POST /api/control/pause`
-Pausa el trading (bot sigue corriendo pero no ejecuta trades).
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Trading paused"
-}
-```
-
-#### `POST /api/control/resume`
-Reanuda el trading.
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Trading resumed"
-}
-```
-
-### Quick Actions Endpoints
-
-#### `POST /api/control/close-positions`
-Cierra todas las posiciones abiertas.
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Command sent to close all positions"
-}
-```
-
-#### `POST /api/control/reduce-positions`
-Reduce todas las posiciones por un porcentaje.
-
-**Request Body:**
-```json
-{"percentage": 50.0}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Command sent to reduce positions by 50%"
-}
-```
-
-### Strategy Management Endpoints
-
-#### `GET /api/control/strategies`
-Lista todas las estrategias disponibles.
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "strategies": [
-      {
-        "name": "momentum",
-        "enabled": true,
-        "category": "momentum",
-        "description": "Momentum Strategy"
-      },
-      ...
-    ],
-    "total": 22,
-    "categories": ["momentum", "mean_reversion", "arbitrage", "macro"]
-  }
-}
-```
-
-#### `PUT /api/control/strategies/<strategy_name>`
-Actualiza una estrategia específica.
-
-**Request Body:**
-```json
-{
-  "enabled": true,
-  "parameters": {
-    "threshold": 0.7
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Strategy momentum update queued"
-}
-```
-
-### Config Management Endpoints
-
-#### `GET /api/control/config`
-Obtiene la configuración actual.
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "risk": {...},
-    "trading": {...}
-  }
-}
-```
-
-#### `PUT /api/control/config/risk`
-Actualiza parámetros de riesgo.
-
-**Request Body:**
-```json
-{
-  "max_drawdown": 0.15,
-  "position_size": 0.05,
-  "stop_loss": 0.02,
-  "take_profit": 0.05
-}
-```
-
-**Validations:**
-- `max_drawdown`: 0.05 - 0.50 (5% - 50%)
-- `position_size`: 0.01 - 0.20 (1% - 20%)
-- `stop_loss`: 0.005 - 0.05 (0.5% - 5%)
-- `take_profit`: 0.01 - 0.20 (1% - 20%)
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Risk parameters update queued"
-}
-```
-
----
-
-## 📱 UI Guide
-
-### Layout
-
-```
-┌──────────────────────────────────────────────────┐
-│  🎛️ Control Panel       [● Running]                  │
-│  Manage bot operations, strategies, and risk            │
-└──────────────────────────────────────────────────┘
-
-┌───────────────────────┐ ┌───────────────────────┐
-│ 🤖 Bot Operations      │ │ ⚡ Quick Actions       │
-├───────────────────────┤ ├───────────────────────┤
-│ Uptime: 3h 24m        │ │ ❌ Close All Positions │
-│ PID: 12345            │ │ 📉 Reduce Positions   │
-│                       │ │ ⏸ Pause Trading       │
-│ [▶ Start] [⏸ Stop]   │ └───────────────────────┘
-│ [🔄 Restart]          │
-│                       │
-│ [🚨 Emergency Stop]   │
-└───────────────────────┘
-
-┌──────────────────────────────────────────────────┐
-│ 🛡️ Risk Parameters                                     │
-├──────────────────────────────────────────────────┤
-│ Max Drawdown:     15% ────○──────────           │
-│ Position Size:     5% ────○──────────           │
-│ Stop Loss:         2% ────○──────────           │
-│ Take Profit:       5% ────○──────────           │
-│                                                  │
-│ [💾 Save Changes]                                   │
-└──────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────┐
-│ 📊 Strategy Management                               │
-├──────────────────────────────────────────────────┤
-│ [✓ Enable All] [✗ Disable All]                     │
-│                                                  │
-│ ● Momentum         [momentum • enabled]    ␣ ON   │
-│ ● Mean Reversion   [mean_rev • enabled]    ␣ ON   │
-│ ○ Breakout         [breakout • disabled]   ␣ OFF  │
-│ ... (22 total strategies)                        │
-└──────────────────────────────────────────────────┘
-```
-
-### Color Scheme (v4.1)
-
-```css
-Background: #0d1117 (dark)
-Cards: #161b22 (darker gray)
-Borders: #30363d (subtle)
-Text: #e6edf3 (white)
-Accent Blue: #2f81f7 (primary actions)
-Accent Green: #3fb950 (success)
-Accent Red: #f85149 (danger)
-Accent Orange: #d29922 (warning)
-```
-
-### Interactive Elements
-
-- **Buttons**: Hover effect + disabled states
-- **Sliders**: Smooth dragging + live value update
-- **Toggles**: Animated switch (iOS-style)
-- **Toasts**: Auto-dismiss after 3s
-- **Status Badge**: Color-coded (green/gray/orange)
-- **Loading**: Spinner animation for async actions
-
----
-
-## 🔧 Troubleshooting
-
-### El bot no arranca desde el Control Panel
-
-**Síntoma**: Click en "Start" pero el bot no se inicia
-
-**Soluciones**:
-1. Check que `main.py` existe en `src/main.py`
-2. Verifica permisos de ejecución: `chmod +x src/main.py`
-3. Revisa logs del dashboard: `tail -f dashboard.log`
-4. Intenta arrancar manualmente: `python3 src/main.py`
-
-### Los sliders no guardan cambios
-
-**Síntoma**: Mover sliders pero los valores no se aplican
-
-**Soluciones**:
-1. Click en "Save Changes" después de ajustar
-2. Verifica que `trading_config.yaml` existe
-3. Check permisos de escritura: `ls -la src/config/`
-4. Revisa la consola del navegador (F12) para errores
-
-### Las estrategias no se listan
-
-**Síntoma**: "No strategies found" en Strategy Management
-
-**Soluciones**:
-1. Verifica que existen archivos en `src/strategies/`
-2. Check que no sean archivos privados (`_*.py`)
-3. Revisa endpoint: `curl http://localhost:8050/api/control/strategies`
-4. Restart dashboard
-
-### Emergency Stop no funciona
-
-**Síntoma**: Click en Emergency Stop pero el bot sigue
-
-**Soluciones**:
-1. Usa `kill -9 <PID>` manualmente
-2. Check `.bot_command.json` se está creando
-3. Verifica que main.py lee el command file
-4. Restart completo del sistema
-
----
-
-## 🔒 Security Considerations
-
-### Authentication
-- ✅ Control Panel requiere login
-- ✅ Session-based auth con cookies
-- ⚠️ Considera añadir 2FA en producción
-
-### Authorization
-- ✅ Solo usuarios admin pueden acceder
-- ⚠️ Implementar RBAC para multi-usuario
-- ⚠️ Rate limiting en endpoints críticos
-
-### Critical Actions
-- ✅ Confirmación para Emergency Stop
-- ✅ Confirmación para Close All Positions
-- ✅ Validación de rangos en risk parameters
-
-### File-based Signaling
-- ⚠️ `.bot_state.json` y `.bot_command.json` son sensibles
-- ⚠️ Asegurar permisos restrictivos: `chmod 600`
-- ⚠️ Considerar usar Redis/DB en producción
-
-### API Security
-- ✅ CSRF protection (Flask-WTF)
-- ⚠️ Añadir API keys para integraciones externas
-- ⚠️ SSL/TLS en producción (HTTPS)
-
----
-
-## 🗺️ Roadmap
-
-### v4.3 - Live Monitoring (Next)
-- ☐ Activity log stream (WebSocket)
-- ☐ Real-time strategy signals display
-- ☐ Position monitor con P&L live
-- ☐ Browser alerts system
-
-### v4.4 - Strategy Editor
-- ☐ Parameter editor UI
-- ☐ Parameter presets (Conservative/Balanced/Aggressive)
-- ☐ Quick backtest (7 días)
-- ☐ Change history + rollback
-
-### v4.5 - Performance Analytics
-- ☐ Strategy comparison table
-- ☐ Trade journal con export CSV
-- ☐ Risk metrics dashboard (VaR, Beta, Correlation)
-- ☐ Advanced charts (Plotly)
-
-### v4.6 - Automation
-- ☐ Scheduled actions (cron-like)
-- ☐ Conditional rules (if/then automation)
-- ☐ Auto-rebalancing
-- ☐ Backup & recovery
-
----
-
-## 📄 File Structure
+## 📦 Arquitectura de Integración
+### Componentes Principales
 
 ```
 BotV2/
 ├── src/
 │   ├── dashboard/
-│   │   ├── bot_controller.py      # Backend controller
-│   │   ├── control_routes.py      # API endpoints
-│   │   ├── web_app.py             # Flask app (integrate here)
-│   │   └── templates/
-│   │       └── control.html       # UI frontend
-│   ├── main.py                    # Bot entry point
-│   └── strategies/               # 22 strategies
-├── .bot_state.json              # Bot status file
-├── .bot_command.json            # Command signaling
-├── UPDATE_CONTROL.sh            # Integration script
-└── docs/
-    └── CONTROL_PANEL_v4.2.md    # This file
+│   │   ├── web_app.py              # Dashboard principal v4.2
+│   │   ├── control_routes.py        # Rutas API del Control Panel
+│   │   ├── bot_controller.py        # Lógica de control del bot
+│   │   ├── templates/
+│   │   │   ├── dashboard.html       # UI principal (ACTUALIZADO v4.2)
+│   │   │   └── control.html         # UI del Control Panel
+│   │   └── static/
+│   │       └── js/
+│   │           └── dashboard.js     # JavaScript del dashboard
+├── docs/
+│   └── CONTROL_PANEL_V4.2.md    # Este documento
+└── README.md
+```
+
+### Flujo de Datos
+
+```
+[Usuario] <---> [Dashboard UI v4.2] <---> [Flask Routes] <---> [Bot Controller] <---> [Trading Bot]
+                       │                       │                    │
+                       │                       │                    └───> [Estrategias]
+                       │                       │
+                       │                       └─────────> [WebSocket Real-time]
+                       │
+                       └─────────────────────> [Session Auth]
 ```
 
 ---
 
-## ❓ FAQ
+## 🚀 Acceso al Control Panel
 
-**Q: ¿Puedo usar el Control Panel en producción?**  
-A: Sí, pero añade HTTPS, 2FA, y migra file-signaling a Redis.
+### Desde el Dashboard
 
-**Q: ¿El bot se puede controlar desde móvil?**  
-A: Sí, la UI es responsive y funciona en navegadores móviles.
+El Control Panel v4.2 está integrado en el menú lateral del dashboard principal:
 
-**Q: ¿Qué pasa si cierro el navegador con el bot corriendo?**  
-A: El bot sigue corriendo independientemente. El dashboard solo es una interfaz.
+1. **Menú Lateral**:
+   - Sección: **"Control"**
+   - Botón: **"Control Panel"** con badge **"v4.2"**
+   - Estilo: Degradado violeta distintivo con efecto de brillo
+   - Icono: Embudo/filtro que representa control
 
-**Q: ¿Puedo tener múltiples usuarios?**  
-A: Sí, pero necesitas implementar RBAC y permisos granulares.
+2. **Menú de Usuario** (esquina superior derecha):
+   - Dropdown con enlace directo al Control Panel
+   - Acceso rápido sin cambiar de vista
 
-**Q: ¿Los cambios de risk parameters se aplican inmediatamente?**  
-A: Depende de la implementación. Actualmente se "queue" y requieren restart.
+3. **URL Directa**:
+   ```
+   http://localhost:8050/control
+   ```
 
-**Q: ¿Puedo revertir cambios de configuración?**  
-A: Planificado para v4.4 (Change History + Rollback).
+### Notificación de Disponibilidad
 
----
+Al cargar el dashboard, se muestra automáticamente un **toast notification** informando:
 
-## ✅ Testing Checklist
-
-### Bot Operations
-- [ ] Start bot (debe aparecer PID)
-- [ ] Stop bot gracefully (debe tardar ~2s)
-- [ ] Restart bot (stop + start automático)
-- [ ] Emergency stop (inmediato)
-- [ ] Pause trading (status cambia a "paused")
-- [ ] Resume trading (status vuelve a "running")
-- [ ] Uptime counter actualiza cada 5s
-
-### Quick Actions
-- [ ] Close all positions (confirmación)
-- [ ] Reduce positions 50% (confirmación)
-- [ ] Pause/Resume toggle funciona
-
-### Risk Parameters
-- [ ] Sliders se mueven suavemente
-- [ ] Valores se actualizan en tiempo real
-- [ ] Save Changes muestra toast de éxito
-- [ ] Validación de rangos (ej: position size > 20% rechazado)
-
-### Strategy Management
-- [ ] Lista carga las 22 estrategias
-- [ ] Toggle ON/OFF individual
-- [ ] Enable All activa todas
-- [ ] Disable All desactiva todas
-- [ ] Categorías correctas (momentum, mean_reversion, etc.)
-
-### UI/UX
-- [ ] Status badge cambia color según estado
-- [ ] Toasts aparecen y desaparecen (3s)
-- [ ] Confirmaciones para acciones críticas
-- [ ] Loading spinners durante acciones async
-- [ ] Responsive en móvil
+> 🎛️ Control Panel v4.2 is now available! Access it from the sidebar.
 
 ---
 
-## 👏 Contributors
+## 🎨 Diseño UI/UX
 
-- **Backend**: `bot_controller.py` (Process management, signaling)
-- **API**: `control_routes.py` (REST endpoints, validation)
-- **Frontend**: `control.html` (Professional UI v4.1)
-- **Integration**: `UPDATE_CONTROL.sh` (Auto-integration script)
+### Características Visuales
+
+#### 1. **Botón en Sidebar**
+```css
+/* Estilo distintivo con degradado violeta */
+background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+color: white;
+font-weight: 600;
+
+/* Efecto de brillo al hacer hover */
+animation: shimmer 0.5s;
+```
+
+#### 2. **Badge de Versión**
+- Color: Verde con animación de pulso
+- Texto: "v4.2"
+- Efecto: Llama la atención sobre la nueva funcionalidad
+
+#### 3. **Animaciones**
+- **fadeIn**: Transición suave al cargar contenido
+- **pulse**: Animación en el badge "NEW"
+- **shimmer**: Efecto de brillo en el botón al hover
+- **slideIn**: Notificaciones toast
 
 ---
 
-## 📝 License
+## 🔧 Integración Técnica
 
-Propietario - Uso personal BotV2
+### 1. Registro del Blueprint
+
+**Archivo**: `src/dashboard/web_app.py` (Línea 22)
+
+```python
+# ==================== CONTROL PANEL IMPORT ====================
+from .control_routes import control_bp
+
+# Dashboard version
+__version__ = '4.2'
+```
+
+**Registro** (Línea 208):
+```python
+# ==================== REGISTER CONTROL PANEL BLUEPRINT ====================
+self.app.register_blueprint(control_bp)
+```
+
+### 2. Rutas del Control Panel
+
+**Archivo**: `src/dashboard/control_routes.py`
+
+```python
+control_bp = Blueprint('control', __name__, url_prefix='/control')
+
+# Rutas principales:
+@control_bp.route('/')           # Página principal del control panel
+@control_bp.route('/api/status') # Estado del bot
+@control_bp.route('/api/start')  # Iniciar bot
+@control_bp.route('/api/stop')   # Detener bot
+@control_bp.route('/api/config') # Configuración
+```
+
+### 3. Autenticación
+**Todas las rutas del Control Panel requieren autenticación:**
+
+```python
+@login_required
+def control_panel():
+    """Control panel page v4.2"""
+    return render_template('control.html', user=session.get('user'))
+```
+
+### 4. WebSocket para Actualizaciones en Tiempo Real
+
+```javascript
+// Conexión WebSocket para actualizaciones del estado del bot
+const socket = io();
+
+socket.on('bot_status_update', (data) => {
+    updateBotStatus(data);
+});
+```
 
 ---
 
-**🎉 ¡Control Panel v4.2 listo para producción!**
+## 📊 Funcionalidades del Control Panel
 
-Para soporte o issues, contacta al equipo de desarrollo.
+### Dashboard de Control
+
+#### KPIs en Tiempo Real
+- **Estado del Bot**: Running / Stopped / Error
+- **Uptime**: Tiempo de ejecución continua
+- **Última Operación**: Timestamp de la última acción
+- **Estrategias Activas**: Número de estrategias en ejecución
+
+#### Controles Principales
+
+1. **Start Bot**
+   - Inicia el bot de trading
+   - Valida configuración antes de arrancar
+   - Muestra confirmación con feedback visual
+
+2. **Stop Bot**
+   - Detiene el bot de forma segura
+   - Cierra posiciones si está configurado
+   - Guarda estado para recuperación
+
+3. **Emergency Stop**
+   - Detención inmediata
+   - Cierra todas las posiciones
+   - Para todas las estrategias
+
+4. **Configuración Dinámica**
+   - Modificar parámetros sin reiniciar
+   - Activar/desactivar estrategias
+   - Ajustar límites de riesgo
+
+#### Monitorización
+- **Logs en Tiempo Real**: Stream de eventos del sistema
+- **Métricas de Performance**: CPU, memoria, latencia
+- **Estado de Conexiones**: APIs, exchanges, WebSocket
+
+---
+
+## 🔒 Seguridad
+
+El Control Panel v4.2 implementa las mismas medidas de seguridad del dashboard principal:
+
+### Capas de Seguridad
+
+1. **Autenticación por Sesión**
+   - Login obligatorio
+   - Timeout de sesión: 30 minutos
+   - Cookies seguras (HttpOnly, SameSite)
+
+2. **Rate Limiting**
+   - 10 peticiones por minuto por IP
+   - Protección contra fuerza bruta
+
+3. **HTTPS en Producción**
+   - Enforced con Flask-Talisman
+   - Security headers (HSTS, CSP, X-Frame-Options)
+
+4. **Audit Logging**
+   - Todas las acciones del Control Panel se registran
+   - Formato JSON estructurado
+   - Integración con SIEM
+
+### Registro de Auditoría
+
+```python
+audit_logger.log_event(
+    'control.bot.start',
+    'INFO',
+    user=session['user'],
+    ip=request.remote_addr,
+    action='start_bot',
+    timestamp=datetime.now().isoformat()
+)
+```
+
+---
+
+## 📝 Changelog v4.2
+
+### Nuevas Características
+
+✅ **Control Panel Integrado**
+   - Nueva sección en el menú lateral
+   - Diseño distintivo con degradado violeta
+   - Badge "v4.2" con animación
+
+✅ **Navegación Mejorada**
+   - Breadcrumbs para contexto de navegación
+   - Acceso desde múltiples puntos (sidebar y user menu)
+   - Notificaciones toast informativas
+
+✅ **UI/UX Refinado**
+   - Animaciones suaves (fadeIn, pulse, shimmer)
+   - Badge de versión en el header del sidebar
+   - Efectos hover mejorados
+
+✅ **Actualizaciones Visuales**
+   - Dot de estado con animación de pulso
+   - Transiciones suaves entre secciones
+   - Feedback visual consistente
+
+### Cambios en el Código
+
+**Dashboard HTML**:
+- Actualizado a v4.2 en el título
+- Añadido badge de versión en sidebar
+- Integrado botón del Control Panel con estilo especial
+- Añadido enlace en user dropdown
+- Implementadas animaciones CSS
+- Toast notification al cargar
+
+**Backend**:
+- Blueprint del Control Panel registrado
+- Rutas protegidas con `@login_required`
+- Audit logging para acciones críticas
+
+---
+
+## 🛠️ Guía de Desarrollo
+
+### Añadir Nueva Funcionalidad al Control Panel
+
+#### 1. Crear Ruta en `control_routes.py`
+
+```python
+@control_bp.route('/api/nueva-funcion', methods=['POST'])
+@limiter.limit("10 per minute")
+@login_required
+def nueva_funcion():
+    """Nueva funcionalidad del control panel"""
+    try:
+        # Lógica de la funcionalidad
+        result = bot_controller.ejecutar_accion()
+        
+        # Audit log
+        audit_logger.log_event(
+            'control.nueva_funcion',
+            'INFO',
+            user=session['user'],
+            result=result
+        )
+        
+        return jsonify({'success': True, 'data': result})
+    except Exception as e:
+        logger.error(f"Error en nueva_funcion: {e}")
+        return jsonify({'error': str(e)}), 500
+```
+
+#### 2. Actualizar UI en `control.html`
+
+```html
+<button onclick="ejecutarNuevaFuncion()" class="control-btn">
+    Nueva Función
+</button>
+
+<script>
+function ejecutarNuevaFuncion() {
+    fetch('/control/api/nueva-funcion', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('success', '✅ Función ejecutada correctamente');
+        }
+    })
+    .catch(error => {
+        showToast('error', '❌ Error: ' + error.message);
+    });
+}
+</script>
+```
+
+#### 3. Actualizar `bot_controller.py`
+
+```python
+class BotController:
+    def ejecutar_accion(self):
+        """Implementación de la nueva acción"""
+        # Lógica de negocio
+        return {'status': 'completed', 'timestamp': datetime.now()}
+```
+
+---
+
+## 📚 Best Practices
+
+### Seguridad
+
+1. **Siempre usar `@login_required`** en todas las rutas del Control Panel
+2. **Validar inputs** antes de ejecutar acciones críticas
+3. **Registrar auditoría** de todas las acciones que modifiquen el estado
+4. **Implementar confirmaciones** para acciones destructivas (stop, emergency stop)
+
+### Performance
+
+1. **Usar WebSocket** para actualizaciones en tiempo real
+2. **Cachear datos** que no cambian frecuentemente
+3. **Lazy loading** de componentes pesados
+4. **Debouncing** en acciones que se pueden repetir rápidamente
+
+### UX
+
+1. **Feedback visual inmediato** para todas las acciones
+2. **Loading states** mientras se procesan peticiones
+3. **Mensajes de error claros** y accionables
+4. **Confirmaciones** para acciones irreversibles
+
+### Mantenibilidad
+
+1. **Separar lógica de presentación** (MVC)
+2. **Documentar funciones críticas** con docstrings
+3. **Usar constantes** para valores configurables
+4. **Testing** de rutas críticas
+
+---
+
+## 🐛 Troubleshooting
+
+### Control Panel No Aparece en el Menú
+
+**Síntoma**: El botón del Control Panel no es visible.
+
+**Solución**:
+1. Verificar que `dashboard.html` está actualizado a v4.2
+2. Limpiar caché del navegador (Ctrl+F5)
+3. Verificar que el servidor está ejecutando la versión correcta:
+   ```bash
+   curl http://localhost:8050/health | jq '.version'
+   # Debe retornar: "4.2"
+   ```
+
+### Error 404 al Acceder a /control
+
+**Síntoma**: Página no encontrada.
+
+**Solución**:
+1. Verificar que el blueprint está registrado en `web_app.py`:
+   ```python
+   self.app.register_blueprint(control_bp)
+   ```
+2. Reiniciar el servidor Flask
+3. Verificar logs del servidor para errores de importación
+
+### WebSocket No Conecta
+
+**Síntoma**: Estado del bot no se actualiza en tiempo real.
+
+**Solución**:
+1. Verificar consola del navegador (F12) para errores de WebSocket
+2. Comprobar que Flask-SocketIO está instalado:
+   ```bash
+   pip install flask-socketio
+   ```
+3. Verificar configuración CORS si está en producción
+
+---
+
+## 🚀 Roadmap
+
+### Próximas Versiones
+
+#### v4.3 (Planificado)
+- 📈 **Analytics Avanzado**: Gráficos de performance en tiempo real
+- 📧 **Notificaciones Email**: Alertas automáticas por email
+- 📱 **PWA**: Aplicación web progresiva para móvil
+- 🤖 **IA Predictiva**: Sugerencias de optimización basadas en ML
+
+#### v4.4 (Futuro)
+- 🔄 **Multi-Bot Management**: Control de múltiples instancias
+- 🌍 **Multi-Exchange**: Soporte para múltiples exchanges simultáneos
+- 📄 **Reportes Automáticos**: Generación de informes PDF/Excel
+- 👥 **Roles y Permisos**: Sistema de usuarios con diferentes niveles de acceso
+
+---
+
+## 📞 Soporte
+
+### Contacto
+
+- **Email**: juanca755@hotmail.com
+- **GitHub**: [juankaspain/BotV2](https://github.com/juankaspain/BotV2)
+- **Issues**: [GitHub Issues](https://github.com/juankaspain/BotV2/issues)
+
+### Recursos
+
+- [Documentación Principal](../README.md)
+- [Guia de Instalación](../README.md#installation)
+- [Configuración](../src/config/config.yaml)
+- [API Reference](./API_REFERENCE.md) _(pendiente)_
+
+---
+
+## 📝 Licencia
+
+Este proyecto es de **uso personal** y no se monetiza como SaaS. Todos los cambios y mejoras se realizan bajo las directrices del propietario.
+
+---
+
+**Última Actualización**: 22 de Enero de 2026  
+**Versión del Documento**: 1.0  
+**Autor**: Juan Carlos Garcia Arriero
