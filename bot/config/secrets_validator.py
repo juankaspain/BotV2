@@ -4,7 +4,7 @@ Validates all required environment variables are present at startup
 Fails fast if critical secrets are missing or invalid
 
 Usage:
-    from config.secrets_validator import validate_secrets
+    from bot.config.secrets_validator import validate_secrets
     
     # At application startup (in main.py)
     validate_secrets(environment='production')  # Exits if validation fails
@@ -20,7 +20,7 @@ from enum import Enum
 
 # Use professional logger
 try:
-    from utils.professional_logger import setup_professional_logger
+    from bot.utils.professional_logger import setup_professional_logger
     logger, reporter = setup_professional_logger(
         name=__name__,
         log_file="logs/validation.log",

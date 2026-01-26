@@ -11,7 +11,7 @@ from typing import Optional, Dict, List
 from datetime import datetime, timedelta
 
 from .base_strategy import BaseStrategy
-from ensemble.ensemble_voting import TradeSignal
+from bot.ensemble.ensemble_voting import TradeSignal
 
 logger = logging.getLogger(__name__)
 

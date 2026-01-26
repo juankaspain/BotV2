@@ -10,7 +10,7 @@ import numpy as np
 from typing import Optional, List, Tuple
 
 from .base_strategy import BaseStrategy
-from ensemble.ensemble_voting import TradeSignal
+from bot.ensemble.ensemble_voting import TradeSignal
 
 logger = logging.getLogger(__name__)
 

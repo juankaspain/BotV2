@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-from ensemble.ensemble_voting import TradeSignal
+from bot.ensemble.ensemble_voting import TradeSignal
 
 logger = logging.getLogger(__name__)
 
