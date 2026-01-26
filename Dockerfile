@@ -103,6 +103,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY --chown=botv2:botv2 src/ ./src/
+COPY --chown=botv2:botv2 bot/ ./bot/
+COPY --chown=botv2:botv2 dashboard/ ./dashboard/
 COPY --chown=botv2:botv2 tests/ ./tests/
 COPY --chown=botv2:botv2 .env.example ./
 COPY --chown=botv2:botv2 README.md ./
