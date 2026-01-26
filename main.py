@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # ===== CRITICAL: VALIDATE SECRETS BEFORE ANY OTHER IMPORTS =====
 # This ensures the application fails fast if required configuration is missing
-from config.secrets_validator import validate_secrets, HAS_PROFESSIONAL_LOGGER
+from bot.config.secrets_validator import validate_secrets, HAS_PROFESSIONAL_LOGGER
 
 # Get environment from env var or default to development
 CURRENT_ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
@@ -41,21 +41,21 @@ def _validate_secrets_once():
 _validate_secrets_once()
 
 # ===== NOW SAFE TO IMPORT OTHER COMPONENTS =====
-from config.config_manager import ConfigManager
-from core.risk_manager import RiskManager, CircuitBreaker
-from core.state_manager import StateManager
-from core.liquidation_detector import LiquidationDetector
-from core.execution_engine import ExecutionEngine
-from data.data_validator import DataValidator
-from data.normalization_pipeline import NormalizationPipeline
-from data.exchange_connector import ExchangeConnector
-from ensemble.adaptive_allocation import AdaptiveAllocationEngine
-from ensemble.correlation_manager import CorrelationManager
-from ensemble.ensemble_voting import EnsembleVoting
-from strategies.base_strategy import load_all_strategies
-from backtesting.realistic_simulator import RealisticSimulator
-from utils.secrets_manager import get_secrets_manager
-from utils.sensitive_formatter import setup_sanitized_logger
+from bot.config.config_manager import ConfigManager
+from bot.core.risk_manager import RiskManager, CircuitBreaker
+from bot.core.state_manager import StateManager
+from bot.core.liquidation_detector import LiquidationDetector
+from bot.core.execution_engine import ExecutionEngine
+from bot.data.data_validator import DataValidator
+from bot.data.normalization_pipeline import NormalizationPipeline
+from bot.data.exchange_connector import ExchangeConnector
+from bot.ensemble.adaptive_allocation import AdaptiveAllocationEngine
+from bot.ensemble.correlation_manager import CorrelationManager
+from bot.ensemble.ensemble_voting import EnsembleVoting
+from bot.strategies.base_strategy import load_all_strategies
+from bot.backtesting.realistic_simulator import RealisticSimulator
+from bot.utils.secrets_manager import get_secrets_manager
+from bot.utils.sensitive_formatter import setup_sanitized_logger
 
 # Setup sanitized logging
 logger = setup_sanitized_logger(__name__)
