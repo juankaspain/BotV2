@@ -31,6 +31,7 @@
             --accent-hover: #4493f8;
             --accent-success: #3fb950;
             --accent-danger: #f85149;
+            --accent-warning: #d29922;
             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
             --shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
             --radius-sm: 6px;
@@ -94,6 +95,9 @@
             border-color: var(--accent-primary);
             background: var(--bg-secondary);
         }
+        input.error {
+            border-color: var(--accent-danger);
+        }
         input::placeholder { color: var(--text-muted); }
         .error-message {
             display: none;
@@ -108,6 +112,19 @@
             animation: slideDown 200ms ease;
         }
         .error-message.show { display: block; }
+        .warning-message {
+            display: none;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--accent-warning);
+            border-left: 3px solid var(--accent-warning);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--accent-warning);
+            animation: slideDown 200ms ease;
+        }
+        .warning-message.show { display: block; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .btn-login {
             width: 100%; padding: 10px 16px;
@@ -161,9 +178,8 @@
             <p class="logo-subtitle">Sign in to continue</p>
         </div>
 
-        <div class="error-message" id="errorMessage" role="alert">
-            Invalid credentials. Please try again.
-        </div>
+        <div class="error-message" id="errorMessage" role="alert"></div>
+        <div class="warning-message" id="warningMessage" role="alert"></div>
 
         <form class="login-form" id="loginForm" method="POST" action="/login">
             <!-- 🔒 CSRF Protection Token (Hidden Field) -->
@@ -184,6 +200,7 @@
                         placeholder="Enter username"
                         required
                         autocomplete="username"
+                        minlength="3"
                         maxlength="20"
                     >
                 </div>
@@ -202,6 +219,7 @@
                         placeholder="Enter password"
                         required
                         autocomplete="current-password"
+                        minlength="8"
                         maxlength="128"
                     >
                 </div>
@@ -222,13 +240,13 @@
             </div>
             <div class="security-text">
                 🔒 CSRF Protection Enabled<br>
-                ⚡ Rate Limiting Active (5 attempts/min)<br>
+                ⚡ Rate Limiting Active<br>
                 🚫 Brute Force Protection
             </div>
         </div>
 
         <div class="footer">
-            BotV2 v7.5 Enterprise Edition - Nonce-Based CSP<br>
+            BotV2 v7.5.2 Enterprise Edition<br>
             <a href="https://github.com/juankaspain/BotV2" target="_blank">Documentation</a>
         </div>
     </div>
@@ -238,11 +256,40 @@
     (function() {
         'use strict';
         
-        // 📝 Simple HTML escaping (no DOMPurify needed for login)
+        // 📝 Simple HTML escaping
         function escapeHtml(text) {
             var div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        // 🎨 Show error message
+        function showError(message) {
+            var errorMsg = document.getElementById('errorMessage');
+            var warningMsg = document.getElementById('warningMessage');
+            
+            warningMsg.classList.remove('show');
+            errorMsg.textContent = escapeHtml(message);
+            errorMsg.classList.add('show');
+            
+            // Auto-hide after 8 seconds
+            setTimeout(function() {
+                errorMsg.classList.remove('show');
+            }, 8000);
+        }
+        
+        // ⚠️ Show warning message
+        function showWarning(message) {
+            var errorMsg = document.getElementById('errorMessage');
+            var warningMsg = document.getElementById('warningMessage');
+            
+            errorMsg.classList.remove('show');
+            warningMsg.textContent = escapeHtml(message);
+            warningMsg.classList.add('show');
+            
+            setTimeout(function() {
+                warningMsg.classList.remove('show');
+            }, 8000);
         }
         
         // 🎯 Initialize focus on page load
@@ -271,21 +318,55 @@
         var btn = document.getElementById('loginBtn');
         var btnText = document.getElementById('btnText');
         var spinner = document.getElementById('spinner');
-        var errorMessage = document.getElementById('errorMessage');
+        var usernameInput = document.getElementById('username');
+        var passwordInput = document.getElementById('password');
         
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            var username = document.getElementById('username').value;
-            var password = document.getElementById('password').value;
+            var username = usernameInput.value.trim();
+            var password = passwordInput.value;
             
-            // Clear previous errors
-            errorMessage.classList.remove('show');
+            // 🔍 Client-side validation
+            if (username.length < 3) {
+                showWarning('Username must be at least 3 characters');
+                usernameInput.classList.add('error');
+                usernameInput.focus();
+                return;
+            }
+            
+            if (password.length < 8) {
+                showWarning('Password must be at least 8 characters');
+                passwordInput.classList.add('error');
+                passwordInput.focus();
+                return;
+            }
+            
+            // Clear validation errors
+            usernameInput.classList.remove('error');
+            passwordInput.classList.remove('error');
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('warningMessage').classList.remove('show');
             
             // Show loading state
             btn.disabled = true;
             btnText.textContent = 'Signing in...';
             spinner.classList.add('show');
+            
+            // Get CSRF token
+            var csrfToken = '';
+            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) {
+                csrfToken = csrfMeta.getAttribute('content');
+            }
+            
+            // Build form data
+            var formData = 'username=' + encodeURIComponent(username) + 
+                           '&password=' + encodeURIComponent(password);
+            
+            if (csrfToken) {
+                formData += '&csrf_token=' + encodeURIComponent(csrfToken);
+            }
             
             // Submit via fetch
             fetch('/login', {
@@ -293,31 +374,37 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password)
+                body: formData,
+                credentials: 'same-origin'
             })
             .then(function(response) {
                 if (response.ok) {
                     return response.json();
-                } else if (response.status === 401) {
-                    throw new Error('Invalid credentials');
-                } else if (response.status === 429) {
-                    throw new Error('Too many attempts. Please wait.');
                 } else if (response.status === 400) {
-                    throw new Error('Invalid input. Check username and password.');
+                    throw new Error('Invalid input. Username: 3-20 chars (alphanumeric). Password: 8+ chars.');
+                } else if (response.status === 401) {
+                    throw new Error('Invalid credentials. Please check your username and password.');
+                } else if (response.status === 429) {
+                    throw new Error('Too many login attempts. Please wait 5 minutes and try again.');
                 } else {
-                    throw new Error('Login failed');
+                    throw new Error('Login failed. Please try again later.');
                 }
             })
             .then(function(data) {
-                // Save username for next time
+                // Save username
                 localStorage.setItem('botv2_username', username);
-                // Redirect
-                window.location.href = data.redirect || '/';
+                
+                // Success message
+                btnText.textContent = 'Success! Redirecting...';
+                
+                // Redirect after short delay
+                setTimeout(function() {
+                    window.location.href = data.redirect || '/';
+                }, 500);
             })
             .catch(function(error) {
                 // Show error
-                errorMessage.textContent = escapeHtml(error.message);
-                errorMessage.classList.add('show');
+                showError(error.message);
                 
                 // Reset form state
                 btn.disabled = false;
@@ -325,18 +412,13 @@
                 spinner.classList.remove('show');
                 
                 // Clear password
-                document.getElementById('password').value = '';
-                document.getElementById('password').focus();
-                
-                // Auto-hide error after 5s
-                setTimeout(function() {
-                    errorMessage.classList.remove('show');
-                }, 5000);
+                passwordInput.value = '';
+                passwordInput.focus();
             });
         });
         
         // 💾 Save username on change
-        document.getElementById('username').addEventListener('change', function() {
+        usernameInput.addEventListener('change', function() {
             var username = this.value.trim();
             if (username) {
                 localStorage.setItem('botv2_username', username);
@@ -345,11 +427,24 @@
             }
         });
         
+        // 🧹 Clear error styling on input
+        usernameInput.addEventListener('input', function() {
+            this.classList.remove('error');
+        });
+        
+        passwordInput.addEventListener('input', function() {
+            this.classList.remove('error');
+        });
+        
         // ⚠️ Show error from URL param
         var urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('error')) {
-            errorMessage.textContent = 'Authentication failed. Please try again.';
-            errorMessage.classList.add('show');
+            var errorType = urlParams.get('error');
+            if (errorType === 'session_expired') {
+                showWarning('Your session has expired. Please login again.');
+            } else {
+                showError('Authentication failed. Please try again.');
+            }
         }
     })();
     </script>
