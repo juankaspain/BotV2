@@ -10,22 +10,38 @@ Provides security-related functionality including:
 - Secrets management
 - Audit logging
 - Security middleware
+- Pydantic validation models
 """
 
 # CSRF Protection
-from shared.security.csrf_protection import CSRFProtection, init_csrf
+from shared.security.csrf_protection import (
+    CSRFProtection,
+    init_csrf,
+    init_csrf_protection,
+    get_csrf_token
+)
 
 # XSS Protection
 from shared.security.xss_protection import (
     sanitize_html,
     sanitize_input,
+    sanitize_dict,
+    sanitize_filename,
     strip_tags,
     xss_protect,
+    xss_protection_middleware,
     validate_content_type
 )
 
 # Input Validation
-from shared.security.input_validator import InputValidator, validate_input
+from shared.security.input_validator import InputValidator, validate_input as validator_validate_input
+
+# Pydantic Validation Models
+from shared.security.validation_models import (
+    LoginRequest,
+    AnnotationCreate,
+    validate_input
+)
 
 # Rate Limiting
 from shared.security.rate_limiter import RateLimiter, init_rate_limiter, rate_limit
@@ -40,7 +56,12 @@ from shared.security.ssl_config import SSLConfig, init_ssl, get_ssl_context
 from shared.security.secrets_manager import SecretsManager, get_secrets_manager, get_secret
 
 # Audit Logging
-from shared.security.audit_logger import SecurityAuditLogger, get_audit_logger, audit_log
+from shared.security.audit_logger import (
+    SecurityAuditLogger,
+    init_audit_logger,
+    get_audit_logger,
+    audit_log
+)
 
 # Security Middleware
 from shared.security.security_middleware import SecurityMiddleware, init_security_middleware
@@ -49,14 +70,23 @@ __all__ = [
     # CSRF
     'CSRFProtection',
     'init_csrf',
+    'init_csrf_protection',
+    'get_csrf_token',
     # XSS
     'sanitize_html',
     'sanitize_input',
+    'sanitize_dict',
+    'sanitize_filename',
     'strip_tags',
     'xss_protect',
+    'xss_protection_middleware',
     'validate_content_type',
     # Input Validation
     'InputValidator',
+    'validator_validate_input',
+    # Pydantic Models
+    'LoginRequest',
+    'AnnotationCreate',
     'validate_input',
     # Rate Limiting
     'RateLimiter',
@@ -76,6 +106,7 @@ __all__ = [
     'get_secret',
     # Audit
     'SecurityAuditLogger',
+    'init_audit_logger',
     'get_audit_logger',
     'audit_log',
     # Middleware
