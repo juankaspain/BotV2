@@ -6,7 +6,6 @@ Implements intelligent order type selection (market vs limit), position sizing,
 and batch execution strategies.
 
 Author: Juan Carlos Garcia Arriero
-Company: Santander Digital
 Date: January 2026
 """
 
