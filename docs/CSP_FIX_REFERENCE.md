@@ -524,9 +524,7 @@ print(hashlib.sha256(password.encode()).hexdigest())
 
 ## ✏️ Author
 
-**Juan Carlos Garcia Arriero**  
-Technical Lead & Software Architect  
-Santander Digital  
+**Juan Carlos Garcia**  
 📧 juanca755@hotmail.com  
 👨‍💻 GitHub: [@juankaspain](https://github.com/juankaspain)
 
