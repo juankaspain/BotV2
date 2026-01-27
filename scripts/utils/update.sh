@@ -1,38 +1,37 @@
 #!/bin/bash
 #
-# 🚀 BotV2 UPDATE SCRIPT v3.5 - Mode Selection Edition
+# 🚀 BotV2 UPDATE SCRIPT v3.6 - Professional Error Handling
 # ================================================================
 # Actualiza servicios con selección de modo Demo/Producción
+# - Manejo profesional de errores con información detallada
 # - Menú interactivo para elegir modo
 # - Utiliza docker-compose específico según modo
 # - Detección inteligente y segura
 # - Preserva datos y valida salud
 # - Muestra errores completos en tiempo real
-# - Timeout para evitar cuelgues infinitos
 # Author: Juan Carlos Garcia
 # Date: 27-01-2026
 #
 
-set -eo pipefail  # Exit on error, pipe failures
+# ============================================================================
+# CONFIGURACIÓN INICIAL
+# ============================================================================
+
+# No usar set -e para manejar errores manualmente con más control
+set -o pipefail  # Pipe failures
 
 # ============================================================================
 # DETECTAR Y NAVEGAR A LA RAÍZ DEL PROYECTO
 # ============================================================================
 
-# Obtener el directorio donde está el script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Navegar a la raíz del proyecto (2 niveles arriba desde scripts/utils/)
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
-# Cambiar al directorio raíz del proyecto
 cd "$PROJECT_ROOT"
 
 # ============================================================================
-# COLORES Y ESTILOS (Profesional)
+# COLORES Y ESTILOS
 # ============================================================================
 
-# Colores principales (profesional, no magenta)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -40,14 +39,21 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 GRAY='\033[0;90m'
-NC='\033[0m' # No Color
-
-# Estilos
+NC='\033[0m'
 BOLD='\033[1m'
 DIM='\033[2m'
 
 # ============================================================================
-# FUNCIONES
+# VARIABLES GLOBALES PARA MANEJO DE ERRORES
+# ============================================================================
+
+CURRENT_STEP=""
+CURRENT_COMMAND=""
+ERROR_LOG_FILE="/tmp/botv2_update_error_$$.log"
+BUILD_LOG_FILE="/tmp/botv2_build_$$.log"
+
+# ============================================================================
+# FUNCIONES DE LOGGING
 # ============================================================================
 
 log_header() {
@@ -57,6 +63,7 @@ log_header() {
 }
 
 log_step() {
+    CURRENT_STEP="$1"
     echo -e "${CYAN}→${NC} $1"
 }
 
@@ -80,8 +87,160 @@ log_dim() {
     echo -e "${GRAY}  $1${NC}"
 }
 
-# Función para verificar si un servicio está definido
-# Compatible con docker-compose v1 y v2
+# ============================================================================
+# FUNCIÓN DE MANEJO DE ERRORES PROFESIONAL
+# ============================================================================
+
+show_error_banner() {
+    local exit_code=$1
+    local line_number=$2
+    local command="$3"
+    local step="$4"
+    
+    echo ""
+    echo -e "${RED}${BOLD}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}${BOLD}║                           ❌ ERROR DURANTE LA EJECUCIÓN                       ║${NC}"
+    echo -e "${RED}${BOLD}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${WHITE}${BOLD}📋 Detalles del error:${NC}"
+    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+    echo -e "  ${CYAN}Paso actual:${NC}      $step"
+    echo -e "  ${CYAN}Línea:${NC}            $line_number"
+    echo -e "  ${CYAN}Código de salida:${NC} $exit_code"
+    echo -e "  ${CYAN}Comando:${NC}          ${DIM}$command${NC}"
+    echo -e "  ${CYAN}Directorio:${NC}       $PROJECT_ROOT"
+    echo ""
+    
+    # Mostrar logs si existen
+    if [ -f "$BUILD_LOG_FILE" ] && [ -s "$BUILD_LOG_FILE" ]; then
+        echo -e "${WHITE}${BOLD}📜 Últimas 30 líneas del log de build:${NC}"
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        tail -n 30 "$BUILD_LOG_FILE" | while IFS= read -r line; do
+            echo -e "  ${GRAY}$line${NC}"
+        done
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        echo ""
+    fi
+    
+    if [ -f "$ERROR_LOG_FILE" ] && [ -s "$ERROR_LOG_FILE" ]; then
+        echo -e "${WHITE}${BOLD}📜 Log de errores:${NC}"
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        tail -n 20 "$ERROR_LOG_FILE" | while IFS= read -r line; do
+            echo -e "  ${RED}$line${NC}"
+        done
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        echo ""
+    fi
+    
+    echo -e "${WHITE}${BOLD}🔧 Comandos de diagnóstico:${NC}"
+    echo ""
+    echo -e "  ${GRAY}•${NC} Ver logs de Docker:       ${DIM}docker-compose -f $COMPOSE_FILE logs${NC}"
+    echo -e "  ${GRAY}•${NC} Estado de contenedores:   ${DIM}docker-compose -f $COMPOSE_FILE ps${NC}"
+    echo -e "  ${GRAY}•${NC} Espacio en disco:         ${DIM}docker system df${NC}"
+    echo -e "  ${GRAY}•${NC} Limpiar caché Docker:     ${DIM}docker builder prune -f${NC}"
+    echo -e "  ${GRAY}•${NC} Reiniciar Docker:         ${DIM}Reinicia Docker Desktop${NC}"
+    echo ""
+    echo -e "${WHITE}${BOLD}💡 Posibles soluciones:${NC}"
+    echo ""
+    echo -e "  ${YELLOW}1.${NC} Verifica que Docker Desktop esté corriendo correctamente"
+    echo -e "  ${YELLOW}2.${NC} Asegúrate de tener espacio en disco suficiente"
+    echo -e "  ${YELLOW}3.${NC} Intenta limpiar la caché: ${DIM}docker builder prune -f${NC}"
+    echo -e "  ${YELLOW}4.${NC} Revisa la conexión a Internet (para descargar imágenes)"
+    echo -e "  ${YELLOW}5.${NC} Ejecuta manualmente: ${DIM}docker-compose -f $COMPOSE_FILE build --no-cache${NC}"
+    echo ""
+    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+    echo -e "${RED}${BOLD}Script terminado con errores${NC}"
+    echo ""
+}
+
+# ============================================================================
+# FUNCIÓN DE LIMPIEZA
+# ============================================================================
+
+cleanup() {
+    # Limpiar archivos temporales
+    rm -f "$ERROR_LOG_FILE" 2>/dev/null
+    rm -f "$BUILD_LOG_FILE" 2>/dev/null
+}
+
+# ============================================================================
+# TRAP PARA ERRORES Y SEÑALES
+# ============================================================================
+
+error_handler() {
+    local exit_code=$?
+    local line_number=$1
+    
+    # No mostrar error si fue cancelación del usuario (Ctrl+C)
+    if [ $exit_code -eq 130 ]; then
+        echo ""
+        echo -e "${YELLOW}${BOLD}⚠ Actualización cancelada por el usuario (Ctrl+C)${NC}"
+        cleanup
+        exit 130
+    fi
+    
+    show_error_banner "$exit_code" "$line_number" "$CURRENT_COMMAND" "$CURRENT_STEP"
+    cleanup
+    exit $exit_code
+}
+
+interrupt_handler() {
+    echo ""
+    echo -e "\n${YELLOW}${BOLD}⚠ Operación interrumpida por el usuario${NC}"
+    echo -e "${GRAY}Limpiando recursos...${NC}"
+    cleanup
+    exit 130
+}
+
+# Configurar traps
+trap 'error_handler $LINENO' ERR
+trap 'interrupt_handler' SIGINT SIGTERM
+
+# ============================================================================
+# FUNCIÓN PARA EJECUTAR COMANDOS CON MANEJO DE ERRORES
+# ============================================================================
+
+run_command() {
+    local description="$1"
+    shift
+    local cmd="$@"
+    
+    CURRENT_COMMAND="$cmd"
+    
+    if ! eval "$cmd"; then
+        return 1
+    fi
+    return 0
+}
+
+# Función para ejecutar docker build con output en tiempo real
+run_docker_build() {
+    local service=$1
+    local compose_file=$2
+    
+    CURRENT_COMMAND="docker-compose -f $compose_file build $service"
+    
+    log_step "Compilando imagen $service..."
+    log_dim "Mostrando progreso en tiempo real..."
+    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+    
+    # Ejecutar build con output en tiempo real Y guardando en log
+    if docker-compose -f "$compose_file" build "$service" 2>&1 | tee "$BUILD_LOG_FILE"; then
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        log_success "Imagen $service compilada exitosamente"
+        return 0
+    else
+        local exit_code=${PIPESTATUS[0]}
+        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+        log_error "Error compilando $service (exit code: $exit_code)"
+        return $exit_code
+    fi
+}
+
+# ============================================================================
+# FUNCIONES DE SERVICIO
+# ============================================================================
+
 service_is_defined() {
     local service=$1
     local compose_file=$2
@@ -90,30 +249,21 @@ service_is_defined() {
         return 1
     fi
     
-    # Método 1: Usar docker-compose config --services (más confiable)
     if docker-compose -f "$compose_file" config --services 2>/dev/null | grep -qx "$service"; then
         return 0
     fi
     
-    # Método 2: Buscar directamente en el archivo YAML (fallback)
     if grep -qE "^\s+${service}:" "$compose_file" 2>/dev/null; then
-        return 0
-    fi
-    
-    # Método 3: Buscar con formato services: -> service:
-    if grep -qE "^  ${service}:|^    ${service}:" "$compose_file" 2>/dev/null; then
         return 0
     fi
     
     return 1
 }
 
-# Función para verificar si un servicio está corriendo
 service_is_running() {
     local service=$1
     local compose_file=$2
     
-    # Verificar si el contenedor existe y está running
     local container_id=$(docker-compose -f "$compose_file" ps -q "$service" 2>/dev/null)
     
     if [ -z "$container_id" ]; then
@@ -122,13 +272,9 @@ service_is_running() {
     
     local status=$(docker inspect -f '{{.State.Status}}' "$container_id" 2>/dev/null || echo "not_found")
     
-    if [ "$status" = "running" ]; then
-        return 0
-    fi
-    return 1
+    [ "$status" = "running" ]
 }
 
-# Función para esperar a que un servicio esté healthy
 wait_for_healthy() {
     local service=$1
     local compose_file=$2
@@ -141,13 +287,11 @@ wait_for_healthy() {
         local container_id=$(docker-compose -f "$compose_file" ps -q "$service" 2>/dev/null)
         
         if [ -n "$container_id" ]; then
-            # Obtener health status del contenedor
             local health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id" 2>/dev/null || echo "none")
             
             if [ "$health" = "healthy" ]; then
                 return 0
             elif [ "$health" = "none" ]; then
-                # No healthcheck definido, solo verificar que está running
                 local status=$(docker inspect -f '{{.State.Status}}' "$container_id" 2>/dev/null || echo "not_found")
                 if [ "$status" = "running" ]; then
                     return 0
@@ -155,54 +299,31 @@ wait_for_healthy() {
             fi
         fi
         
-        echo -ne "${GRAY}  Esperando... ${waited}s${NC}\r"
+        printf "${GRAY}  Esperando... %ds${NC}\r" "$waited"
         sleep 2
         waited=$((waited + 2))
     done
     
-    echo "" # Nueva línea después del \r
+    echo ""
     return 1
 }
 
-# Función para ejecutar comando con timeout
-run_with_timeout() {
-    local timeout=$1
-    shift
-    local cmd="$@"
-    
-    # Ejecutar comando en background
-    $cmd &
-    local pid=$!
-    
-    # Esperar con timeout
-    local count=0
-    while kill -0 $pid 2>/dev/null; do
-        if [ $count -ge $timeout ]; then
-            kill -9 $pid 2>/dev/null
-            return 124  # Timeout exit code
-        fi
-        sleep 1
-        count=$((count + 1))
-    done
-    
-    # Obtener exit code del comando
-    wait $pid
-    return $?
-}
+# ============================================================================
+# INICIO DEL SCRIPT
+# ============================================================================
+
+echo ""
+echo -e "${BLUE}${BOLD}================================================================================${NC}"
+echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.6 - Professional Error Handling${NC}"
+echo -e "${BLUE}${BOLD}================================================================================${NC}"
+echo ""
+
+log_info "Directorio del proyecto: ${BOLD}$PROJECT_ROOT${NC}"
+echo ""
 
 # ============================================================================
 # MENÚ DE SELECCIÓN DE MODO
 # ============================================================================
-
-echo ""
-echo -e "${BLUE}${BOLD}================================================================================${NC}"
-echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.5 - Mode Selection${NC}"
-echo -e "${BLUE}${BOLD}================================================================================${NC}"
-echo ""
-
-# Mostrar directorio de trabajo
-log_info "Directorio del proyecto: ${BOLD}$PROJECT_ROOT${NC}"
-echo ""
 
 echo -e "${BLUE}█████████████████████████████████████████████████████████████████████████████${NC}"
 echo -e "${BLUE}██${NC}                                                                             ${BLUE}██${NC}"
@@ -218,18 +339,19 @@ log_dim "• Trading Bot + Dashboard con datos demo"
 log_dim "• NO requiere PostgreSQL ni Redis"
 log_dim "• Paper trading mode activado"
 log_dim "• Perfecto para pruebas y desarrollo"
-log_dim "• Ligero y rápido de iniciar"
 log_dim "• Archivo: docker-compose.demo.yml"
 echo ""
 echo -e "  ${CYAN}${BOLD}2)${NC} 🏭 ${YELLOW}${BOLD}MODO PRODUCCIÓN${NC}"
 log_dim "• Sistema completo con base de datos"
 log_dim "• PostgreSQL + Redis + Trading Bot + Dashboard"
 log_dim "• Persistencia de datos real"
-log_dim "• Rate limiting con Redis"
 log_dim "• Archivo: docker-compose.production.yml"
 echo ""
 echo -e "  ${CYAN}${BOLD}3)${NC} 🚫 ${RED}Cancelar${NC}"
 echo ""
+
+# Variable para el archivo compose (necesaria para el error handler)
+COMPOSE_FILE=""
 
 while true; do
     read -p "$(echo -e ${CYAN}${BOLD}"Elige una opción (1-3): "${NC})" choice
@@ -251,7 +373,8 @@ while true; do
             ;;
         3)
             echo ""
-            log_error "Actualización cancelada por el usuario"
+            log_info "Actualización cancelada por el usuario"
+            cleanup
             exit 0
             ;;
         *)
@@ -265,10 +388,10 @@ log_success "Modo seleccionado: $(echo -e $MODE_NAME)"
 log_info "Usando archivo: ${BOLD}$COMPOSE_FILE${NC}"
 
 # Verificar que el archivo existe
+CURRENT_STEP="Verificación de archivo docker-compose"
 if [ ! -f "$COMPOSE_FILE" ]; then
     echo ""
     log_error "Archivo $COMPOSE_FILE no encontrado en $PROJECT_ROOT"
-    log_info "Asegúrate de que el archivo existe en el directorio raíz del proyecto"
     log_info "Archivos docker-compose disponibles:"
     ls -1 docker-compose*.yml 2>/dev/null | sed 's/^/    - /' || echo "    (ninguno)"
     exit 1
@@ -288,7 +411,7 @@ echo -e "  ${GREEN}✓${NC} Actualiza servicios del modo ${BOLD}$MODE_DISPLAY${N
 echo -e "  ${GREEN}✓${NC} Preserva TODOS los datos en volúmenes"
 echo -e "  ${GREEN}✓${NC} Verifica healthchecks de servicios"
 echo -e "  ${GREEN}✓${NC} Valida conectividad y puertos"
-echo -e "  ${GREEN}✓${NC} Sin downtime significativo"
+echo -e "  ${GREEN}✓${NC} Muestra errores detallados si algo falla"
 if [ "$MODE" = "production" ]; then
     echo -e "  ${GREEN}✓${NC} Crea backup de PostgreSQL antes de actualizar"
 fi
@@ -298,13 +421,16 @@ read -p "$(echo -e ${YELLOW}${BOLD}"¿Deseas proceder con la actualización? (s/
 echo ""
 
 if [[ ! $confirm =~ ^[SsYy]$ ]]; then
-    log_error "Actualización cancelada"
+    log_info "Actualización cancelada"
+    cleanup
     exit 0
 fi
 
 # ============================================================================
 # PASO 1: Verificar requisitos
 # ============================================================================
+
+CURRENT_STEP="Verificación de requisitos"
 
 log_step "Verificando Docker..."
 if ! command -v docker &> /dev/null; then
@@ -314,7 +440,7 @@ if ! command -v docker &> /dev/null; then
 fi
 log_success "Docker está instalado"
 
-if ! docker info &> /dev/null; then
+if ! docker info &> /dev/null 2>&1; then
     log_error "Docker daemon no está corriendo"
     log_info "Inicia Docker Desktop o el servicio de Docker"
     exit 1
@@ -330,14 +456,14 @@ fi
 log_success "docker-compose está disponible"
 
 # ============================================================================
-# PASO 2: Detectar servicios activos
+# PASO 2: Detectar servicios
 # ============================================================================
 
 log_header "🔍 Detectando configuración"
 
+CURRENT_STEP="Detección de servicios"
 log_step "Analizando servicios definidos en $COMPOSE_FILE..."
 
-# Mostrar servicios detectados por docker-compose
 log_dim "Servicios encontrados por docker-compose:"
 DETECTED_SERVICES=$(docker-compose -f "$COMPOSE_FILE" config --services 2>/dev/null || echo "(error al leer)")
 for svc in $DETECTED_SERVICES; do
@@ -384,11 +510,13 @@ echo ""
 log_success "Configuración validada para modo $(echo -e $MODE_NAME)"
 
 # ============================================================================
-# PASO 3: Backup (solo producción con PostgreSQL)
+# PASO 3: Backup (solo producción)
 # ============================================================================
 
+BACKUP_FILE=""
 if [ "$MODE" = "production" ] && [ "$HAS_POSTGRES" = true ]; then
     log_header "💾 Backup Preventivo"
+    CURRENT_STEP="Backup de PostgreSQL"
 
     BACKUP_DIR="./backups"
     mkdir -p "$BACKUP_DIR"
@@ -397,7 +525,6 @@ if [ "$MODE" = "production" ] && [ "$HAS_POSTGRES" = true ]; then
 
     log_step "Creando backup de PostgreSQL..."
     
-    # Verificar si PostgreSQL está corriendo
     if service_is_running "botv2-postgres" "$COMPOSE_FILE"; then
         if docker-compose -f "$COMPOSE_FILE" exec -T botv2-postgres pg_dump -U botv2 botv2_db > "$BACKUP_FILE" 2>/dev/null; then
             log_success "Backup creado: $BACKUP_FILE"
@@ -420,11 +547,12 @@ fi
 
 log_header "📥 Actualizando código fuente"
 
+CURRENT_STEP="Actualización de código Git"
 log_step "Obteniendo cambios de Git..."
-if git pull origin main &> /dev/null; then
+if git pull origin main 2>&1 | tee -a "$BUILD_LOG_FILE"; then
     log_success "Código actualizado desde Git"
 elif git status &> /dev/null; then
-    log_warning "No hay cambios nuevos en Git"
+    log_warning "No hay cambios nuevos en Git o hubo un problema"
 else
     log_warning "Git no disponible (usando código local)"
 fi
@@ -435,48 +563,18 @@ fi
 
 log_header "🔨 Reconstruyendo imágenes Docker"
 
+CURRENT_STEP="Compilación de imágenes Docker"
 BUILD_ERRORS=false
 
 if [ "$HAS_APP" = true ]; then
-    log_step "Compilando imagen botv2-app..."
-    
-    # Capturar output completo del build
-    BUILD_OUTPUT=$(docker-compose -f "$COMPOSE_FILE" build botv2-app 2>&1)
-    BUILD_EXIT_CODE=$?
-    
-    if [ $BUILD_EXIT_CODE -eq 0 ]; then
-        log_success "Imagen botv2-app compilada exitosamente"
-    else
-        echo ""
-        log_error "Error compilando botv2-app (exit code: $BUILD_EXIT_CODE)"
-        echo ""
-        log_info "ÚLTIMAS 50 LÍNEAS DEL ERROR:"
-        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
-        echo "$BUILD_OUTPUT" | tail -n 50
-        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
-        echo ""
+    if ! run_docker_build "botv2-app" "$COMPOSE_FILE"; then
         BUILD_ERRORS=true
     fi
+    echo ""
 fi
 
 if [ "$HAS_DASHBOARD" = true ]; then
-    log_step "Compilando imagen botv2-dashboard..."
-    
-    # Capturar output completo del build
-    BUILD_OUTPUT=$(docker-compose -f "$COMPOSE_FILE" build botv2-dashboard 2>&1)
-    BUILD_EXIT_CODE=$?
-    
-    if [ $BUILD_EXIT_CODE -eq 0 ]; then
-        log_success "Imagen botv2-dashboard compilada exitosamente"
-    else
-        echo ""
-        log_error "Error compilando botv2-dashboard (exit code: $BUILD_EXIT_CODE)"
-        echo ""
-        log_info "ÚLTIMAS 50 LÍNEAS DEL ERROR:"
-        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
-        echo "$BUILD_OUTPUT" | tail -n 50
-        echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
-        echo ""
+    if ! run_docker_build "botv2-dashboard" "$COMPOSE_FILE"; then
         BUILD_ERRORS=true
     fi
 fi
@@ -485,6 +583,8 @@ if [ "$BUILD_ERRORS" = true ]; then
     echo ""
     log_error "Fallos en compilación - abortando actualización"
     log_info "Revisa los errores arriba y corrígelos antes de continuar"
+    show_error_banner "1" "N/A" "docker-compose build" "$CURRENT_STEP"
+    cleanup
     exit 1
 fi
 
@@ -494,10 +594,11 @@ fi
 
 log_header "🔄 Reiniciando servicios"
 
-# Detener servicios
+CURRENT_STEP="Reinicio de servicios"
+
 if [ "$HAS_APP" = true ]; then
     log_step "Deteniendo botv2-app..."
-    if docker-compose -f "$COMPOSE_FILE" stop botv2-app &> /dev/null; then
+    if docker-compose -f "$COMPOSE_FILE" stop botv2-app 2>/dev/null; then
         log_success "botv2-app detenida"
     else
         log_dim "No estaba corriendo"
@@ -506,7 +607,7 @@ fi
 
 if [ "$HAS_DASHBOARD" = true ]; then
     log_step "Deteniendo botv2-dashboard..."
-    if docker-compose -f "$COMPOSE_FILE" stop botv2-dashboard &> /dev/null; then
+    if docker-compose -f "$COMPOSE_FILE" stop botv2-dashboard 2>/dev/null; then
         log_success "botv2-dashboard detenida"
     else
         log_dim "No estaba corriendo"
@@ -523,57 +624,39 @@ fi
 
 echo ""
 
-# Iniciar servicios
-log_step "Iniciando servicios (puede tardar hasta 2 minutos)..."
-echo ""
-
-# Ejecutar docker-compose up con output en tiempo real
-log_dim "Mostrando output de docker-compose..."
+log_step "Iniciando servicios..."
+log_dim "Mostrando progreso en tiempo real..."
 echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
 
-# Ejecutar con timeout y mostrar en tiempo real
-set +e  # Deshabilitar exit on error temporalmente
-docker-compose -f "$COMPOSE_FILE" up -d
-UP_EXIT_CODE=$?
-set -e  # Rehabilitar exit on error
-
-echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
-echo ""
-
-if [ $UP_EXIT_CODE -eq 0 ]; then
+CURRENT_COMMAND="docker-compose -f $COMPOSE_FILE up -d"
+if docker-compose -f "$COMPOSE_FILE" up -d 2>&1 | tee -a "$BUILD_LOG_FILE"; then
+    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
     log_success "Servicios iniciados exitosamente"
-elif [ $UP_EXIT_CODE -eq 124 ]; then
-    log_error "Timeout: docker-compose tardó más de 2 minutos"
-    log_info "Los servicios pueden estar iniciando aún. Verifica con:"
-    log_dim "docker-compose -f $COMPOSE_FILE ps"
-    log_dim "docker-compose -f $COMPOSE_FILE logs -f"
-    exit 1
 else
+    UP_EXIT_CODE=${PIPESTATUS[0]}
+    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
     log_error "Error iniciando servicios (exit code: $UP_EXIT_CODE)"
-    echo ""
-    log_info "Comandos de diagnóstico:"
-    log_dim "docker-compose -f $COMPOSE_FILE ps"
-    log_dim "docker-compose -f $COMPOSE_FILE logs"
-    echo ""
-    exit 1
+    show_error_banner "$UP_EXIT_CODE" "N/A" "$CURRENT_COMMAND" "$CURRENT_STEP"
+    cleanup
+    exit $UP_EXIT_CODE
 fi
 
 # ============================================================================
-# PASO 7: Verificación de servicios
+# PASO 7: Verificación
 # ============================================================================
 
 log_header "✅ Verificación de servicios"
+
+CURRENT_STEP="Verificación de servicios"
 
 log_step "Esperando inicialización (15 segundos)..."
 sleep 15
 
 log_step "Estado de contenedores:"
 echo ""
-echo -e "${GRAY}"
 docker-compose -f "$COMPOSE_FILE" ps
-echo -e "${NC}"
+echo ""
 
-# Verificar healthchecks
 if [ "$HAS_APP" = true ]; then
     if wait_for_healthy "botv2-app" "$COMPOSE_FILE" 40; then
         log_success "botv2-app: ${GREEN}HEALTHY${NC}"
@@ -610,7 +693,6 @@ if [ "$HAS_REDIS" = true ]; then
     fi
 fi
 
-# Verificar conectividad HTTP
 echo ""
 log_step "Verificando conectividad HTTP..."
 
@@ -631,8 +713,9 @@ fi
 
 log_header "✨ Actualización Completada"
 
-echo -e "${GREEN}${BOLD}ACTUALIZACIÓN EXITOSA${NC}"
-echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}${BOLD}║                         ✅ ACTUALIZACIÓN EXITOSA                             ║${NC}"
+echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${WHITE}${BOLD}📊 Estado de servicios:${NC}"
 echo ""
@@ -693,17 +776,12 @@ if [ "$HAS_DASHBOARD" = true ]; then
     echo -e "  ${GRAY}•${NC} Logs del dashboard:  ${DIM}docker-compose -f $COMPOSE_FILE logs -f botv2-dashboard${NC}"
 fi
 
-if [ "$HAS_POSTGRES" = true ]; then
-    echo -e "  ${GRAY}•${NC} Conectar PostgreSQL: ${DIM}docker-compose -f $COMPOSE_FILE exec botv2-postgres psql -U botv2 -d botv2_db${NC}"
-fi
-
-if [ "$HAS_REDIS" = true ]; then
-    echo -e "  ${GRAY}•${NC} Conectar Redis:      ${DIM}docker-compose -f $COMPOSE_FILE exec botv2-redis redis-cli${NC}"
-fi
-
 echo -e "  ${GRAY}•${NC} Estado servicios:    ${DIM}docker-compose -f $COMPOSE_FILE ps${NC}"
 echo -e "  ${GRAY}•${NC} Detener servicios:   ${DIM}docker-compose -f $COMPOSE_FILE down${NC}"
-echo -e "  ${GRAY}•${NC} Estadísticas uso:     ${DIM}docker stats --no-stream${NC}"
 echo ""
 echo -e "${GREEN}${BOLD}¡Todos los servicios actualizados y operativos! 🎉${NC}"
 echo ""
+
+# Limpieza final
+cleanup
+exit 0
