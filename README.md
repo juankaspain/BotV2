@@ -1,544 +1,392 @@
-# 🤖 BotV2 - Professional Trading Dashboard
-
 <div align="center">
 
+# 🤖 BotV2 - Advanced Algorithmic Trading System
+
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/juankaspain/BotV2/releases)
-[![Tests](https://img.shields.io/badge/tests-70%20passing-success.svg)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-95%25%20target-brightgreen.svg)](tests/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-yellow.svg)](https://www.python.org/)
-[![Status](https://img.shields.io/badge/status-production%20ready-success.svg)]()  
-[![Maintenance](https://img.shields.io/badge/maintained-yes-brightgreen.svg)](https://github.com/juankaspain/BotV2/graphs/commit-activity)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
-[![Testing](https://img.shields.io/badge/testing-9.5%2F10-success.svg)](docs/TESTING_GUIDE.md)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-production%20ready-success.svg)]()
+[![Tests](https://img.shields.io/badge/tests-70%2B%20passing-success.svg)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-95%25-brightgreen.svg)](tests/)
 
-**Advanced algorithmic trading bot with real-time professional dashboard**  
-**30 Enterprise Features • 70+ Tests • 95% Coverage Target • Production Ready**
+**Enterprise-grade algorithmic trading bot with 20 strategies, real-time dashboard, and multi-exchange support**
 
-[Features](#-features) • [What's New](#-whats-new-v110) • [Installation](#-installation) • [Tests](#-testing) • [Documentation](#-documentation)
-
----
-
-### 📊 Dashboard Preview
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  🤖 BotV2                    📊 Dashboard            🎨 ☀️ 🌙 ⚙️  │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  💰 Portfolio        📊 Total P&L      🎯 Win Rate    ⚡ Sharpe   │
-│  €3,175.50          €175.50           68.5%          2.34          │
-│  ↑ +2.5% today      ↑ +5.85%          125 trades    DD: -8.2%     │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│  📊 Equity Curve                                           🔍 ⛶ 📥 │
-│  ┌─────────────────────────────────────────────────────────────┐  │
-│  │     ╯╰                                                      │  │
-│  │    ╯  ╰     ╯╰                                              │  │
-│  │   ╯    ╰   ╯  ╰                                             │  │
-│  │  ╯      ╰ ╯    ╰╯╰                                          │  │
-│  └─────────────────────────────────────────────────────────────┘  │
-│                                                                     │
-│  🔥 Correlation Matrix      🌳 Asset Allocation                    │
-│  ┌──────────────────────┐  ┌──────────────────────┐              │
-│  │ [HEATMAP]            │  │ [TREEMAP]            │              │
-│  └──────────────────────┘  └──────────────────────┘              │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#-architecture) • [Strategies](#-trading-strategies) • [Dashboard](#-dashboard) • [Documentation](#-documentation)
 
 </div>
 
 ---
 
-## 🆕 What's New: v1.1.0
+## 📋 Table of Contents
 
-### 🎉 Major Features Released (21 Enero 2026)
-
-<table>
-<tr>
-<td width="50%">
-
-#### 🎯 **Trailing Stops Dinámicos**
-
-**4 tipos de stops implementados:**
-- ✅ **Percentage**: Stop basado en % fijo
-- ✅ **ATR**: Average True Range adaptativo  
-- ✅ **Chandelier**: Chandelier Exit professional
-- ✅ **Dynamic**: Volatility-based auto-adjust
-
-**Características:**
-- Activación condicional tras profit objetivo
-- Never decreases (solo sube)
-- Real-time position tracking
-- ATR calculation professional
-
-**Impacto:** +8.5% retorno anual 🚀
-
-**Tests:** 15 unit tests ✅
-
-</td>
-<td width="50%">
-
-#### ⏰ **Validación de Timestamps**
-
-**5 validaciones avanzadas:**
-- ✅ **Duplicates**: Detecta y elimina duplicados
-- ✅ **Order**: Valida orden cronológico
-- ✅ **Future**: Detecta timestamps futuros
-- ✅ **Gaps**: Encuentra gaps críticos
-- ✅ **Timezone**: Validación y conversión UTC
-
-**Características:**
-- Acciones configurables (skip, warn, error)
-- Gap interpolation automática
-- Timezone-aware operations
-- Critical gap detection
-
-**Impacto:** 0 errores por datos corruptos 🎯
-
-**Tests:** 12 unit tests ✅
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-#### 📡 **Simulación de Latencia**
-
-**6 modelos de distribución:**
-- ✅ **Realistic**: Lognormal (más realista)
-- ✅ **Normal**: Gaussian distribution
-- ✅ **Lognormal**: Explícito
-- ✅ **Exponential**: Heavy tail
-- ✅ **High**: Escenario alta latencia
-- ✅ **Low**: Escenario baja latencia
-
-**Efectos de red:**
-- Time-of-day effects (peak hours)
-- Packet loss simulation (0.1%)
-- Retry con exponential backoff
-- Timeout detection
-
-**Impacto:** +15% precisión backtesting 📈
-
-**Tests:** 10 unit tests ✅
-
-</td>
-<td width="50%">
-
-#### 🔐 **Seguridad Dashboard**
-
-**Production-grade security:**
-- ✅ **HTTP Basic Auth**: SHA-256 hashing
-- ✅ **Rate Limiting**: 10 req/min per IP
-- ✅ **HTTPS Enforcement**: Flask-Talisman
-- ✅ **Security Headers**: HSTS, CSP, etc.
-
-**Características:**
-- Timing-attack safe authentication
-- Redis-backed rate limiting
-- Audit logging (failed logins)
-- Health check endpoint (no auth)
-
-**Seguridad:**
-- Environment-based config
-- Secret key generation
-- Production/dev modes
-- Brute force protection
-
-**Tests:** 13 unit tests ✅
-
-</td>
-</tr>
-</table>
-
-### 📄 Documentation Completa
-
-- 📚 [**IMPROVEMENTS_V1.1.md**](docs/IMPROVEMENTS_V1.1.md) - Guía detallada de mejoras (17 KB)
-- 📊 [**V1.1_IMPLEMENTATION_STATUS.md**](docs/V1.1_IMPLEMENTATION_STATUS.md) - Estado de implementación completo
-- ⚙️ **settings.yaml** - Configuración actualizada con nuevas secciones
-- 🔐 **.env.example** - Variables de seguridad documentadas
+- [Overview](#-overview)
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Architecture](#-architecture)
+- [Trading Strategies](#-trading-strategies)
+- [Risk Management](#-risk-management)
+- [Dashboard](#-dashboard)
+- [Configuration](#-configuration)
+- [Exchanges](#-exchanges)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
-## 🧪 Testing
+## 🎯 Overview
 
-### ✅ 70+ Tests - 95% Coverage Target 🎯
+BotV2 is a **professional-grade algorithmic trading system** designed for cryptocurrency and prediction markets. Built with Python 3.11+, it combines sophisticated trading strategies with enterprise-level risk management and real-time monitoring capabilities.
 
-**Testing Infrastructure:** 🆕 **PROFESSIONAL GRADE**
+### Key Highlights
 
-```
-tests/
-├── conftest.py                      30+ fixtures      17.1 KB  ✅ NEW
-├── test_dashboard_v4_4.py           70+ tests        21.2 KB  ✅ NEW
-├── test_trailing_stops.py           15 tests         ~0.4 KB  ✅
-├── test_data_validation.py          12 tests         ~0.35 KB ✅
-├── test_latency_simulator.py        10 tests         ~0.3 KB  ✅
-├── test_dashboard_security.py       13 tests         ~0.35 KB ✅
-├── test_strategies.py               ✅
-├── test_risk_manager.py             ✅
-├── test_circuit_breaker.py          ✅
-├── test_recovery_system.py          ✅
-├── test_integration.py              ✅
-├── test_notification_system.py      ✅
-└── ...
-
-TOTAL: 120+ tests across 18 test files
-```
-
-### 🎯 Dashboard v4.4 Test Coverage (NEW)
-
-**70+ Tests for Dashboard v4.4:**
-
-<table>
-<tr>
-<td width="50%">
-
-#### Core Features
-- ✅ **Authentication** (6 tests)
-  - Login/logout flows
-  - Brute force protection
-  - Session management
-
-- ✅ **Dashboard UI** (5 tests)
-  - Main dashboard
-  - Control Panel v4.2
-  - Live Monitor v4.3
-  - Strategy Editor v4.4
-
-- ✅ **API Endpoints** (40+ tests)
-  - Portfolio APIs
-  - Trade APIs
-  - Strategy APIs (14 tests)
-  - Market Data v5.1
-  - Annotations v5.1
-
-</td>
-<td width="50%">
-
-#### Advanced Features
-- ✅ **WebSocket** (3 tests)
-  - Real-time connections
-  - Price updates
-  - Portfolio updates
-
-- ✅ **Security** (4 tests)
-  - Rate limiting
-  - Error handling
-  - Input validation
-
-- ✅ **Integration** (2 tests)
-  - Complete workflows
-  - End-to-end scenarios
-
-- ✅ **Performance** (2 tests)
-  - Load time benchmarks
-  - API response times
-
-</td>
-</tr>
-</table>
-
-### 🧬 Professional Fixtures
-
-**30+ Reusable Fixtures:**
-
-```python
-# Configuration
-test_config, temp_dir, config_file, test_env_vars
-
-# Flask App
-app, client, authenticated_client, socketio_client
-
-# Database
-db_engine, db_session, populated_db
-
-# Mock Data
-mock_portfolio_data, mock_trade_data, mock_strategy_data
-mock_market_data, mock_ohlcv_data, mock_annotation_data
-
-# Generators
-sample_trades(count), sample_portfolio_history(days)
-
-# Security
-valid_credentials, invalid_credentials, malicious_payloads
-```
-
-### Running Tests
-
-#### Quick Start
-
-```bash
-# Install test dependencies
-pip install -r requirements-dev.txt
-
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src --cov-report=html
-
-# Run Dashboard v4.4 tests
-pytest tests/test_dashboard_v4_4.py -v
-
-# Run by marker
-pytest -m unit          # Fast unit tests
-pytest -m api           # API tests
-pytest -m dashboard     # Dashboard tests
-```
-
-#### Parallel Execution
-
-```bash
-# Run tests in parallel (4 workers)
-pytest -n 4
-
-# Auto-detect CPUs
-pytest -n auto
-```
-
-#### Coverage Report
-
-```bash
-# Generate HTML coverage report
-pytest --cov=src --cov-report=html --cov-report=term-missing
-
-# Open report
-open htmlcov/index.html  # macOS
-xdg-open htmlcov/index.html  # Linux
-```
-
-### 📊 Coverage Targets
-
-| Component | Target | Status |
-|-----------|--------|--------|
-| **Dashboard** | 95% | 🎯 Tests Ready |
-| **API Endpoints** | 90% | 🎯 Tests Ready |
-| **Strategies** | 85% | ✅ Complete |
-| **Risk Manager** | 90% | ✅ Complete |
-| **Security** | 95% | ✅ Complete |
-| **Utilities** | 80% | ✅ Complete |
-| **OVERALL** | **90%** | **🎯 ACHIEVABLE** |
-
-### 📚 Testing Documentation
-
-- 📖 [**TESTING_GUIDE.md**](docs/TESTING_GUIDE.md) - Comprehensive testing guide (12.8 KB)
-- 📋 [**tests/README.md**](tests/README.md) - Quick reference (6.8 KB)
-- ⚙️ [**pytest.ini**](pytest.ini) - Pytest configuration (1.8 KB)
-- 📦 [**requirements-dev.txt**](requirements-dev.txt) - Dev dependencies (2.1 KB)
+| Feature | Description |
+|---------|-------------|
+| **20 Trading Strategies** | From momentum to statistical arbitrage |
+| **Multi-Exchange Support** | Binance, Coinbase, Kraken, Polymarket |
+| **Real-Time Dashboard** | Live monitoring with Dash/Plotly |
+| **Advanced Risk Management** | Circuit breakers, trailing stops, Kelly criterion |
+| **Enterprise Security** | JWT auth, rate limiting, HTTPS support |
+| **Backtesting Engine** | Realistic simulation with slippage & latency |
 
 ---
 
-## 🌟 Features
+## ✨ Features
 
-### 📊 **Professional Dashboard (v4.4)**
+### 🎯 Trading Engine
+- **20 Unique Strategies** with ensemble voting
+- **Adaptive Position Sizing** using Kelly Criterion
+- **Order Optimization** (market, limit, hybrid, VWAP/TWAP)
+- **Multi-Timeframe Analysis**
 
-<table>
-<tr>
-<td width="50%">
+### 🛡️ Risk Management
+- **3-Level Circuit Breaker** (5%, 10%, 15% drawdown)
+- **Dynamic Trailing Stops** (percentage, ATR, Chandelier)
+- **Correlation Management** to avoid concentrated risk
+- **Liquidation Detection** for cascade protection
 
-#### 🎨 **Modern UI/UX**
-- ✨ **3 Premium Themes:** Dark, Light, Bloomberg
-- 🎯 **Collapsible Sidebar:** Icon-only or full labels
-- 📱 **Fully Responsive:** Desktop → Tablet → Mobile
-- 🌈 **Design System:** Professional color palettes
-- ⚡ **Smooth Animations:** 60fps transitions
-- 🎭 **Theme Persistence:** LocalStorage cached
+### 📊 Dashboard & Monitoring
+- **Real-Time Portfolio Tracking**
+- **Strategy Performance Analytics**
+- **Interactive Charts** (equity curve, drawdown, heatmaps)
+- **Secure Access** with JWT authentication
 
-#### 📊 **13 Advanced Charts**
-1. **Equity Curve** - Real-time portfolio value
-2. **P&L Waterfall** - Breakdown visualization
-3. **Correlation Heatmap** - Strategy correlations
-4. **Asset Treemap** - Hierarchical allocation
-5. **Candlestick Chart** - OHLC with volume
-6. **Scatter Plot** - Risk vs Return analysis
-7. **Box Plot** - Return distributions
-8. **Drawdown Chart** - Underwater visualization
-9. **Daily Returns** - Performance bars
-10. **Strategy Comparison** - Multi-strategy view
-11. **Risk Metrics** - Comprehensive table
-12. **Portfolio Pie** - Asset breakdown
-13. **Market Data** - Live price feeds
-
-</td>
-<td width="50%">
-
-#### 🏛️ **Interactive Features**
-- 🖋️ **Chart Interactions:** Zoom, pan, hover details
-- 📥 **Export:** PNG, SVG, JSON formats
-- ⛶ **Fullscreen Mode:** Immersive chart view
-- 🔄 **Real-time Updates:** WebSocket streaming
-- 🎨 **Theme-Responsive:** Charts adapt to themes
-- ⏱️ **Time Filters:** 24h, 7d, 30d, 90d, YTD, All
-
-#### 🤖 **Trading Intelligence**
-- 📊 **4 KPI Metrics:** Value, P&L, Win Rate, Sharpe
-- 🎯 **Multi-Strategy:** Track 10+ strategies
-- ⚠️ **Risk Management:** VaR, CVaR, Drawdown
-- 📊 **Performance Analytics:** Sortino, Sharpe ratios
-- 🔔 **Alert System:** Toast notifications
-- 📡 **Live Connection:** Status indicator
-
-#### 🚀 **Performance**
-- ⚡ **Fast Load:** 2.1s initial (13 charts!)
-- 🎯 **Optimized Render:** 80ms per chart
-- 💾 **Smart Caching:** Persistent state
-- 📉 **Low Memory:** 62MB usage
-- 🔄 **Auto-refresh:** 10s when visible
-- 🌐 **CDN Assets:** Fast global delivery
-
-</td>
-</tr>
-</table>
+### ⚡ Technical Features
+- **State Persistence** (PostgreSQL/SQLite/Redis)
+- **Latency Simulation** for realistic backtesting
+- **Data Validation** with drift detection
+- **Docker Support** for easy deployment
 
 ---
 
-## 🚀 Installation
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Python:** 3.11+ recommended
-- **pip:** Latest version
-- **Git:** For cloning repository
-- **Redis:** For rate limiting (optional, recommended for production)
+- Python 3.11+
+- PostgreSQL (optional, SQLite by default)
+- Docker (optional)
 
-### Quick Start
+### Installation
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/juankaspain/BotV2.git
 cd BotV2
 
-# 2. Install dependencies
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or: venv\Scripts\activate  # Windows
+
+# Install dependencies
 pip install -r requirements.txt
 
-# 3. Install development dependencies (for testing)
-pip install -r requirements-dev.txt
-
-# 4. Configure environment
+# Copy environment template
 cp .env.example .env
-nano .env  # Edit with your API keys
-
-# 5. Generate security credentials
-export DASHBOARD_PASSWORD=$(openssl rand -base64 16)
-export SECRET_KEY=$(openssl rand -base64 32)
-echo "DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD" >> .env
-echo "SECRET_KEY=$SECRET_KEY" >> .env
-
-# 6. Run tests (optional)
-pytest --cov=src --cov-report=html
-
-# 7. Run the dashboard
-python src/dashboard/dashboard.py
-
-# 8. Open browser
-# Navigate to: http://localhost:5000
-# Login: admin / [your generated password]
+# Edit .env with your API keys
 ```
+
+### Configuration
+
+Edit `config.yaml` to customize:
+
+```yaml
+trading:
+  initial_capital: 3000  # EUR
+  max_position_size: 0.15  # 15% max per position
+  max_open_positions: 10
+
+risk:
+  circuit_breaker:
+    level_1_drawdown: -5.0  # Stop at -5% daily
+    level_2_drawdown: -10.0  # Reduce size 50%
+    level_3_drawdown: -15.0  # Emergency liquidation
+```
+
+### Running the Bot
+
+```bash
+# Start trading bot
+python -m bot.main
+
+# Start dashboard (separate terminal)
+python -m dashboard.web_app
+
+# Access dashboard at http://localhost:8050
+```
+
+### Docker Deployment
+
+```bash
+# Build and run
+docker-compose up -d
+
+# View logs
+docker-compose logs -f botv2
+```
+
+---
+
+## 🏗️ Architecture
+
+```
+BotV2/
+├── bot/                    # Core trading engine
+│   ├── ai/                 # AI/ML components
+│   ├── backtesting/        # Backtesting engine
+│   ├── config/             # Configuration management
+│   ├── core/               # Core modules
+│   │   ├── circuit_breaker.py
+│   │   ├── execution_engine.py
+│   │   ├── order_optimizer.py
+│   │   ├── risk_manager.py
+│   │   ├── state_manager.py
+│   │   └── trailing_stop_manager.py
+│   ├── data/               # Data processing
+│   ├── ensemble/           # Strategy ensemble
+│   ├── exchanges/          # Exchange adapters
+│   ├── security/           # Security modules
+│   ├── strategies/         # 20 trading strategies
+│   └── utils/              # Utilities
+├── dashboard/              # Web dashboard
+│   ├── api/                # REST API
+│   ├── components/         # UI components
+│   ├── pages/              # Dashboard pages
+│   └── templates/          # HTML templates
+├── docs/                   # Documentation
+├── scripts/                # Utility scripts
+├── tests/                  # Test suite (70+ tests)
+├── config.yaml             # Main configuration
+├── docker-compose.yml      # Docker setup
+└── requirements.txt        # Dependencies
+```
+
+---
+
+## 📈 Trading Strategies
+
+BotV2 implements **20 sophisticated trading strategies**:
+
+### Base Strategies (15)
+
+| Strategy | Type | Description |
+|----------|------|-------------|
+| `momentum` | Trend | Follows price momentum with RSI/MACD |
+| `mean_reversion` | Counter-Trend | Exploits price mean reversion |
+| `breakout` | Volatility | Captures breakout from consolidation |
+| `stat_arb` | Arbitrage | Statistical arbitrage pairs trading |
+| `regime` | Adaptive | Adapts to market regime changes |
+| `volatility_expansion` | Volatility | Trades volatility expansions |
+| `fibonacci` | Technical | Fibonacci retracements & extensions |
+| `macd_momentum` | Trend | MACD-based momentum signals |
+| `rsi_divergence` | Technical | RSI divergence patterns |
+| `bollinger_bands` | Mean Reversion | Bollinger Bands strategies |
+| `stochastic` | Oscillator | Stochastic oscillator signals |
+| `ichimoku` | Trend | Ichimoku cloud analysis |
+| `elliot_wave` | Pattern | Elliott Wave pattern recognition |
+| `vix_hedge` | Hedging | VIX-based hedging strategy |
+| `sector_rotation` | Rotation | Sector/asset rotation |
+
+### Advanced Strategies (5)
+
+| Strategy | Type | Description |
+|----------|------|-------------|
+| `cross_exchange_arb` | Arbitrage | Cross-exchange price arbitrage |
+| `liquidation_flow` | Flow | Exploits liquidation cascades |
+| `high_prob_bonds` | Fixed Income | High probability bond strategies |
+| `liquidity_provision` | Market Making | Liquidity provision strategies |
+| `domain_specialization` | ML | Domain-specific ML models |
+
+### Ensemble System
+
+- **Weighted Voting**: Strategies vote with confidence weights
+- **Adaptive Allocation**: Sharpe-based weight adjustment
+- **Correlation Management**: Reduces correlated positions
+- **Minimum Agreement**: Requires 3+ strategies to agree
+
+---
+
+## 🛡️ Risk Management
+
+### Circuit Breaker System
+
+```
+Level 1 (-5% DD)  →  Stop new trades, alert
+Level 2 (-10% DD) →  Reduce positions 50%
+Level 3 (-15% DD) →  Emergency liquidation
+```
+
+### Trailing Stops
+
+| Type | Description |
+|------|-------------|
+| **Percentage** | Fixed % from highest price |
+| **ATR-Based** | Volatility-adjusted stops |
+| **Chandelier** | Chandelier Exit method |
+| **Dynamic** | Adapts to market conditions |
+
+### Position Sizing
+
+- **Kelly Criterion**: Optimal bet sizing (25% Kelly)
+- **Correlation Limits**: Max 0.7 correlation threshold
+- **Portfolio Limits**: Max 15% per position
+
+---
+
+## 📊 Dashboard
+
+Access the real-time dashboard at `http://localhost:8050`
+
+### Features
+
+- **Portfolio Overview**: Current value, P&L, metrics
+- **Equity Curve**: Historical performance chart
+- **Strategy Performance**: Individual strategy analytics
+- **Risk Metrics**: Drawdown, Sharpe, Sortino ratios
+- **Position Monitor**: Active positions and trailing stops
+- **Correlation Heatmap**: Strategy correlation visualization
+
+### Security
+
+- JWT Authentication
+- Rate Limiting (60 req/min)
+- HTTPS Support
+- IP Whitelisting (optional)
+- Access Logging
+
+---
+
+## ⚙️ Configuration
+
+### Main Config (`config.yaml`)
+
+```yaml
+system:
+  name: "BotV2"
+  version: "1.1.0"
+  environment: "production"
+
+trading:
+  initial_capital: 3000
+  trading_interval: 60  # seconds
+  max_position_size: 0.15
+  max_open_positions: 10
+
+risk:
+  circuit_breaker:
+    level_1_drawdown: -5.0
+    level_2_drawdown: -10.0
+    level_3_drawdown: -15.0
+  trailing_stops:
+    enabled: true
+    default_type: "percentage"
+    activation_profit: 2.0
+```
+
+### Environment Variables (`.env`)
+
+```bash
+# Exchange API Keys
+BINANCE_API_KEY=your_key
+BINANCE_SECRET=your_secret
+
+# Dashboard Security
+DASHBOARD_USERNAME=admin
+DASHBOARD_PASSWORD=secure_password
+DASHBOARD_JWT_SECRET=your_jwt_secret
+
+# Database
+POSTGRES_PASSWORD=your_db_password
+```
+
+---
+
+## 🏦 Exchanges
+
+| Exchange | Status | Description |
+|----------|--------|-------------|
+| **Binance** | ✅ Active | Full support, BTC/ETH/BNB pairs |
+| **Coinbase Pro** | ✅ Ready | Optional, EUR pairs |
+| **Kraken** | ✅ Ready | Optional, EUR pairs |
+| **Polymarket** | ✅ Active | Prediction markets |
+| **Finst** | 🔄 Preparatory | Awaiting API release |
 
 ---
 
 ## 📚 Documentation
 
-### Core Documentation
-
-- 📝 [**README.md**](README.md) - This file
-- 🔖 [**CHANGELOG.md**](CHANGELOG.md) - Version history
-- 📊 [**IMPROVEMENTS_V1.1.md**](docs/IMPROVEMENTS_V1.1.md) - v1.1 improvements guide
-- ✅ [**V1.1_IMPLEMENTATION_STATUS.md**](docs/V1.1_IMPLEMENTATION_STATUS.md) - Implementation status
-- 📋 [**AUDIT_REPORT_v4.4.md**](docs/AUDIT_REPORT_v4.4.md) - Complete system audit
-- 
-### Module Documentation 🧩
-
-- 🤖 [**bot/README.md**](bot/README.md) - Trading bot engine documentation
-- 📊 [**dashboard/README.md**](dashboard/README.md) - Dashboard interface documentation
-
-
-### Testing Documentation 🆕
-
-- 🧪 [**TESTING_GUIDE.md**](docs/TESTING_GUIDE.md) - Comprehensive testing guide
-- 📋 [**tests/README.md**](tests/README.md) - Test suite quick reference
-- ⚙️ [**pytest.ini**](pytest.ini) - Pytest configuration
-- 📦 [**requirements-dev.txt**](requirements-dev.txt) - Development dependencies
-
-### API & Development
-
-- 🌐 [**API.md**](docs/API.md) - API reference
-- 🛠️ [**DEVELOPMENT.md**](docs/DEVELOPMENT.md) - Development guide
-- 🚀 [**DEPLOYMENT.md**](docs/DEPLOYMENT.md) - Deployment guide
-- 🔒 [**SECURITY.md**](docs/SECURITY.md) - Security best practices
-
-### Strategy Guides
-
-- 🎯 [**STRATEGIES.md**](docs/STRATEGIES.md) - Strategy implementation
-- 🧠 [**BACKTESTING.md**](docs/BACKTESTING.md) - Backtesting guide
-- ⚠️ [**RISK_MANAGEMENT.md**](docs/RISK_MANAGEMENT.md) - Risk management
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/ARCHITECTURE.md) | System architecture details |
+| [Configuration Guide](docs/CONFIG_GUIDE.md) | Complete config reference |
+| [Order Optimization](docs/ORDER_OPTIMIZATION.md) | Order execution strategies |
+| [Control Panel](docs/CONTROL_PANEL_V4.2.md) | Dashboard user guide |
+| [Deployment](docs/deployment/) | Deployment guides |
+| [API Reference](docs/reference/) | API documentation |
 
 ---
 
-## 📊 Project Stats
+## 🧪 Testing
 
-![GitHub stars](https://img.shields.io/github/stars/juankaspain/BotV2?style=social)
-![GitHub forks](https://img.shields.io/github/forks/juankaspain/BotV2?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/juankaspain/BotV2?style=social)
+```bash
+# Run all tests
+pytest tests/ -v
 
-**Lines of Code:** 5,600+  
-**Tests:** 120+ (95% coverage target)  
-**Commits:** 70+  
-**Contributors:** 1  
-**Open Issues:** 0  
-**Last Update:** 27 Enero 2026
+# Run with coverage
+pytest tests/ --cov=bot --cov-report=html
 
----
+# Run specific test module
+pytest tests/test_strategies.py -v
+```
 
-## 🌟 Support
-
-- **Issues:** [GitHub Issues](https://github.com/juankaspain/BotV2/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/juankaspain/BotV2/discussions)
-- **Email:** juanca755@hotmail.com
+**Test Coverage**: 95%+ target | 70+ test cases
 
 ---
 
-## 🔒 Security
+## 🤝 Contributing
 
-Found a security vulnerability? Please **do not** open a public issue.
+Contributions are welcome! Please read the contribution guidelines:
 
-Email: juanca755@hotmail.com with:
-- Description of vulnerability
-- Steps to reproduce
-- Potential impact
-- Suggested fix (if any)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 👨‍💻 Author
+## 👤 Author
 
-**Juan Carlos Garcia Arriero**
+**Juan Carlos García Arriero**
+
 - GitHub: [@juankaspain](https://github.com/juankaspain)
-- Email: juanca755@hotmail.com
-- Location: Madrid, Spain
-
----
-
-## 🚀 Status: Production Ready with Excellence
-
-✅ **Code:** Ultra-professional, clean, maintainable  
-✅ **Tests:** 120+ tests, 95% coverage target  
-✅ **Documentation:** Exhaustive with examples  
-✅ **Security:** Production-grade  
-✅ **Configuration:** Flexible and robust  
-✅ **Performance:** Optimized  
-✅ **Scalability:** Modular design  
-✅ **Testing:** Professional infrastructure 🆕  
-
-**System approved for immediate production deployment with excellence.** 🎆
 
 ---
 
@@ -546,8 +394,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **⭐ Star this repo if you find it useful!**
 
-[![Star History](https://img.shields.io/github/stars/juankaspain/BotV2?style=social)](https://github.com/juankaspain/BotV2/stargazers)
-
-Made with ❤️ in Madrid, Spain
+*Built with ❤️ for algorithmic trading*
 
 </div>
