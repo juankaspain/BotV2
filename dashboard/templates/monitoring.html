@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Monitoring - Trading Bot{% endblock %}
+
+{% block content %}
+<div class="monitoring-container">
+    <!-- Connection Status -->
+    <div class="alert alert-info d-flex align-items-center mb-4" id="connection-status">
+        <i class="fas fa-circle me-2" id="ws-indicator"></i>
+        <span id="ws-status">Connecting to real-time feed...</span>
+    </div>
+
+    <div class="row mb-4">
+        <!-- Live Price Chart -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Live Price Chart</h5>
+                    <select class="form-select form-select-sm w-auto" id="chart-symbol">
+                        <option value="BTC/USDT">BTC/USDT</option>
+                        <option value="ETH/USDT">ETH/USDT</option>
+                        <option value="SOL/USDT">SOL/USDT</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <canvas id="live-chart" height="350"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- Order Book -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Order Book</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="orderbook-container">
+                        <div class="orderbook-asks" id="asks-container"></div>
+                        <div class="orderbook-spread">
+                            <span id="spread-value">--</span>
+                        </div>
+                        <div class="orderbook-bids" id="bids-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- Live Trades Feed -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="mb-0">Live Trades</h5>
+                    <span class="badge bg-secondary" id="trade-count">0</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="trades-feed" id="trades-feed">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Price</th>
+                                    <th>Amount</th>
+                                    <th>Side</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- System Logs -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="mb-0">System Logs</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="downloadLogs()">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="logs-container" id="logs-container">
+                        <div class="log-entry log-info">[INFO] System initialized</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Real-time Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="metric-box">
+                                <span class="metric-label">Latency</span>
+                                <span class="metric-value" id="latency">--ms</span>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-box">
+                                <span class="metric-label">Messages/sec</span>
+                                <span class="metric-value" id="msg-rate">--</span>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-box">
+                                <span class="metric-label">CPU Usage</span>
+                                <span class="metric-value" id="cpu-usage">--%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-box">
+                                <span class="metric-label">Memory</span>
+                                <span class="metric-value" id="memory-usage">--MB</span>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-box">
+                                <span class="metric-label">Orders/min</span>
+                                <span class="metric-value" id="order-rate">--</span>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-box">
+                                <span class="metric-label">Uptime</span>
+                                <span class="metric-value" id="uptime">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/monitoring.js') }}"></script>
+{% endblock %}
