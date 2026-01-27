@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Trading Bot{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header Stats Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-1">Total Balance</h6>
+                            <h3 class="mb-0" id="total-balance">$0.00</h3>
+                        </div>
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                    </div>
+                    <small class="text-success" id="balance-change">+0.00%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-1">Today's P&L</h6>
+                            <h3 class="mb-0" id="daily-pnl">$0.00</h3>
+                        </div>
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                    <small id="daily-trades">0 trades</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-1">Win Rate</h6>
+                            <h3 class="mb-0" id="win-rate">0%</h3>
+                        </div>
+                        <div class="stat-icon bg-info">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                    </div>
+                    <small id="total-trades">0 total trades</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-1">Bot Status</h6>
+                            <h3 class="mb-0" id="bot-status">Offline</h3>
+                        </div>
+                        <div class="stat-icon bg-warning" id="status-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                    </div>
+                    <small id="bot-uptime">--</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Portfolio Performance</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary active" data-period="1d">1D</button>
+                        <button class="btn btn-outline-primary" data-period="1w">1W</button>
+                        <button class="btn btn-outline-primary" data-period="1m">1M</button>
+                        <button class="btn btn-outline-primary" data-period="all">All</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="performance-chart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Asset Allocation</h5>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <canvas id="allocation-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Open Positions & Recent Trades -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="mb-0">Open Positions</h5>
+                    <span class="badge bg-primary" id="position-count">0</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="positions-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Side</th>
+                                    <th>Size</th>
+                                    <th>Entry</th>
+                                    <th>P&L</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="positions-body">
+                                <tr><td colspan="6" class="text-center text-muted">No open positions</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="mb-0">Recent Trades</h5>
+                    <a href="{{ url_for('trades') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="trades-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Symbol</th>
+                                    <th>Type</th>
+                                    <th>P&L</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-body">
+                                <tr><td colspan="4" class="text-center text-muted">No recent trades</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
