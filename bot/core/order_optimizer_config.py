@@ -8,7 +8,7 @@ Author: Juan Carlos Garcia Arriero
 Date: January 2026
 """
 
-from src.core.order_optimizer import (
+from bot.core.order_optimizer import (
     ExchangeCommissionConfig,
     OrderOptimizationStrategy
 )
