@@ -792,6 +792,145 @@ BotV2.Dashboard = {
   }
 };
 
+  // ============================================
+  // SPA MODULE - Single Page Application Navigation
+  // ============================================
+  SPA: {
+    currentSection: 'dashboard',
+    contentArea: null,
+    navLinks: null,
+    
+    // Initialize SPA navigation
+    init() {
+      this.contentArea = document.getElementById('content-area');
+      this.navLinks = document.querySelectorAll('[data-section]');
+      
+      if (!this.contentArea) return;
+      
+      this.bindNavigation();
+      this.loadSection('dashboard');
+      this.handleBrowserNavigation();
+    },
+    
+    // Bind navigation click events
+    bindNavigation() {
+      this.navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const section = link.dataset.section;
+          this.navigateTo(section);
+        });
+      });
+    },
+    
+    // Navigate to a section
+    navigateTo(section) {
+      if (section === this.currentSection) return;
+      
+      // Update URL without reload
+      history.pushState({ section }, '', `#${section}`);
+      
+      // Load the section
+      this.loadSection(section);
+    },
+    
+    // Load section content
+    async loadSection(section) {
+      this.showLoader();
+      this.updateActiveNav(section);
+      this.updatePageTitle(section);
+      
+      try {
+        const response = await fetch(`/api/partial/${section}`);
+        if (!response.ok) throw new Error('Failed to load section');
+        
+        const html = await response.text();
+        this.contentArea.innerHTML = html;
+        this.currentSection = section;
+        
+        // Initialize section-specific functionality
+        this.initSectionModules(section);
+        
+      } catch (error) {
+        console.error('Error loading section:', error);
+        this.contentArea.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Failed to load section. Please try again.
+          </div>
+        `;
+      }
+    },
+    
+    // Show loading state
+    showLoader() {
+      this.contentArea.innerHTML = `
+        <div class="loading-container">
+          <div class="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      `;
+    },
+    
+    // Update active navigation link
+    updateActiveNav(section) {
+      this.navLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.section === section);
+      });
+    },
+    
+    // Update page title
+    updatePageTitle(section) {
+      const titles = {
+        dashboard: 'Dashboard',
+        control: 'Bot Control',
+        monitoring: 'Monitoring',
+        strategies: 'Strategies',
+        positions: 'Positions',
+        history: 'Trade History',
+        settings: 'Settings'
+      };
+      
+      const titleEl = document.getElementById('page-title');
+      if (titleEl) {
+        titleEl.textContent = titles[section] || 'Dashboard';
+      }
+      document.title = `${titles[section] || 'Dashboard'} - BotV2`;
+    },
+    
+    // Initialize section-specific modules
+    initSectionModules(section) {
+      switch(section) {
+        case 'dashboard':
+          BotV2.Dashboard.init?.();
+          break;
+        case 'control':
+          BotV2.Control.init?.();
+          break;
+        case 'monitoring':
+          BotV2.Monitoring.init?.();
+          break;
+        case 'strategies':
+          BotV2.Strategies?.init?.();
+          break;
+      }
+    },
+    
+    // Handle browser back/forward navigation
+    handleBrowserNavigation() {
+      window.addEventListener('popstate', (e) => {
+        const section = e.state?.section || 'dashboard';
+        this.loadSection(section);
+      });
+      
+      // Load section from URL hash on initial load
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        this.loadSection(hash);
+      }
+    }
+  },
+
 // ============================================
 // AUTO-INITIALIZATION ON DOM READY
 // ============================================
