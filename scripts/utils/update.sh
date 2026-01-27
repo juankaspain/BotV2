@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# 🚀 BotV2 UPDATE SCRIPT v3.4 - Mode Selection Edition
+# 🚀 BotV2 UPDATE SCRIPT v3.5 - Mode Selection Edition
 # ================================================================
 # Actualiza servicios con selección de modo Demo/Producción
 # - Menú interactivo para elegir modo
@@ -81,6 +81,7 @@ log_dim() {
 }
 
 # Función para verificar si un servicio está definido
+# Compatible con docker-compose v1 y v2
 service_is_defined() {
     local service=$1
     local compose_file=$2
@@ -89,10 +90,21 @@ service_is_defined() {
         return 1
     fi
     
-    # Verificar si el servicio existe en el archivo
-    if docker-compose -f "$compose_file" config 2>/dev/null | grep -q "^  ${service}:"; then
+    # Método 1: Usar docker-compose config --services (más confiable)
+    if docker-compose -f "$compose_file" config --services 2>/dev/null | grep -qx "$service"; then
         return 0
     fi
+    
+    # Método 2: Buscar directamente en el archivo YAML (fallback)
+    if grep -qE "^\s+${service}:" "$compose_file" 2>/dev/null; then
+        return 0
+    fi
+    
+    # Método 3: Buscar con formato services: -> service:
+    if grep -qE "^  ${service}:|^    ${service}:" "$compose_file" 2>/dev/null; then
+        return 0
+    fi
+    
     return 1
 }
 
@@ -102,7 +114,13 @@ service_is_running() {
     local compose_file=$2
     
     # Verificar si el contenedor existe y está running
-    local status=$(docker-compose -f "$compose_file" ps -q "$service" 2>/dev/null | xargs docker inspect -f '{{.State.Status}}' 2>/dev/null || echo "not_found")
+    local container_id=$(docker-compose -f "$compose_file" ps -q "$service" 2>/dev/null)
+    
+    if [ -z "$container_id" ]; then
+        return 1
+    fi
+    
+    local status=$(docker inspect -f '{{.State.Status}}' "$container_id" 2>/dev/null || echo "not_found")
     
     if [ "$status" = "running" ]; then
         return 0
@@ -120,15 +138,20 @@ wait_for_healthy() {
     log_step "Esperando healthcheck de $service (hasta ${max_wait}s)..."
     
     while [ $waited -lt $max_wait ]; do
-        # Obtener health status del contenedor
-        local health=$(docker-compose -f "$compose_file" ps -q "$service" 2>/dev/null | xargs docker inspect -f '{{.State.Health.Status}}' 2>/dev/null || echo "none")
+        local container_id=$(docker-compose -f "$compose_file" ps -q "$service" 2>/dev/null)
         
-        if [ "$health" = "healthy" ]; then
-            return 0
-        elif [ "$health" = "none" ]; then
-            # No healthcheck definido, solo verificar que está running
-            if service_is_running "$service" "$compose_file"; then
+        if [ -n "$container_id" ]; then
+            # Obtener health status del contenedor
+            local health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id" 2>/dev/null || echo "none")
+            
+            if [ "$health" = "healthy" ]; then
                 return 0
+            elif [ "$health" = "none" ]; then
+                # No healthcheck definido, solo verificar que está running
+                local status=$(docker inspect -f '{{.State.Status}}' "$container_id" 2>/dev/null || echo "not_found")
+                if [ "$status" = "running" ]; then
+                    return 0
+                fi
             fi
         fi
         
@@ -173,7 +196,7 @@ run_with_timeout() {
 
 echo ""
 echo -e "${BLUE}${BOLD}================================================================================${NC}"
-echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.4 - Mode Selection${NC}"
+echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.5 - Mode Selection${NC}"
 echo -e "${BLUE}${BOLD}================================================================================${NC}"
 echo ""
 
@@ -313,6 +336,13 @@ log_success "docker-compose está disponible"
 log_header "🔍 Detectando configuración"
 
 log_step "Analizando servicios definidos en $COMPOSE_FILE..."
+
+# Mostrar servicios detectados por docker-compose
+log_dim "Servicios encontrados por docker-compose:"
+DETECTED_SERVICES=$(docker-compose -f "$COMPOSE_FILE" config --services 2>/dev/null || echo "(error al leer)")
+for svc in $DETECTED_SERVICES; do
+    log_dim "  - $svc"
+done
 echo ""
 
 HAS_APP=false
