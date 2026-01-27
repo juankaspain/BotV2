@@ -40,7 +40,7 @@ from pydantic import ValidationError
 
 # 🔒 SECURITY IMPORTS (New Modular Architecture)
 try:
-    from ..security import (
+    from shared.security import (
         init_csrf_protection,
         get_csrf_token,
         sanitize_html,
