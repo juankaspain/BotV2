@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Login - BotV2 Dashboard{% endblock %}
+
+{% block head %}
+<style>
+    body {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Inter', sans-serif;
+    }
+    .login-container {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 40px;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .login-header h1 {
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    .login-header p {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+        display: block;
+    }
+    .form-control {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        padding: 12px 16px;
+        border-radius: 10px;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: #00d9ff;
+        box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.2);
+        outline: none;
+    }
+    .btn-login {
+        background: linear-gradient(135deg, #00d9ff, #0066ff);
+        border: none;
+        color: #fff;
+        padding: 14px;
+        border-radius: 10px;
+        width: 100%;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0, 102, 255, 0.3);
+    }
+    .alert {
+        padding: 12px 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-size: 0.85rem;
+    }
+    .alert-danger {
+        background: rgba(220, 53, 69, 0.2);
+        border: 1px solid rgba(220, 53, 69, 0.5);
+        color: #ff6b6b;
+    }
+    .alert-success {
+        background: rgba(40, 167, 69, 0.2);
+        border: 1px solid rgba(40, 167, 69, 0.5);
+        color: #51cf66;
+    }
+    .version-badge {
+        text-align: center;
+        margin-top: 20px;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-header">
+        <h1><i class="fas fa-robot"></i> BotV2</h1>
+        <p>Professional Trading Dashboard</p>
+    </div>
+    
+    <div id="alert-container"></div>
+    
+    <form id="login-form" method="POST" action="/login">
+        {% if csrf_token %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% endif %}
+        
+        <div class="form-group">
+            <label for="username"><i class="fas fa-user"></i> Username</label>
+            <input type="text" class="form-control" id="username" name="username" required autocomplete="username">
+        </div>
+        
+        <div class="form-group">
+            <label for="password"><i class="fas fa-lock"></i> Password</label>
+            <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
+        </div>
+        
+        <button type="submit" class="btn-login" id="login-btn">
+            <i class="fas fa-sign-in-alt"></i> Sign In
+        </button>
+    </form>
+    
+    <div class="version-badge">
+        v7.5 - Enterprise Security
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+document.getElementById('login-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const btn = document.getElementById('login-btn');
+    const alertContainer = document.getElementById('alert-container');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+    
+    try {
+        const formData = new FormData(this);
+        const response = await fetch('/login', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            alertContainer.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Login successful! Redirecting...</div>';
+            setTimeout(() => window.location.href = data.redirect || '/', 1000);
+        } else {
+            alertContainer.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error || 'Invalid credentials'}</div>`;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+        }
+    } catch (error) {
+        alertContainer.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Connection error. Please try again.</div>';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+    }
+});
+</script>
+{% endblock %}
