@@ -1,0 +1,205 @@
+<!--
+  BotV2 Monitoring Partial
+  This partial is loaded dynamically within the SPA container
+  Contains real-time monitoring: trades, positions, system health
+-->
+
+<div class="section-monitoring" id="monitoringSection">
+  <!-- Monitoring Header -->
+  <div class="section-header">
+    <h2><i class="fas fa-desktop"></i> Real-Time Monitoring</h2>
+    <p class="section-description">Monitor bot activity, trades, and system health in real-time</p>
+  </div>
+
+  <!-- Quick Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon success"><i class="fas fa-check-circle"></i></div>
+      <div class="stat-content">
+        <span class="stat-value" id="successfulTrades">0</span>
+        <span class="stat-label">Successful Trades</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon danger"><i class="fas fa-times-circle"></i></div>
+      <div class="stat-content">
+        <span class="stat-value" id="failedTrades">0</span>
+        <span class="stat-label">Failed Trades</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon primary"><i class="fas fa-layer-group"></i></div>
+      <div class="stat-content">
+        <span class="stat-value" id="openPositions">0</span>
+        <span class="stat-label">Open Positions</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
+      <div class="stat-content">
+        <span class="stat-value" id="pendingOrders">0</span>
+        <span class="stat-label">Pending Orders</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Monitoring Grid -->
+  <div class="monitoring-grid">
+    <!-- Live Trades Feed -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-exchange-alt"></i> Live Trades</h3>
+        <div class="header-actions">
+          <span class="live-indicator"><span class="pulse"></span> Live</span>
+          <button class="btn btn-sm btn-secondary" onclick="BotV2.Monitoring.pauseFeed()">
+            <i class="fas fa-pause"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="trades-feed" id="tradesFeed">
+          <div class="trade-item placeholder">
+            <span class="trade-message">Waiting for trades...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Positions -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-wallet"></i> Active Positions</h3>
+        <button class="btn btn-sm btn-secondary" onclick="BotV2.Monitoring.refreshPositions()">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+      <div class="card-body">
+        <div class="positions-table-wrapper">
+          <table class="data-table" id="positionsTable">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Side</th>
+                <th>Size</th>
+                <th>Entry</th>
+                <th>Current</th>
+                <th>PnL</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="positionsBody">
+              <tr class="empty-row">
+                <td colspan="7">No active positions</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-heartbeat"></i> System Health</h3>
+      </div>
+      <div class="card-body">
+        <div class="health-metrics">
+          <div class="metric">
+            <span class="metric-label">WebSocket</span>
+            <span class="metric-value" id="wsStatus">
+              <span class="status-dot offline"></span> Disconnected
+            </span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">API Latency</span>
+            <span class="metric-value" id="apiLatency">-- ms</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">CPU Usage</span>
+            <div class="progress-bar">
+              <div class="progress" id="cpuProgress" style="width: 0%"></div>
+            </div>
+            <span class="metric-percent" id="cpuPercent">0%</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Memory Usage</span>
+            <div class="progress-bar">
+              <div class="progress" id="memoryProgress" style="width: 0%"></div>
+            </div>
+            <span class="metric-percent" id="memoryPercent">0%</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Last Update</span>
+            <span class="metric-value" id="lastUpdate">--:--:--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Book Preview -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-book"></i> Order Book</h3>
+        <select class="form-control-sm" id="orderBookPair">
+          <option value="BTCUSDT">BTC/USDT</option>
+          <option value="ETHUSDT">ETH/USDT</option>
+        </select>
+      </div>
+      <div class="card-body">
+        <div class="order-book" id="orderBook">
+          <div class="order-book-side asks">
+            <div class="order-row header">
+              <span>Price</span>
+              <span>Amount</span>
+            </div>
+            <div id="asksContainer"></div>
+          </div>
+          <div class="order-book-spread">
+            <span id="spreadValue">--</span>
+          </div>
+          <div class="order-book-side bids">
+            <div id="bidsContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logs Section -->
+  <div class="card mt-4">
+    <div class="card-header">
+      <h3><i class="fas fa-terminal"></i> System Logs</h3>
+      <div class="header-actions">
+        <select class="form-control-sm" id="logLevel">
+          <option value="all">All Levels</option>
+          <option value="error">Errors</option>
+          <option value="warning">Warnings</option>
+          <option value="info">Info</option>
+          <option value="debug">Debug</option>
+        </select>
+        <button class="btn btn-sm btn-secondary" onclick="BotV2.Monitoring.clearLogs()">
+          <i class="fas fa-trash"></i> Clear
+        </button>
+        <button class="btn btn-sm btn-secondary" onclick="BotV2.Monitoring.exportLogs()">
+          <i class="fas fa-download"></i> Export
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="system-logs" id="systemLogs">
+        <div class="log-entry info">
+          <span class="log-timestamp">--:--:--</span>
+          <span class="log-level">INFO</span>
+          <span class="log-message">Monitoring initialized. Waiting for connection...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Initialize monitoring when loaded
+  if (typeof BotV2 !== 'undefined' && BotV2.Monitoring) {
+    BotV2.Monitoring.init?.();
+  }
+</script>
