@@ -106,7 +106,7 @@ services:
       
       # Flask
       - FLASK_ENV=production
-      - FLASK_APP=src.dashboard.web_app
+      - FLASK_APP=dashboard.dashboard.web_app
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       
       # Dashboard
