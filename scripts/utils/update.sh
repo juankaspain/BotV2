@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# 🚀 BotV2 UPDATE SCRIPT v3.3 - Mode Selection Edition
+# 🚀 BotV2 UPDATE SCRIPT v3.4 - Mode Selection Edition
 # ================================================================
 # Actualiza servicios con selección de modo Demo/Producción
 # - Menú interactivo para elegir modo
@@ -10,10 +10,23 @@
 # - Muestra errores completos en tiempo real
 # - Timeout para evitar cuelgues infinitos
 # Author: Juan Carlos Garcia
-# Date: 22-01-2026
+# Date: 27-01-2026
 #
 
 set -eo pipefail  # Exit on error, pipe failures
+
+# ============================================================================
+# DETECTAR Y NAVEGAR A LA RAÍZ DEL PROYECTO
+# ============================================================================
+
+# Obtener el directorio donde está el script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Navegar a la raíz del proyecto (2 niveles arriba desde scripts/utils/)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Cambiar al directorio raíz del proyecto
+cd "$PROJECT_ROOT"
 
 # ============================================================================
 # COLORES Y ESTILOS (Profesional)
@@ -160,8 +173,12 @@ run_with_timeout() {
 
 echo ""
 echo -e "${BLUE}${BOLD}================================================================================${NC}"
-echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.3 - Mode Selection${NC}"
+echo -e "${BLUE}${BOLD}  🚀 BotV2 Update Script v3.4 - Mode Selection${NC}"
 echo -e "${BLUE}${BOLD}================================================================================${NC}"
+echo ""
+
+# Mostrar directorio de trabajo
+log_info "Directorio del proyecto: ${BOLD}$PROJECT_ROOT${NC}"
 echo ""
 
 echo -e "${BLUE}█████████████████████████████████████████████████████████████████████████████${NC}"
@@ -227,12 +244,14 @@ log_info "Usando archivo: ${BOLD}$COMPOSE_FILE${NC}"
 # Verificar que el archivo existe
 if [ ! -f "$COMPOSE_FILE" ]; then
     echo ""
-    log_error "Archivo $COMPOSE_FILE no encontrado"
-    log_info "Asegúrate de que el archivo existe en el directorio actual"
-    log_info "Archivos disponibles:"
+    log_error "Archivo $COMPOSE_FILE no encontrado en $PROJECT_ROOT"
+    log_info "Asegúrate de que el archivo existe en el directorio raíz del proyecto"
+    log_info "Archivos docker-compose disponibles:"
     ls -1 docker-compose*.yml 2>/dev/null | sed 's/^/    - /' || echo "    (ninguno)"
     exit 1
 fi
+
+log_success "Archivo $COMPOSE_FILE encontrado"
 
 # ============================================================================
 # CONFIRMACIÓN
@@ -611,6 +630,7 @@ echo ""
 echo -e "${WHITE}${BOLD}🎯 Configuración:${NC}"
 echo -e "  Modo operación: $(echo -e $MODE_NAME)"
 echo -e "  Archivo usado:  ${BOLD}$COMPOSE_FILE${NC}"
+echo -e "  Directorio:     ${BOLD}$PROJECT_ROOT${NC}"
 echo ""
 echo -e "${WHITE}${BOLD}🌐 Puntos de acceso:${NC}"
 echo ""
