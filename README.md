@@ -448,6 +448,12 @@ python src/dashboard/dashboard.py
 - 📊 [**IMPROVEMENTS_V1.1.md**](docs/IMPROVEMENTS_V1.1.md) - v1.1 improvements guide
 - ✅ [**V1.1_IMPLEMENTATION_STATUS.md**](docs/V1.1_IMPLEMENTATION_STATUS.md) - Implementation status
 - 📋 [**AUDIT_REPORT_v4.4.md**](docs/AUDIT_REPORT_v4.4.md) - Complete system audit
+- 
+### Module Documentation 🧩
+
+- 🤖 [**bot/README.md**](bot/README.md) - Trading bot engine documentation
+- 📊 [**dashboard/README.md**](dashboard/README.md) - Dashboard interface documentation
+
 
 ### Testing Documentation 🆕
 
@@ -482,7 +488,7 @@ python src/dashboard/dashboard.py
 **Commits:** 70+  
 **Contributors:** 1  
 **Open Issues:** 0  
-**Last Update:** 24 Enero 2026
+**Last Update:** 27 Enero 2026
 
 ---
 
