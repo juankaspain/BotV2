@@ -18,9 +18,9 @@ from datetime import datetime
 from typing import Dict, Optional, Tuple, List
 from enum import Enum
 import numpy as np
+from bot.core.order_optimizer import OrderOptimizer, OrderOptimizationStrategy
 
-from src.core.order_optimizer import OrderOptimizer, OrderOptimizationStrategy
-from src.core.order_optimizer_config import get_optimizer_for_exchange
+from bot.core.order_optimizer_config import get_optimizer_for_exchange
 
 logger = logging.getLogger(__name__)
 
