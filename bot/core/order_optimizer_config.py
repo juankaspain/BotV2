@@ -134,7 +134,7 @@ def get_optimizer_for_exchange(
     Returns:
         Configured OrderOptimizer instance
     """
-    from src.core.order_optimizer import OrderOptimizer
+    from bot.core.order_optimizer import OrderOptimizer
     
     exchange_name = exchange_name.lower()
     
