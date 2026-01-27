@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Bot Control - Trading Bot{% endblock %}
+
+{% block content %}
+<div class="control-container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-robot me-2"></i>Bot Control Panel</h4>
+                    <div class="d-flex align-items-center">
+                        <span class="badge me-2" id="mode-badge">Paper Trading</span>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="live-mode-toggle">
+                            <label class="form-check-label" for="live-mode-toggle">Live Mode</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="control-section">
+                                <h5>Bot Status</h5>
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="status-indicator me-3" id="status-indicator"></div>
+                                    <span id="status-text">Stopped</span>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-success" id="btn-start" onclick="controlBot('start')">
+                                        <i class="fas fa-play me-1"></i>Start
+                                    </button>
+                                    <button class="btn btn-warning" id="btn-pause" onclick="controlBot('pause')" disabled>
+                                        <i class="fas fa-pause me-1"></i>Pause
+                                    </button>
+                                    <button class="btn btn-danger" id="btn-stop" onclick="controlBot('stop')" disabled>
+                                        <i class="fas fa-stop me-1"></i>Stop
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="control-section">
+                                <h5>Active Strategy</h5>
+                                <select class="form-select mb-3" id="strategy-select">
+                                    <option value="">Select a strategy...</option>
+                                    {% for strategy in strategies %}
+                                    <option value="{{ strategy.id }}">{{ strategy.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <a href="{{ url_for('strategy_editor') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-edit me-1"></i>Edit Strategies
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trading Pairs & Parameters -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Trading Pairs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Active Pairs</label>
+                        <div id="active-pairs" class="d-flex flex-wrap gap-2">
+                            <span class="badge bg-primary">BTC/USDT</span>
+                            <span class="badge bg-primary">ETH/USDT</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <select class="form-select" id="pair-select">
+                            <option value="">Add pair...</option>
+                            <option value="BTC/USDT">BTC/USDT</option>
+                            <option value="ETH/USDT">ETH/USDT</option>
+                            <option value="SOL/USDT">SOL/USDT</option>
+                            <option value="XRP/USDT">XRP/USDT</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="addPair()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Risk Parameters</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Max Position Size (%)</label>
+                        <input type="range" class="form-range" id="max-position" min="1" max="100" value="10">
+                        <span id="max-position-value">10%</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Stop Loss (%)</label>
+                        <input type="number" class="form-control" id="stop-loss" value="2" min="0.1" max="50" step="0.1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Take Profit (%)</label>
+                        <input type="number" class="form-control" id="take-profit" value="5" min="0.1" max="100" step="0.1">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveRiskParams()">
+                        <i class="fas fa-save me-1"></i>Save Parameters
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emergency Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Emergency Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-outline-danger" onclick="closeAllPositions()">
+                            <i class="fas fa-times-circle me-1"></i>Close All Positions
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="cancelAllOrders()">
+                            <i class="fas fa-ban me-1"></i>Cancel All Orders
+                        </button>
+                        <button class="btn btn-danger" onclick="emergencyStop()">
+                            <i class="fas fa-power-off me-1"></i>Emergency Stop
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/control.js') }}"></script>
+{% endblock %}
