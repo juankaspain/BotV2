@@ -140,7 +140,7 @@ class TestSystemRecovery:
     
     def test_circuit_breaker_recovery_flow(self):
         """Test circuit breaker recovery after system restart"""
-        from src.core.circuit_breaker import CircuitBreaker, CircuitState
+        from bot.core.circuit_breaker import CircuitBreaker, CircuitState
         
         # Create circuit breaker
         cb = CircuitBreaker(
