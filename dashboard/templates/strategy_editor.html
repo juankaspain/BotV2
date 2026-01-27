@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Strategy Editor - Trading Bot{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="strategy-editor-container">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4><i class="fas fa-code me-2"></i>Strategy Editor</h4>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary" onclick="newStrategy()">
+                        <i class="fas fa-plus me-1"></i>New
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="saveStrategy()">
+                        <i class="fas fa-save me-1"></i>Save
+                    </button>
+                    <button class="btn btn-outline-success" onclick="testStrategy()">
+                        <i class="fas fa-play me-1"></i>Test
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Strategy List Sidebar -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Strategies</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="strategy-list">
+                        {% for strategy in strategies %}
+                        <a href="#" class="list-group-item list-group-item-action" data-id="{{ strategy.id }}" onclick="loadStrategy('{{ strategy.id }}')">
+                            <div class="d-flex justify-content-between">
+                                <span>{{ strategy.name }}</span>
+                                <span class="badge bg-{% if strategy.active %}success{% else %}secondary{% endif %}">
+                                    {% if strategy.active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </div>
+                        </a>
+                        {% else %}
+                        <div class="list-group-item text-muted">No strategies created</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor Area -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <input type="text" class="form-control form-control-sm me-2" id="strategy-name" placeholder="Strategy name" style="width: 200px;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="strategy-active">
+                            <label class="form-check-label" for="strategy-active">Active</label>
+                        </div>
+                    </div>
+                    <select class="form-select form-select-sm w-auto" id="strategy-type">
+                        <option value="momentum">Momentum</option>
+                        <option value="mean_reversion">Mean Reversion</option>
+                        <option value="breakout">Breakout</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="card-body p-0">
+                    <textarea id="code-editor"></textarea>
+                </div>
+            </div>
+
+            <!-- Parameters Section -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Strategy Parameters</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Timeframe</label>
+                            <select class="form-select" id="param-timeframe">
+                                <option value="1m">1 Minute</option>
+                                <option value="5m">5 Minutes</option>
+                                <option value="15m">15 Minutes</option>
+                                <option value="1h" selected>1 Hour</option>
+                                <option value="4h">4 Hours</option>
+                                <option value="1d">1 Day</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Lookback Period</label>
+                            <input type="number" class="form-control" id="param-lookback" value="20">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Signal Threshold</label>
+                            <input type="number" class="form-control" id="param-threshold" value="0.5" step="0.1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backtest Results -->
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="mb-0">Backtest Results</h5>
+                    <button class="btn btn-sm btn-primary" onclick="runBacktest()">
+                        <i class="fas fa-chart-bar me-1"></i>Run Backtest
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="backtest-results">
+                        <div class="col-md-3">
+                            <div class="metric-box">
+                                <span class="metric-label">Total Return</span>
+                                <span class="metric-value" id="bt-return">--</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-box">
+                                <span class="metric-label">Win Rate</span>
+                                <span class="metric-value" id="bt-winrate">--</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-box">
+                                <span class="metric-label">Sharpe Ratio</span>
+                                <span class="metric-value" id="bt-sharpe">--</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-box">
+                                <span class="metric-label">Max Drawdown</span>
+                                <span class="metric-value" id="bt-drawdown">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+<script src="{{ url_for('static', filename='js/strategy_editor.js') }}"></script>
+{% endblock %}
