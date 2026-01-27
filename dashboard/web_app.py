@@ -73,7 +73,6 @@ except ImportError:
 # 📊 METRICS MONITORING
 try:
     from .metrics_monitor import get_metrics_monitor, MetricsMiddleware
-    from .metrics_routes import metrics_bp
     HAS_METRICS = True
 except ImportError:
     HAS_METRICS = False
@@ -100,10 +99,11 @@ except ImportError:
     HAS_DATABASE = False
     logger.warning("⚠️ Database not available")
 
-# 🧮 BLUEPRINTS
-from .control_routes import control_bp
-from .monitoring_routes import monitoring_bp
-from .strategy_routes import strategy_bp
+# 🧮 BLUEPRINTS - FIXED: Import from routes subpackage
+from .routes.control_routes import control_bp
+from .routes.monitoring_routes import monitoring_bp
+from .routes.strategy_routes import strategy_bp
+from .routes.metrics_routes import metrics_bp as metrics_routes_bp
 
 # Dashboard version
 __version__ = '7.5'
@@ -193,7 +193,7 @@ class ProfessionalDashboard:
     
     def __init__(self, config):
         self.config = config
-        dash_config = config.get('dashboard', {})
+        dash_config = config.get('dashboard', {}) if hasattr(config, 'get') else {}
         
         self.host = dash_config.get('host', '0.0.0.0')
         self.port = dash_config.get('port', 8050)
@@ -237,7 +237,7 @@ class ProfessionalDashboard:
         self.alerts = []
         self.annotations = []
         
-        # 🛛️ Setup routes
+        # 🚹️ Setup routes
         self._setup_routes()
         self._setup_websocket_handlers()
         
@@ -310,18 +310,15 @@ class ProfessionalDashboard:
         logger.info("✅ Security Middleware enabled (Headers + Validation)")
         
         # 6. 🔐 CSP Configuration
-        # ⚠️ CRITICAL: No lambdas or callable objects - strings only!
         csp_config = {
             'default-src': "'self'",
             'script-src': [
                 "'self'",
                 "'unsafe-eval'",  # Required for SheetJS
-                # Core CDNs
                 "https://cdn.jsdelivr.net",
                 "https://cdn.socket.io",
                 "https://cdn.plot.ly",
                 "https://unpkg.com",
-                # Export Library CDNs
                 "https://cdn.sheetjs.com",
                 "https://cdnjs.cloudflare.com"
             ],
@@ -352,7 +349,6 @@ class ProfessionalDashboard:
                 "https://localhost:*",
                 "ws://localhost:*",
                 "wss://localhost:*",
-                # Allow CDN connections
                 "https://cdn.sheetjs.com",
                 "https://cdnjs.cloudflare.com",
                 "https://cdn.jsdelivr.net",
@@ -365,7 +361,6 @@ class ProfessionalDashboard:
         }
         
         if self.is_production:
-            # Production: Strict CSP with HTTPS
             Talisman(
                 self.app,
                 force_https=os.getenv('FORCE_HTTPS', 'true').lower() == 'true',
@@ -378,7 +373,6 @@ class ProfessionalDashboard:
             )
             logger.info("✅ HTTPS Enforcement + CSP enabled (production)")
         else:
-            # Development: CSP without HTTPS enforcement
             Talisman(
                 self.app,
                 force_https=False,
@@ -450,10 +444,8 @@ class ProfessionalDashboard:
         self.app.register_blueprint(control_bp)
         self.app.register_blueprint(monitoring_bp)
         self.app.register_blueprint(strategy_bp)
-        
-        if HAS_METRICS:
-            self.app.register_blueprint(metrics_bp)
-            logger.info("✅ Metrics API registered at /api/metrics")
+        self.app.register_blueprint(metrics_routes_bp)
+        logger.info("✅ All blueprints registered")
     
     def _log_startup_banner(self):
         """📢 Log startup banner"""
@@ -493,7 +485,7 @@ class ProfessionalDashboard:
                 return redirect(url_for('login'))
             
             # 🔒 Validate session if session manager available
-            if HAS_SECURITY and self.session_manager:
+            if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
                 if not self.session_manager._is_session_valid():
                     session.clear()
                     if self.audit_logger:
@@ -508,7 +500,7 @@ class ProfessionalDashboard:
         return decorated_function
     
     def _setup_routes(self):
-        """🛛️ Setup all Flask routes with 100% security coverage"""
+        """🚹️ Setup all Flask routes with 100% security coverage"""
         
         # ==================== AUTHENTICATION ====================
         
@@ -556,12 +548,12 @@ class ProfessionalDashboard:
                     session.permanent = True
                     session['user'] = username
                     session['login_time'] = datetime.now().isoformat()
-                    session['last_activity'] = datetime.now().isoformat()  # NUEVO
+                    session['last_activity'] = datetime.now().isoformat()
                     
                     # 🔒 Create session with session_manager
-                    if HAS_SECURITY and self.session_manager:
+                    if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
                         session_id = self.session_manager.create_session(username)
-                        session['session_id'] = session_id  # NUEVO - Guardar session_id
+                        session['session_id'] = session_id
                     
                     self.auth.record_successful_login(ip, username)
                     
@@ -570,13 +562,13 @@ class ProfessionalDashboard:
                         self.metrics_monitor.record_user_activity(username)
                     
                     # ✅ Force session save before response
-                    session.modified = True  # NUEVO - CRÍTICO
+                    session.modified = True
                     
                     # ✅ Return JSON with success
                     return jsonify({
                         'success': True, 
                         'redirect': '/',
-                        'message': 'Login successful'  # NUEVO
+                        'message': 'Login successful'
                     }), 200
                 else:
                     self.auth.record_failed_attempt(ip, username)
@@ -591,7 +583,7 @@ class ProfessionalDashboard:
             username = session.get('user')
             
             # 🔒 Destroy session
-            if HAS_SECURITY and self.session_manager:
+            if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
                 self.session_manager.clear_session()
             
             if self.audit_logger and username:
@@ -822,6 +814,15 @@ class ProfessionalDashboard:
 
 # Alias for backward compatibility
 TradingDashboard = ProfessionalDashboard
+
+
+def create_app(config=None):
+    """Factory function to create dashboard app"""
+    if config is None:
+        # Create minimal config for standalone mode
+        config = {'dashboard': {'host': '0.0.0.0', 'port': 8050, 'debug': False}}
+    dashboard = ProfessionalDashboard(config)
+    return dashboard.app
 
 
 if __name__ == "__main__":
