@@ -6,18 +6,30 @@ Provides protection against Cross-Site Scripting attacks
 
 import html
 import re
+import logging
 from functools import wraps
-from flask import request, abort
+from typing import Any, Dict, Optional
+from flask import Flask, request, abort
+
+logger = logging.getLogger(__name__)
 
 
-def sanitize_html(text):
+def sanitize_html(text, strip: bool = False) -> Optional[str]:
     """Escape HTML entities to prevent XSS"""
     if text is None:
         return None
-    return html.escape(str(text))
+    
+    text_str = str(text)
+    
+    if strip:
+        # Remove all HTML tags
+        clean = re.compile('<.*?>')
+        text_str = re.sub(clean, '', text_str)
+    
+    return html.escape(text_str)
 
 
-def sanitize_input(data):
+def sanitize_input(data) -> Any:
     """Recursively sanitize input data"""
     if isinstance(data, dict):
         return {k: sanitize_input(v) for k, v in data.items()}
@@ -28,12 +40,45 @@ def sanitize_input(data):
     return data
 
 
-def strip_tags(text):
+def sanitize_dict(data: Dict, strip: bool = False) -> Dict:
+    """Sanitize all string values in a dictionary"""
+    if not isinstance(data, dict):
+        return data
+    
+    result = {}
+    for key, value in data.items():
+        if isinstance(value, str):
+            result[key] = sanitize_html(value, strip=strip)
+        elif isinstance(value, dict):
+            result[key] = sanitize_dict(value, strip=strip)
+        elif isinstance(value, list):
+            result[key] = [sanitize_dict(v, strip=strip) if isinstance(v, dict) else sanitize_html(v, strip=strip) if isinstance(v, str) else v for v in value]
+        else:
+            result[key] = value
+    return result
+
+
+def strip_tags(text) -> Optional[str]:
     """Remove all HTML tags from text"""
     if text is None:
         return None
     clean = re.compile('<.*?>')
     return re.sub(clean, '', str(text))
+
+
+def sanitize_filename(filename: str) -> str:
+    """Sanitize filename to prevent path traversal"""
+    if not filename:
+        return 'unnamed'
+    
+    # Remove path separators and dangerous characters
+    sanitized = re.sub(r'[\\/:*?"<>|]', '_', filename)
+    sanitized = sanitized.strip('. ')
+    
+    # Prevent path traversal
+    sanitized = sanitized.replace('..', '_')
+    
+    return sanitized or 'unnamed'
 
 
 def xss_protect(f):
@@ -52,6 +97,44 @@ def xss_protect(f):
         
         return f(*args, **kwargs)
     return decorated_function
+
+
+def xss_protection_middleware(app: Flask, strip: bool = True, detect_only: bool = False):
+    """Flask middleware for XSS protection"""
+    
+    @app.before_request
+    def check_xss():
+        # Check for XSS patterns in request
+        xss_patterns = [
+            r'<script[^>]*>',
+            r'javascript:',
+            r'on\w+\s*=',
+            r'data:text/html',
+            r'<iframe',
+            r'<embed',
+            r'<object'
+        ]
+        
+        # Check query string
+        query_string = request.query_string.decode('utf-8', errors='ignore')
+        for pattern in xss_patterns:
+            if re.search(pattern, query_string, re.IGNORECASE):
+                logger.warning(f"XSS pattern detected in query: {pattern}")
+                if not detect_only:
+                    abort(400, description='Potentially malicious input detected')
+                break
+        
+        # Check form data
+        if request.form:
+            form_str = str(request.form.to_dict())
+            for pattern in xss_patterns:
+                if re.search(pattern, form_str, re.IGNORECASE):
+                    logger.warning(f"XSS pattern detected in form: {pattern}")
+                    if not detect_only:
+                        abort(400, description='Potentially malicious input detected')
+                    break
+    
+    logger.info("XSS Protection middleware initialized")
 
 
 def validate_content_type(allowed_types=None):
