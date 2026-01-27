@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}BotV2 Trading Dashboard{% endblock %}
+
+{% block content %}
+<div class="app-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <span>BotV2</span>
+            </div>
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" data-section="dashboard">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="control">
+                        <i class="fas fa-gamepad"></i>
+                        <span>Control</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="monitoring">
+                        <i class="fas fa-desktop"></i>
+                        <span>Monitoring</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="strategies">
+                        <i class="fas fa-code"></i>
+                        <span>Strategies</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="positions">
+                        <i class="fas fa-briefcase"></i>
+                        <span>Positions</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="history">
+                        <i class="fas fa-history"></i>
+                        <span>Trade History</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- Bot Status in Sidebar -->
+        <div class="sidebar-footer">
+            <div class="bot-status-widget">
+                <div class="status-indicator" id="sidebar-bot-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Offline</span>
+                </div>
+                <small class="text-muted">Bot Status</small>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Header Bar -->
+        <header class="top-header">
+            <div class="header-left">
+                <h1 class="page-title" id="page-title">Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Balance</span>
+                        <span class="stat-value" id="header-balance">$0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Today's P&L</span>
+                        <span class="stat-value" id="header-pnl">$0.00</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-icon" id="refresh-btn" title="Refresh">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="btn btn-icon" id="notifications-btn" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge" id="notification-count">0</span>
+                    </button>
+                    <div class="user-menu">
+                        <button class="btn btn-icon" id="user-menu-btn">
+                            <i class="fas fa-user-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Area -->
+        <div class="content-area" id="content-area">
+            <!-- Content will be loaded here dynamically -->
+            <div class="loading-container" id="content-loader">
+                <div class="spinner"></div>
+                <p>Loading...</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Toast Container for Notifications -->
+<div class="toast-container" id="toast-container"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize SPA navigation on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        BotV2.SPA.init();
+    });
+</script>
+{% endblock %}
