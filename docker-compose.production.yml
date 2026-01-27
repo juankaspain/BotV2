@@ -59,8 +59,7 @@ services:
       - REDIS_HOST=botv2-redis
       - REDIS_PORT=6379
     
-    command: ["python", "src/main.py"]
-    
+    command: ["python", "bot/main.py"]    
     depends_on:
       botv2-postgres:
         condition: service_healthy
@@ -128,8 +127,7 @@ services:
       - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
       - SECRET_KEY=${SECRET_KEY}
     
-    command: ["python", "src/dashboard/web_app.py"]
-    
+    command: ["python", "dashboard/web_app.py"]    
     ports:
       - "${DASHBOARD_PORT:-8050}:8050"
     
