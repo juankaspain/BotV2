@@ -53,7 +53,7 @@ services:
       - REDIS_HOST=localhost
       - REDIS_PORT=6379
     
-    command: ["python", "src/main.py"]
+    command: ["python", "bot/main.py"]
     
     networks:
       - botv2-network
@@ -95,7 +95,7 @@ services:
       
       # Flask
       - FLASK_ENV=development
-      - FLASK_APP=src.dashboard.web_app
+      - FLASK_APP=dashboard.web_app
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       
       # Dashboard
@@ -119,7 +119,7 @@ services:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///data/dashboard.db}
     
     # ⚠️ UPDATED: Use web_app.py v5.1 (dashboard_standalone.py was removed)
-    command: ["python", "-u", "-m", "src.dashboard.web_app"]
+    command: ["python", "-u", "-m", "dashboard.web_app"]
     
     ports:
       - "${DASHBOARD_PORT:-8050}:8050"
