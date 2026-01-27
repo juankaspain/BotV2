@@ -43,8 +43,8 @@ The **Order Optimization Engine** automatically minimizes trading commissions an
 The optimizer is already integrated in BotV2. To use it:
 
 ```python
-from src.core.order_optimizer import OrderOptimizer, OrderOptimizationStrategy
-from src.core.order_optimizer_config import get_optimizer_for_exchange
+from bot.core.order_optimizer import OrderOptimizer, OrderOptimizationStrategy
+from bot.core.order_optimizer_config import get_optimizer_for_exchange
 
 # Create optimizer for your exchange
 optimizer = get_optimizer_for_exchange(
@@ -342,8 +342,8 @@ Coinbase:
 ### Example 1: Momentum Strategy with Optimization
 
 ```python
-from src.core.order_optimizer_config import get_optimizer_for_exchange
-from src.core.order_optimizer import OrderOptimizationStrategy
+from bot.core.order_optimizer_config import get_optimizer_for_exchange
+from bot.core.order_optimizer import OrderOptimizationStrategy
 
 class MomentumStrategy:
     def __init__(self, portfolio_manager):
