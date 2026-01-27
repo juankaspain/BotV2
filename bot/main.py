@@ -40,7 +40,7 @@ from bot.ensemble.ensemble_voting import EnsembleVoting
 from bot.strategies.base_strategy import load_all_strategies
 from bot.backtesting.realistic_simulator import RealisticSimulator
 from bot.utils.secrets_manager import get_secrets_manager
-from shared.utils.sensitive_formatter import setup_sanitized_logger
+from bot.utils.sensitive_formatter import setup_sanitized_logger
 
 # Setup sanitized logging
 logger = setup_sanitized_logger(__name__)
