@@ -15,8 +15,7 @@ When API becomes available:
 4. Update settings.yaml to enable
 5. Set enabled=true in configuration
 
-Author: Juan Carlos Garcia Arriero
-Company: Santander Digital
+Author: Juan Carlos Garcia
 Date: January 2026
 """
 
