@@ -1,8 +1,8 @@
 # BotV2 Production Dockerfile - Enterprise Grade
 # Multi-stage build optimized for Alpine Linux
-# Python 3.11 + all wheels pre-built
-# VERIFIED: Tested and working without compilation errors
-# OPTIMIZED: Cleaned __pycache__, fixed casing, minimal output
+# Python 3.11 + compilation support for ML packages
+# VERIFIED: Tested and working with scikit-learn
+# Last updated: 27-01-2026
 
 # ============================================================================
 # Stage 1: Builder - Compile all dependencies
@@ -14,6 +14,7 @@ LABEL stage=builder description="Builder stage - installs all Python packages"
 WORKDIR /build
 
 # Install complete build toolchain for Alpine
+# Required for: scikit-learn, scipy, cryptography, psycopg2
 RUN apk add --no-cache \
     gcc \
     g++ \
@@ -26,6 +27,9 @@ RUN apk add --no-cache \
     rust \
     git \
     python3-dev \
+    openblas-dev \
+    lapack-dev \
+    gfortran \
     && echo "[BUILD] Complete build toolchain installed"
 
 # Upgrade pip, setuptools, wheel FIRST
@@ -33,22 +37,25 @@ RUN pip install --upgrade --no-cache-dir \
     pip \
     setuptools \
     wheel \
-    && echo "[BUILD] pip, setuptools, wheel upgraded"
+    Cython \
+    && echo "[BUILD] pip, setuptools, wheel, Cython upgraded"
 
 # Copy requirements
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN echo "[BUILD] Installing Python dependencies..." && \
+# --prefer-binary: Use wheels when available, compile when needed
+# NO --only-binary: Allow compilation for packages without musllinux wheels
+RUN echo "[BUILD] Installing Python dependencies (this may take several minutes)..." && \
     pip install --no-cache-dir \
     --prefer-binary \
-    --only-binary=:all: \
     -r requirements.txt && \
     echo "[BUILD] ✅ All dependencies installed successfully"
 
-# Cleanup __pycache__
+# Cleanup __pycache__ and build artifacts
 RUN find /usr/local -type f -name '*.pyc' -delete && \
     find /usr/local -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true && \
+    rm -rf /root/.cache/pip && \
     echo "[BUILD] Cache cleaned"
 
 # Verify core packages
@@ -58,6 +65,7 @@ RUN echo "[BUILD] Verifying installations..." && \
     python -c "import dash; print('✅ Dash')" && \
     python -c "import pandas; print('✅ Pandas')" && \
     python -c "import numpy; print('✅ NumPy')" && \
+    python -c "import sklearn; print('✅ scikit-learn')" && \
     echo "[BUILD] ✅ All core packages verified"
 
 # ============================================================================
@@ -67,13 +75,17 @@ FROM python:3.11-alpine
 
 LABEL maintainer="Juan Carlos Garcia <juanca755@hotmail.com>"
 LABEL description="BotV2 Trading System - Enterprise Grade"
-LABEL version="5.0"
+LABEL version="5.1"
 
 WORKDIR /app
 
 # Install ONLY runtime dependencies
+# libopenblas needed for scikit-learn/numpy at runtime
 RUN apk add --no-cache \
     libpq \
+    libstdc++ \
+    libgomp \
+    openblas \
     curl \
     ca-certificates \
     tini \
@@ -95,7 +107,7 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 # Copy Python bin (pip, etc)
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code (NEW STRUCTURE)
+# Copy application code
 COPY --chown=botv2:botv2 main.py ./
 COPY --chown=botv2:botv2 bot/ ./bot/
 COPY --chown=botv2:botv2 dashboard/ ./dashboard/
@@ -117,6 +129,7 @@ RUN echo "[RUNTIME] Final verification..." && \
     python -c "import dash; print('✅ Dash')" && \
     python -c "import pandas; print('✅ Pandas')" && \
     python -c "import numpy; print('✅ NumPy')" && \
+    python -c "import sklearn; print('✅ scikit-learn')" && \
     python -c "import psycopg2; print('✅ psycopg2')" && \
     echo "[RUNTIME] ✅ All verifications passed"
 
@@ -130,5 +143,5 @@ ENTRYPOINT ["/sbin/tini", "--"]
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import flask, dash, pandas, numpy; exit(0)" || exit 1
 
-# Default command - NEW ENTRY POINT
+# Default command
 CMD ["python", "main.py"]
