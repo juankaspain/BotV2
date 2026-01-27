@@ -34,7 +34,7 @@ El sistema anterior solo tenía **circuit breakers estáticos** basados en drawd
 
 ### Solución Implementada
 
-**Archivo**: `src/core/trailing_stop_manager.py`  
+**Archivo**: `bot/core/trailing_stop_manager.py`  
 **Clase**: `TrailingStopManager`
 
 #### Características
@@ -152,7 +152,7 @@ risk:
 #### Uso en Código
 
 ```python
-from src.core.trailing_stop_manager import TrailingStopManager, TrailingStopType
+from bot.core.trailing_stop_manager import TrailingStopManager, TrailingStopType
 
 # Inicializar
 trailing_mgr = TrailingStopManager(config)
@@ -652,7 +652,7 @@ dashboard:
 
 ## 📚 Referencias
 
-- **Trailing Stops**: `src/core/trailing_stop_manager.py`
+- **Trailing Stops**: `bot/core/trailing_stop_manager.py`
 - **Timestamp Validation**: `src/data/data_validator.py`
 - **Latency Simulator**: `src/backtesting/latency_simulator.py`
 - **Configuración**: `src/config/settings.yaml`
