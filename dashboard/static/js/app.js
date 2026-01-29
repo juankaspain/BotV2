@@ -942,4 +942,56 @@ document.addEventListener('DOMContentLoaded', () => {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = BotV2;
 }
+
+// ============================================
+// GLOBAL FUNCTION WRAPPERS
+// Expose functions for onclick handlers in templates
+// ============================================
+
+// Control functions - exposed globally for onclick handlers
+window.controlBot = (action) => BotV2.API.controlBot(action);
+window.closeAllPositions = async () => {
+    if (!confirm('Close all positions?')) return;
+    try {
+        await BotV2.API.closeAllPositions();
+        BotV2.UI.notify('All positions closed', 'success');
+        BotV2.Dashboard?.loadData?.();
+    } catch (error) {
+        BotV2.UI.notify('Failed to close positions', 'error');
+    }
+};
+window.cancelAllOrders = async () => {
+    if (!confirm('Cancel all orders?')) return;
+    try {
+        await BotV2.API.cancelAllOrders();
+        BotV2.UI.notify('All orders cancelled', 'success');
+    } catch (error) {
+        BotV2.UI.notify('Failed to cancel orders', 'error');
+    }
+};
+window.emergencyStop = async () => {
+    if (!confirm('Execute emergency stop? This will close all positions.')) return;
+    try {
+        await BotV2.API.emergencyStop();
+        BotV2.UI.notify('Emergency stop executed', 'warning');
+        BotV2.Dashboard?.loadData?.();
+    } catch (error) {
+        BotV2.UI.notify('Emergency stop failed', 'error');
+    }
+};
+window.saveRiskParams = () => {
+    const form = document.getElementById('risk-form');
+    if (form) {
+        const data = Object.fromEntries(new FormData(form));
+        BotV2.API.saveRiskParams(data);
+    }
+};
+
+// Strategy functions - for strategy_editor.html
+window.newStrategy = () => BotV2.Strategies?.new?.() || console.log('Strategy module not loaded');
+window.saveStrategy = () => BotV2.Strategies?.save?.() || console.log('Strategy module not loaded');
+window.testStrategy = () => BotV2.Strategies?.test?.() || console.log('Strategy module not loaded');
+
+// Dashboard functions
+window.closePosition = (id) => BotV2.Dashboard?.closePosition?.(id);
 };
