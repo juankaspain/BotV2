@@ -1,16 +1,16 @@
 #!/bin/bash
 #
-# 🚀 BotV2 UPDATE SCRIPT v4.0 - Professional Update with Force Rebuild
+# 🚀 BotV2 UPDATE SCRIPT v4.1 - Professional Update with Error Detection
 # ============================================================================
 # Actualiza servicios con selección de modo Demo/Producción
 # - Rebuild forzado sin caché para evitar problemas de imágenes antiguas
-# - Limpieza automática de imágenes huérfanas
-# - Mejor manejo de errores y diagnóstico
+# - Detección automática de errores y muestra de logs
+# - Verificación robusta de estado de contenedores
 # - Soporte completo para Demo y Producción
 #
 # Author: Juan Carlos Garcia
-# Date: 29-01-2026
-# Version: 4.0
+# Date: 30-01-2026
+# Version: 4.1
 #
 # Uso:
 #   ./update.sh              # Menú interactivo
@@ -56,7 +56,12 @@ BUILD_LOG_FILE="/tmp/botv2_build_$$.log"
 COMPOSE_FILE=""
 MODE=""
 FORCE_CLEAN=false
-SCRIPT_VERSION="4.0"
+SCRIPT_VERSION="4.1"
+
+# Contadores de estado
+SERVICES_OK=0
+SERVICES_FAILED=0
+FAILED_SERVICES=""
 
 # ============================================================================
 # PARSEO DE ARGUMENTOS
@@ -130,6 +135,28 @@ log_info() {
 
 log_dim() {
     echo -e "${GRAY}  $1${NC}"
+}
+
+# ============================================================================
+# FUNCIÓN PARA MOSTRAR LOGS DE ERROR DE UN CONTENEDOR
+# ============================================================================
+
+show_container_error_logs() {
+    local service=$1
+    local compose_file=$2
+    local num_lines=${3:-50}
+    
+    echo ""
+    echo -e "${RED}${BOLD}┌─────────────────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${RED}${BOLD}│  📜 LOGS DE ERROR: $service${NC}"
+    echo -e "${RED}${BOLD}└─────────────────────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    
+    # Mostrar los logs
+    docker-compose -f "$compose_file" logs --tail="$num_lines" "$service" 2>&1
+    
+    echo ""
+    echo -e "${GRAY}─────────────────────────────────────────────────────────────────────────────${NC}"
 }
 
 # ============================================================================
@@ -280,63 +307,57 @@ service_is_running() {
     [ -n "$container_id" ] && [ "$(docker inspect -f '{{.State.Status}}' "$container_id" 2>/dev/null)" = "running" ]
 }
 
-wait_for_healthy() {
+# Función mejorada para verificar estado del contenedor
+check_container_status() {
     local service=$1
     local compose_file=$2
-    local max_wait=${3:-90}
+    local max_wait=${3:-60}
     local waited=0
     
-    log_step "Esperando healthcheck de $service (hasta ${max_wait}s)..."
+    log_step "Verificando $service (hasta ${max_wait}s)..."
     
     while [ $waited -lt $max_wait ]; do
         local container_id=$(docker-compose -f "$compose_file" ps -q "$service" 2>/dev/null)
         
-        if [ -n "$container_id" ]; then
-            local status=$(docker inspect -f '{{.State.Status}}' "$container_id" 2>/dev/null || echo "not_found")
-            
-            # Verificar si el contenedor está corriendo
-            if [ "$status" = "running" ]; then
-                local health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id" 2>/dev/null || echo "none")
-                
-                if [ "$health" = "healthy" ]; then
-                    echo ""
-                    return 0
-                elif [ "$health" = "none" ]; then
-                    # Sin healthcheck definido, verificar solo que está corriendo
-                    echo ""
-                    return 0
-                fi
-            elif [ "$status" = "exited" ]; then
-                echo ""
-                log_error "$service ha terminado inesperadamente"
-                log_dim "Últimas líneas del log:"
-                docker-compose -f "$compose_file" logs --tail=10 "$service" 2>/dev/null
-                return 1
-            fi
+        if [ -z "$container_id" ]; then
+            printf "${GRAY}  Esperando contenedor... %ds${NC}\r" "$waited"
+            sleep 3
+            waited=$((waited + 3))
+            continue
         fi
         
-        printf "${GRAY}  Esperando... %ds${NC}\r" "$waited"
+        local status=$(docker inspect -f '{{.State.Status}}' "$container_id" 2>/dev/null || echo "not_found")
+        
+        case "$status" in
+            "running")
+                # Verificar healthcheck si existe
+                local health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id" 2>/dev/null || echo "none")
+                
+                if [ "$health" = "healthy" ] || [ "$health" = "none" ]; then
+                    echo ""  # Limpiar línea de progreso
+                    return 0  # Éxito
+                elif [ "$health" = "unhealthy" ]; then
+                    echo ""
+                    return 2  # Unhealthy
+                fi
+                # Si está "starting", seguir esperando
+                ;;
+            "exited"|"dead")
+                echo ""
+                return 1  # Falló
+                ;;
+            "restarting")
+                # Puede estar en bucle de restart, esperar un poco más
+                ;;
+        esac
+        
+        printf "${GRAY}  Esperando... %ds (status: %s)${NC}\r" "$waited" "$status"
         sleep 3
         waited=$((waited + 3))
     done
     
-    echo ""
-    return 1
-}
-
-check_container_logs_for_errors() {
-    local service=$1
-    local compose_file=$2
-    
-    # Buscar errores comunes en los logs
-    local errors=$(docker-compose -f "$compose_file" logs --tail=50 "$service" 2>/dev/null | grep -iE "(error|exception|traceback|importerror|modulenotfounderror)" | head -5)
-    
-    if [ -n "$errors" ]; then
-        log_warning "Se detectaron posibles errores en los logs de $service:"
-        echo -e "${RED}$errors${NC}"
-        return 1
-    fi
-    return 0
+    echo ""  # Limpiar línea de progreso
+    return 3  # Timeout
 }
 
 # ============================================================================
@@ -606,15 +627,15 @@ else
 fi
 
 # ============================================================================
-# VERIFICACIÓN
+# VERIFICACIÓN DE SERVICIOS
 # ============================================================================
 
 log_header "✅ Verificación de servicios"
 
 CURRENT_STEP="Verificación"
 
-log_step "Esperando inicialización (30s)..."
-sleep 30
+log_step "Esperando inicialización (15s)..."
+sleep 15
 
 # Mostrar estado de contenedores
 log_step "Estado de contenedores:"
@@ -622,80 +643,120 @@ echo ""
 docker-compose -f "$COMPOSE_FILE" ps -a
 echo ""
 
-# Verificar cada servicio
-VERIFICATION_OK=true
+# Verificar cada servicio con la nueva función mejorada
 
+# PostgreSQL (si existe)
 if [ "$HAS_POSTGRES" = true ]; then
-    if wait_for_healthy "botv2-postgres" "$COMPOSE_FILE" 60; then
-        log_success "botv2-postgres: ${GREEN}HEALTHY${NC}"
-    else
-        log_warning "botv2-postgres: verificar logs"
-        VERIFICATION_OK=false
-    fi
+    check_container_status "botv2-postgres" "$COMPOSE_FILE" 60
+    case $? in
+        0) log_success "botv2-postgres: ${GREEN}RUNNING${NC}"; ((SERVICES_OK++)) ;;
+        1) log_error "botv2-postgres: ${RED}FAILED (exited)${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-postgres" ;;
+        2) log_error "botv2-postgres: ${RED}UNHEALTHY${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-postgres" ;;
+        3) log_warning "botv2-postgres: ${YELLOW}TIMEOUT${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-postgres" ;;
+    esac
 fi
 
+# Redis (si existe)
 if [ "$HAS_REDIS" = true ]; then
-    if wait_for_healthy "botv2-redis" "$COMPOSE_FILE" 30; then
-        log_success "botv2-redis: ${GREEN}HEALTHY${NC}"
-    else
-        log_warning "botv2-redis: verificar logs"
-        VERIFICATION_OK=false
-    fi
+    check_container_status "botv2-redis" "$COMPOSE_FILE" 30
+    case $? in
+        0) log_success "botv2-redis: ${GREEN}RUNNING${NC}"; ((SERVICES_OK++)) ;;
+        1) log_error "botv2-redis: ${RED}FAILED (exited)${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-redis" ;;
+        2) log_error "botv2-redis: ${RED}UNHEALTHY${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-redis" ;;
+        3) log_warning "botv2-redis: ${YELLOW}TIMEOUT${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-redis" ;;
+    esac
 fi
 
+# Bot App
 if [ "$HAS_APP" = true ]; then
-    if wait_for_healthy "botv2-app" "$COMPOSE_FILE" 90; then
-        log_success "botv2-app: ${GREEN}HEALTHY${NC}"
-        check_container_logs_for_errors "botv2-app" "$COMPOSE_FILE" || VERIFICATION_OK=false
-    else
-        log_warning "botv2-app: verificar logs"
-        check_container_logs_for_errors "botv2-app" "$COMPOSE_FILE"
-        VERIFICATION_OK=false
-    fi
+    check_container_status "botv2-app" "$COMPOSE_FILE" 60
+    case $? in
+        0) log_success "botv2-app: ${GREEN}RUNNING${NC}"; ((SERVICES_OK++)) ;;
+        1) log_error "botv2-app: ${RED}FAILED (exited)${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-app" ;;
+        2) log_error "botv2-app: ${RED}UNHEALTHY${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-app" ;;
+        3) log_warning "botv2-app: ${YELLOW}TIMEOUT${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-app" ;;
+    esac
 fi
 
+# Dashboard
 if [ "$HAS_DASHBOARD" = true ]; then
-    if wait_for_healthy "botv2-dashboard" "$COMPOSE_FILE" 90; then
-        log_success "botv2-dashboard: ${GREEN}HEALTHY${NC}"
-        check_container_logs_for_errors "botv2-dashboard" "$COMPOSE_FILE" || VERIFICATION_OK=false
+    check_container_status "botv2-dashboard" "$COMPOSE_FILE" 90
+    case $? in
+        0) log_success "botv2-dashboard: ${GREEN}RUNNING${NC}"; ((SERVICES_OK++)) ;;
+        1) log_error "botv2-dashboard: ${RED}FAILED (exited)${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-dashboard" ;;
+        2) log_error "botv2-dashboard: ${RED}UNHEALTHY${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-dashboard" ;;
+        3) log_warning "botv2-dashboard: ${YELLOW}TIMEOUT${NC}"; ((SERVICES_FAILED++)); FAILED_SERVICES="$FAILED_SERVICES botv2-dashboard" ;;
+    esac
+fi
+
+# Verificar HTTP del dashboard (solo si no falló)
+HTTP_OK=false
+if [ "$SERVICES_FAILED" -eq 0 ]; then
+    echo ""
+    log_step "Verificando acceso HTTP al dashboard..."
+    sleep 5
+    
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 http://localhost:8050/health 2>/dev/null || echo "000")
+    
+    if [[ "$HTTP_CODE" =~ ^(200|401|302)$ ]]; then
+        log_success "Dashboard accesible: HTTP $HTTP_CODE"
+        HTTP_OK=true
     else
-        log_warning "botv2-dashboard: verificar logs"
-        check_container_logs_for_errors "botv2-dashboard" "$COMPOSE_FILE"
-        VERIFICATION_OK=false
+        log_warning "Dashboard no responde (HTTP $HTTP_CODE)"
     fi
 fi
 
-# Verificar HTTP del dashboard
-echo ""
-log_step "Verificando acceso HTTP al dashboard..."
-sleep 5
+# ============================================================================
+# MOSTRAR LOGS DE ERRORES SI HAY FALLOS
+# ============================================================================
 
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8050/health 2>/dev/null || echo "000")
-
-if [[ "$HTTP_CODE" =~ ^(200|401|302)$ ]]; then
-    log_success "Dashboard accesible: HTTP $HTTP_CODE"
-else
-    log_warning "Dashboard no responde correctamente (HTTP $HTTP_CODE)"
-    log_dim "Puede tardar unos segundos más en estar disponible"
-    VERIFICATION_OK=false
+if [ "$SERVICES_FAILED" -gt 0 ]; then
+    log_header "📜 Logs de servicios fallidos"
+    
+    for service in $FAILED_SERVICES; do
+        show_container_error_logs "$service" "$COMPOSE_FILE" 80
+    done
 fi
 
 # ============================================================================
 # RESUMEN FINAL
 # ============================================================================
 
-if [ "$VERIFICATION_OK" = true ]; then
+if [ "$SERVICES_FAILED" -eq 0 ] && [ "$HTTP_OK" = true ]; then
+    # TODO EXITOSO
     log_header "✨ Actualización completada exitosamente"
     
     echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${GREEN}${BOLD}║                         ✅ ACTUALIZACIÓN EXITOSA                             ║${NC}"
     echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    
+    EXIT_CODE=0
+    
+elif [ "$SERVICES_FAILED" -gt 0 ]; then
+    # HAY SERVICIOS FALLIDOS
+    log_header "❌ Actualización FALLIDA"
+    
+    echo -e "${RED}${BOLD}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}${BOLD}║                       ❌ ACTUALIZACIÓN FALLIDA                              ║${NC}"
+    echo -e "${RED}${BOLD}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    
+    echo ""
+    echo -e "${WHITE}${BOLD}📊 Resumen:${NC}"
+    echo -e "  Servicios OK:     ${GREEN}$SERVICES_OK${NC}"
+    echo -e "  Servicios FAILED: ${RED}$SERVICES_FAILED${NC}"
+    echo -e "  Fallidos:         ${RED}$FAILED_SERVICES${NC}"
+    
+    EXIT_CODE=1
+    
 else
+    # ADVERTENCIAS (HTTP no responde pero contenedores OK)
     log_header "⚠️ Actualización completada con advertencias"
     
     echo -e "${YELLOW}${BOLD}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${YELLOW}${BOLD}║                    ⚠️ COMPLETADO CON ADVERTENCIAS                            ║${NC}"
+    echo -e "${YELLOW}${BOLD}║                    ⚠️ COMPLETADO CON ADVERTENCIAS                         ║${NC}"
     echo -e "${YELLOW}${BOLD}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+    
+    EXIT_CODE=0
 fi
 
 echo ""
@@ -727,13 +788,12 @@ echo -e "  ${DIM}docker-compose -f $PROJECT_ROOT/$COMPOSE_FILE restart${NC}"
 echo -e "  ${DIM}docker-compose -f $PROJECT_ROOT/$COMPOSE_FILE down${NC}"
 echo ""
 
-if [ "$VERIFICATION_OK" = false ]; then
-    echo -e "${YELLOW}${BOLD}⚠️ Revisa los logs para más detalles sobre las advertencias${NC}"
-    echo ""
+if [ "$EXIT_CODE" -eq 0 ]; then
+    echo -e "${GREEN}${BOLD}¡Listo! 🎉${NC}"
+else
+    echo -e "${RED}${BOLD}Revisa los logs de error arriba para diagnosticar el problema.${NC}"
 fi
-
-echo -e "${GREEN}${BOLD}¡Listo! 🎉${NC}"
 echo ""
 
 cleanup
-exit 0
+exit $EXIT_CODE
