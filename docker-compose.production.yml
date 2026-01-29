@@ -29,8 +29,6 @@
 #   docker-compose -f docker-compose.production.yml exec botv2-postgres psql -U botv2 -d botv2_db
 # ============================================================================
 
-version: '3.8'
-
 services:
   # ==========================================================================
   # Trading Bot Container - Production Mode
@@ -86,7 +84,7 @@ services:
     labels:
       - "com.botv2.mode=production"
       - "com.botv2.service=trading-bot"
-      - "com.botv2.version=2.0"
+      - "com.botv2.version=3.0"
 
   # ==========================================================================
   # Dashboard Container - Production Mode with Real Data
@@ -106,7 +104,7 @@ services:
       
       # Flask
       - FLASK_ENV=production
-      - FLASK_APP=dashboard.dashboard.web_app
+      - FLASK_APP=dashboard.web_app
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       
       # Dashboard
@@ -127,7 +125,9 @@ services:
       - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
       - SECRET_KEY=${SECRET_KEY}
     
-    command: ["python", "dashboard/web_app.py"]    
+    # Use the module format consistent with demo mode
+    command: ["python", "-u", "-m", "dashboard.web_app"]
+    
     ports:
       - "${DASHBOARD_PORT:-8050}:8050"
     
@@ -143,19 +143,31 @@ services:
     restart: on-failure:3
     
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8050/health').read()"]
+      test: |
+        python -c "
+        import urllib.request
+        import sys
+        try:
+            response = urllib.request.urlopen('http://localhost:8050/health', timeout=5)
+            sys.exit(0 if response.code in [200, 401, 302] else 1)
+        except urllib.error.HTTPError as e:
+            sys.exit(0 if e.code in [200, 401, 302] else 1)
+        except Exception:
+            sys.exit(1)
+        "
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 60s
     
     volumes:
       - ./logs:/app/logs
+      - ./data:/app/data
     
     labels:
       - "com.botv2.mode=production"
       - "com.botv2.service=dashboard"
-      - "com.botv2.version=2.0"
+      - "com.botv2.version=5.1"
 
   # ==========================================================================
   # PostgreSQL Database - Production
@@ -192,7 +204,7 @@ services:
     labels:
       - "com.botv2.mode=production"
       - "com.botv2.service=database"
-      - "com.botv2.version=2.0"
+      - "com.botv2.version=3.0"
 
   # ==========================================================================
   # Redis Cache - Production
@@ -224,7 +236,7 @@ services:
     labels:
       - "com.botv2.mode=production"
       - "com.botv2.service=cache"
-      - "com.botv2.version=2.0"
+      - "com.botv2.version=3.0"
 
 # ============================================================================
 # Networks
