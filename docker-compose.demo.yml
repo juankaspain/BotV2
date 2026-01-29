@@ -1,12 +1,12 @@
 # ============================================================================
-# BotV2 Trading System - DEMO MODE Configuration
+# BotV2 Trading System - DEMO MODE Configuration (OPTIMIZED)
 # ============================================================================
-# 🎮 MODO DEMO: Sistema completo con datos de demostración
+# 🎮 MODO DEMO: Sistema optimizado para desarrollo y pruebas
 #
 # Características:
 #   • Trading Bot + Dashboard v5.1 con datos demo
 #   • NO requiere PostgreSQL ni Redis (usa memoria)
-#   • Perfecto para pruebas, desarrollo y demos
+#   • Build RÁPIDO: ~2-3 minutos (vs 10-15 min producción)
 #   • Inicio rápido (< 30 segundos)
 #   • Bajo consumo de recursos
 #   • Paper trading mode activado
@@ -22,18 +22,21 @@
 #   docker-compose -f docker-compose.demo.yml logs -f
 #   docker-compose -f docker-compose.demo.yml ps
 #   docker-compose -f docker-compose.demo.yml down
+#
+# ⚠️ NOTA: Este modo usa Dockerfile.demo con dependencias reducidas
+#   para builds más rápidos. Para producción usar docker-compose.production.yml
 # ============================================================================
 
 services:
   # ==========================================================================
-  # Trading Bot Container - Demo Mode
+  # Trading Bot Container - Demo Mode (FAST BUILD)
   # ==========================================================================
   botv2-app:
     container_name: botv2-app
     image: botv2-app:latest
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.demo
     env_file:
       - .env
     environment:
@@ -75,17 +78,18 @@ services:
     labels:
       - "com.botv2.mode=demo"
       - "com.botv2.service=trading-bot"
-      - "com.botv2.version=3.3"
+      - "com.botv2.version=5.1-demo"
+      - "com.botv2.build=fast"
 
   # ==========================================================================
-  # Dashboard Container v5.1 - Complete Integration with Mock Data
+  # Dashboard Container v5.1 - Demo Mode (FAST BUILD)
   # ==========================================================================
   botv2-dashboard:
     container_name: botv2-dashboard
     image: botv2-dashboard:latest
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.demo
     env_file:
       - .env
     environment:
@@ -118,7 +122,7 @@ services:
       # Database (optional - will use mock data if not available)
       - DATABASE_URL=${DATABASE_URL:-sqlite:///data/dashboard.db}
     
-    # ⚠️ UPDATED: Use web_app.py v5.1 (dashboard_standalone.py was removed)
+    # Use web_app.py v5.1 as module
     command: ["python", "-u", "-m", "dashboard.web_app"]
     
     ports:
@@ -154,7 +158,8 @@ services:
     labels:
       - "com.botv2.mode=demo"
       - "com.botv2.service=dashboard"
-      - "com.botv2.version=5.1"
+      - "com.botv2.version=5.1-demo"
+      - "com.botv2.build=fast"
     
     depends_on:
       botv2-app:
