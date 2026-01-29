@@ -7,7 +7,7 @@
 # ============================================================================
 # Stage 1: Builder - Compile all dependencies
 # ============================================================================
-FROM python:3.11-alpine AS builder
+FROM python:3.14-alpine AS builder
 
 LABEL stage=builder description="Builder stage - installs all Python packages"
 
@@ -71,7 +71,7 @@ RUN echo "[BUILD] Verifying installations..." && \
 # ============================================================================
 # Stage 2: Runtime - Minimal production image
 # ============================================================================
-FROM python:3.11-alpine
+FROM python:3.14-alpine
 
 LABEL maintainer="Juan Carlos Garcia <juanca755@hotmail.com>"
 LABEL description="BotV2 Trading System - Enterprise Grade"
