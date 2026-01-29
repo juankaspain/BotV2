@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/juankaspain/BotV2/tree/main/docs
+    about: Check the documentation before opening an issue
+  - name: Discussions
+    url: https://github.com/juankaspain/BotV2/discussions
+    about: Ask questions and share ideas in Discussions
+  - name: Security Vulnerabilities
+    url: https://github.com/juankaspain/BotV2/security/advisories/new
+    about: Report security vulnerabilities privately
