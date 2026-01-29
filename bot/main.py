@@ -22,8 +22,9 @@ from shared.config.secrets_validator import validate_secrets
 # Get environment from env var or default to development
 CURRENT_ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 
-# Validate all required secrets
-validate_secrets(environment=CURRENT_ENVIRONMENT, strict=True)
+# Validate all required secrets (skip strict mode in DEMO mode)
+DEMO_MODE = os.getenv('DEMO_MODE', 'false').lower() in ('true', '1', 'yes')
+validate_secrets(environment=CURRENT_ENVIRONMENT, strict=not DEMO_MODE)
 
 # ===== NOW SAFE TO IMPORT OTHER COMPONENTS =====
 from bot.config.config_manager import ConfigManager
