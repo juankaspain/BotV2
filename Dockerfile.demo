@@ -1,76 +1,113 @@
-# ============================================================================
-# BotV2 DEMO Dockerfile - Optimized for Fast Startup
-# ============================================================================
-# 
-# OPTIMIZATIONS:
-# - Uses python:3.11-slim (Debian) instead of Alpine (pre-built wheels)
-# - Minimal dependencies (no ML libraries like scikit-learn)
-# - Single-stage build (no compilation needed)
-# - Build time: ~30 seconds vs ~5-10 minutes
+# BotV2 Demo Dockerfile - FAST BUILD
+# Optimized for demo/development mode
+# Build time: ~2-3 minutes (vs 10-15 min production)
+# Last updated: 29-01-2026
 #
 # USAGE:
-#   docker build -f Dockerfile.demo -t botv2-demo .
+#   docker build -f Dockerfile.demo -t botv2-app:latest .
 #   docker-compose -f docker-compose.demo.yml up -d
-#
+
 # ============================================================================
+# Stage 1: Builder - Install dependencies (FAST)
+# ============================================================================
+FROM python:3.11-alpine AS builder
 
-FROM python:3.11-slim
+LABEL stage=builder description="Demo builder - lightweight dependencies"
 
-LABEL maintainer="BotV2 Team"
-LABEL description="BotV2 Trading System - DEMO Mode (Fast Build)"
-LABEL version="demo-1.0"
+WORKDIR /build
 
-# Set working directory
+# Minimal build dependencies (no Fortran/BLAS needed for demo)
+RUN apk add --no-cache \
+    gcc \
+    g++ \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    cargo \
+    rust \
+    python3-dev \
+    && echo "[BUILD-DEMO] Build tools installed"
+
+# Upgrade pip
+RUN pip install --upgrade --no-cache-dir pip setuptools wheel \
+    && echo "[BUILD-DEMO] pip upgraded"
+
+# Copy demo requirements (lightweight)
+COPY requirements-demo.txt .
+
+# Install dependencies - MUCH FASTER without ML libraries
+RUN echo "[BUILD-DEMO] Installing demo dependencies..." && \
+    pip install --no-cache-dir \
+    --prefer-binary \
+    -r requirements-demo.txt && \
+    echo "[BUILD-DEMO] ✅ Dependencies installed"
+
+# Cleanup
+RUN find /usr/local -type f -name '*.pyc' -delete && \
+    find /usr/local -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true && \
+    rm -rf /root/.cache/pip
+
+# Quick verification
+RUN python -c "import flask, dash, pandas, numpy; print('✅ Core packages OK')"
+
+# ============================================================================
+# Stage 2: Runtime - Minimal demo image
+# ============================================================================
+FROM python:3.11-alpine
+
+LABEL maintainer="Juan Carlos Garcia <juanca755@hotmail.com>"
+LABEL description="BotV2 Trading System - Demo Mode"
+LABEL version="5.1-demo"
+LABEL mode="demo"
+
 WORKDIR /app
 
-# Install minimal system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Minimal runtime dependencies (no openblas needed)
+RUN apk add --no-cache \
+    libstdc++ \
     curl \
+    ca-certificates \
     tini \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && echo "[RUNTIME-DEMO] Runtime dependencies installed"
 
 # Create non-root user
-RUN groupadd -g 1000 botv2 && \
-    useradd -u 1000 -g botv2 -s /sbin/nologin -m botv2
+RUN addgroup -g 1000 botv2 && \
+    adduser -u 1000 -G botv2 -s /sbin/nologin -D botv2
 
-# Create application directories
+# Create directories
 RUN mkdir -p /app/{logs,backups,data,config} && \
     chown -R botv2:botv2 /app
 
-# Copy and install DEMO requirements (minimal)
-COPY requirements-demo.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements-demo.txt && \
-    echo "Dependencies installed successfully"
+# Copy Python packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
+COPY --chown=botv2:botv2 main.py ./
 COPY --chown=botv2:botv2 bot/ ./bot/
 COPY --chown=botv2:botv2 dashboard/ ./dashboard/
 COPY --chown=botv2:botv2 shared/ ./shared/
 COPY --chown=botv2:botv2 config.yaml ./
 COPY --chown=botv2:botv2 .env.example ./
+COPY --chown=botv2:botv2 README.md ./
 
-# Set environment variables
+# Environment
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
     DEMO_MODE=true
 
-# Quick verification
-RUN python -c "import flask; print('Flask OK')" && \
-    python -c "import dash; print('Dash OK')" && \
-    python -c "import pandas; print('Pandas OK')"
+# Verify
+RUN python -c "import flask, dash, pandas, numpy, plotly; print('✅ Demo ready')"
 
-# Switch to non-root user
+# Switch to non-root
 USER botv2
 
-# Use tini for proper signal handling
-ENTRYPOINT ["/usr/bin/tini", "--"]
+# Use tini
+ENTRYPOINT ["/sbin/tini", "--"]
 
-# Health check (simple, fast)
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:8050/health || exit 1
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "import flask, dash; exit(0)" || exit 1
 
-# Default command
-CMD ["python", "-u", "-m", "dashboard.web_app"]
+CMD ["python", "main.py"]

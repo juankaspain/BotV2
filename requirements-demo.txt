@@ -1,66 +1,76 @@
 # ==============================================================================
-# BotV2 - DEMO Mode Requirements (Minimal & Fast)
+# BotV2 - DEMO MODE Requirements (Lightweight)
 # ==============================================================================
-# 
-# This file contains ONLY essential dependencies for running the dashboard
-# in DEMO mode. Optimized for fast Docker builds.
+# Optimized for FAST Docker builds in demo/development mode.
+# Removes heavy dependencies not needed for demo:
+#   - No PostgreSQL (psycopg2) - uses mock data
+#   - No ML libraries (scikit-learn, scipy) - not used in demo
+#   - No backtrader - not used in demo dashboard
+#   - No TA library - demo uses pre-calculated indicators
 #
-# EXCLUDED (not needed for demo):
-# - scikit-learn, scipy (ML libraries - heavy compilation)
-# - ccxt, backtrader (trading libraries)
-# - psycopg2 (PostgreSQL - demo uses mock data)
-# - redis (demo uses in-memory)
-# - matplotlib, seaborn (charts - demo uses Plotly)
+# BUILD TIME: ~2-3 minutes (vs 10-15 min with full requirements)
 #
-# Install: pip install -r requirements-demo.txt
-# Build time: ~15-30 seconds (vs 5-10 minutes with full requirements)
+# USAGE:
+#   Demo mode:  docker-compose -f docker-compose.demo.yml up -d
+#   Production: docker-compose -f docker-compose.production.yml up -d
+#
+# Last updated: 29-01-2026
 # ==============================================================================
 
-# ===== CORE =====
-PyYAML>=6.0.1
-python-dotenv>=1.0.0
+# ===== CORE CONFIGURATION =====
+PyYAML==6.0.1
 
-# ===== WEB FRAMEWORK (Dashboard) =====
-Flask>=3.0.0
-Flask-CORS>=4.0.0
-Flask-SocketIO>=5.3.0
-Flask-Limiter>=3.5.0
-Flask-WTF>=1.2.0
-bleach>=6.1.0
+# ===== DATA PROCESSING (Minimal) =====
+# numpy and pandas are needed for dashboard charts
+numpy==1.26.4
+pandas==2.1.4
+# scipy removed - not needed for demo
+# scikit-learn removed - not needed for demo
 
-# ===== DASHBOARD UI =====
-dash>=2.14.0
-plotly>=5.18.0
+# ===== DATABASE & CACHING =====
+# psycopg2-binary removed - demo uses mock data
+SQLAlchemy==2.0.23
+redis==5.0.1
 
-# ===== DATA PROCESSING (Lightweight) =====
-numpy>=1.26.0
-pandas>=2.1.0
+# ===== TRADING & EXCHANGE APIs =====
+requests==2.31.0
+websockets==12.0
+websocket-client==1.6.4
+ccxt==4.0.79
+# backtrader removed - not used in demo dashboard
 
-# ===== WEBSOCKET =====
-python-socketio>=5.10.0
-eventlet>=0.33.0
-websockets>=12.0
+# ===== WEB FRAMEWORK & DASHBOARD =====
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-SocketIO==5.3.5
+Flask-Limiter==3.5.0
+Flask-Talisman==1.1.0
+Flask-WTF==1.2.1
+Flask-Compress==1.14
+bleach==6.1.0
+dash==2.14.2
+plotly==5.18.0
+python-socketio==5.10.0
+eventlet==0.33.3
 
-# ===== NETWORKING =====
-requests>=2.31.0
-
-# ===== SECURITY =====
-cryptography>=41.0.0
-pydantic>=2.5.0
-python-jose>=3.3.0
+# ===== MONITORING =====
+prometheus-client==0.19.0
 
 # ===== UTILITIES =====
-colorlog>=6.8.0
-tqdm>=4.66.0
+python-dotenv==1.0.0
 python-dateutil>=2.8.2
+colorlog==6.8.0
+tqdm==4.66.1
+jsonschema>=4.19.0
 
-# ==============================================================================
-# NOTE: For PRODUCTION mode, use the full requirements.txt which includes:
-# - scikit-learn (ML models)
-# - scipy (scientific computing)
-# - ccxt (exchange APIs)
-# - backtrader (backtesting)
-# - psycopg2-binary (PostgreSQL)
-# - redis (caching)
-# - prometheus-client (monitoring)
-# ==============================================================================
+# ===== SECURITY =====
+cryptography==41.0.7
+pydantic==2.5.3
+python-jose==3.3.0
+
+# ===== VISUALIZATION (for dashboard charts) =====
+matplotlib==3.8.0
+seaborn==0.13.0
+
+# ===== TESTING (Minimal) =====
+pytest>=7.4.3
