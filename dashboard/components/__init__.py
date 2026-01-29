@@ -36,6 +36,22 @@ from dashboard.components.toast import (
     ToastVariant,
 )
 
+# Phase 2 UI Components
+from dashboard.components.ui_components import (
+    Modal,
+    ModalVariant,
+    ModalSize,
+    Dropdown,
+    DropdownItem,
+    Breadcrumbs,
+    BreadcrumbItem,
+    Pagination,
+    Tabs,
+    Tab,
+    create_confirm_modal,
+    create_pagination,
+)
+
 # TODO: Add Alert and Skeleton components when needed
 # from dashboard.components.alert import Alert, AlertVariant
 # from dashboard.components.skeleton import Skeleton, SkeletonVariant
@@ -64,6 +80,19 @@ __all__ = [
     # Toast
     'Toast',
     'ToastVariant',
+    # Phase 2 UI Components
+    'Modal',
+    'ModalVariant',
+    'ModalSize',
+    'Dropdown',
+    'DropdownItem',
+    'Breadcrumbs',
+    'BreadcrumbItem',
+    'Pagination',
+    'Tabs',
+    'Tab',
+    'create_confirm_modal',
+    'create_pagination',
 ]
 
 __version__ = '1.0.0'
