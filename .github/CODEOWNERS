@@ -1,0 +1,37 @@
+# CODEOWNERS - Define code ownership for BotV2
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+*                           @juankaspain
+
+# Core trading engine
+/bot/core/                  @juankaspain
+/bot/strategies/            @juankaspain
+/bot/ensemble/              @juankaspain
+
+# Risk management
+/bot/core/risk_manager.py           @juankaspain
+/bot/core/circuit_breaker.py        @juankaspain
+/bot/core/trailing_stop_manager.py  @juankaspain
+
+# Exchange integrations
+/bot/exchanges/             @juankaspain
+
+# Dashboard
+/dashboard/                 @juankaspain
+
+# Configuration
+/config.yaml                @juankaspain
+/.env.example               @juankaspain
+
+# Documentation
+/docs/                      @juankaspain
+/README.md                  @juankaspain
+
+# Tests
+/tests/                     @juankaspain
+
+# CI/CD and GitHub config
+/.github/                   @juankaspain
+/Dockerfile                 @juankaspain
+/docker-compose*.yml        @juankaspain
