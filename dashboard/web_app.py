@@ -258,8 +258,21 @@ class ProfessionalDashboard:
         self.port = int(os.getenv('DASHBOARD_PORT', dash_config.get('port', 8050)))
         self.debug = dash_config.get('debug', False)
         
-        self.env = os.getenv('FLASK_ENV', 'development')
+        # CRITICAL: Detect environment from FLASK_ENV (not ENVIRONMENT)
+        # This is what Flask uses internally
+        self.env = os.getenv('FLASK_ENV', 'development').lower()
         self.is_production = self.env == 'production'
+        self.is_development = self.env == 'development'
+        
+        # Log environment detection
+        logger.info("="*70)
+        logger.info("ENVIRONMENT DETECTION:")
+        logger.info("  FLASK_ENV = %s", os.getenv('FLASK_ENV', 'NOT SET'))
+        logger.info("  ENVIRONMENT = %s", os.getenv('ENVIRONMENT', 'NOT SET'))
+        logger.info("  Detected mode: %s", self.env.upper())
+        logger.info("  Is Production: %s", self.is_production)
+        logger.info("  Is Development: %s", self.is_development)
+        logger.info("="*70)
         
         # SECURITY: Initialize audit logger first
         if HAS_SECURITY:
@@ -371,8 +384,12 @@ class ProfessionalDashboard:
             logger.info("[+] Security Middleware enabled")
         
         # 6. CSP Configuration with Talisman
-        # Only configure Talisman in production - DISABLED in development to avoid CSP issues
-        if HAS_TALISMAN and self.is_production:
+        # CRITICAL: Only enable in PRODUCTION mode
+        # Check both FLASK_ENV and explicit FORCE_HTTPS setting
+        force_https = os.getenv('FORCE_HTTPS', 'false').lower() == 'true'
+        
+        if HAS_TALISMAN and self.is_production and force_https:
+            logger.info("[*] Initializing Talisman for PRODUCTION mode...")
             csp_config = {
                 'default-src': "'self'",
                 'script-src': [
@@ -424,7 +441,7 @@ class ProfessionalDashboard:
             
             Talisman(
                 self.app,
-                force_https=os.getenv('FORCE_HTTPS', 'true').lower() == 'true',
+                force_https=True,
                 strict_transport_security=True,
                 strict_transport_security_max_age=31536000,
                 strict_transport_security_include_subdomains=True,
@@ -432,10 +449,15 @@ class ProfessionalDashboard:
                 content_security_policy=csp_config,
                 content_security_policy_nonce_in=['script-src']
             )
-            logger.info("[+] HTTPS + CSP enabled (production)")
+            logger.info("[+] Talisman ENABLED - HTTPS + CSP (production)")
         else:
-            # Development mode: NO Talisman - completely disabled to allow all CDN resources
-            logger.info("[+] Security headers DISABLED (development mode - CSP off)")
+            # Development mode or HTTPS disabled: COMPLETELY SKIP Talisman
+            logger.warning("="*70)
+            logger.warning("[!] Talisman DISABLED - Development Mode")
+            logger.warning("[!] CSP: OFF")
+            logger.warning("[!] HTTPS: OFF")
+            logger.warning("[!] Reason: FLASK_ENV=%s, FORCE_HTTPS=%s", self.env, force_https)
+            logger.warning("="*70)
     
     def _setup_compression(self):
         """Setup GZIP compression."""
@@ -527,6 +549,7 @@ class ProfessionalDashboard:
             print("    - Audit Logging       OK", flush=True)
             print("    - Security Headers    OK ({})".format(self.env), flush=True)
             print("    - CSP                 {}".format('STRICT' if self.is_production else 'DISABLED'), flush=True)
+            print("    - Talisman            {}".format('ENABLED' if self.is_production else 'DISABLED'), flush=True)
         
         print("  Metrics                 {}".format('ENABLED' if HAS_METRICS else 'DISABLED'), flush=True)
         print("  GZIP Compression        {}".format('ENABLED' if HAS_COMPRESS else 'DISABLED'), flush=True)
@@ -673,6 +696,19 @@ class ProfessionalDashboard:
                 csp_nonce=g.csp_nonce
             )
         
+        # ==================== FAVICON ====================
+        
+        @self.app.route('/favicon.ico')
+        def favicon():
+            """Serve favicon or return 204 No Content to avoid 404 errors."""
+            from flask import send_from_directory
+            favicon_path = Path(self.app.static_folder) / 'favicon.ico'
+            if favicon_path.exists():
+                return send_from_directory(self.app.static_folder, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+            else:
+                # Return 204 No Content instead of 404
+                return '', 204
+        
         # ==================== API - SECTION DATA ====================
         
         @self.app.route('/api/section/<section>')
@@ -789,6 +825,7 @@ class ProfessionalDashboard:
             health_data = {
                 'status': 'healthy',
                 'version': __version__,
+                'environment': self.env,
                 'security': HAS_SECURITY,
                 'mock_data': HAS_MOCK_DATA,
                 'database': self.db_session is not None,
