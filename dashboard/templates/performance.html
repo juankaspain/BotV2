@@ -51,10 +51,10 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Equity Curve</h5>
-                    <div>
-                        <button class="btn btn-sm btn-outline-primary" onclick="loadEquityCurve(7)">7D</button>
-                        <button class="btn btn-sm btn-outline-primary active" onclick="loadEquityCurve(30)">30D</button>
-                        <button class="btn btn-sm btn-outline-primary" onclick="loadEquityCurve(90)">90D</button>
+                    <div class="btn-group-period" id="period-buttons">
+                        <button class="btn btn-sm btn-period" data-days="7" onclick="selectPeriod(this, 7)">7D</button>
+                        <button class="btn btn-sm btn-period active" data-days="30" onclick="selectPeriod(this, 30)">30D</button>
+                        <button class="btn btn-sm btn-period" data-days="90" onclick="selectPeriod(this, 90)">90D</button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -111,12 +111,95 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Period Button Group - Professional Styling */
+.btn-group-period {
+    display: inline-flex;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.btn-period {
+    padding: 6px 14px;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: none;
+    border-right: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.btn-period:last-child {
+    border-right: none;
+}
+
+.btn-period:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.btn-period.active {
+    background: var(--color-primary);
+    color: white;
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .btn-group-period {
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-xs);
+}
+
+[data-theme="light"] .btn-period {
+    background: var(--bg-card);
+}
+
+[data-theme="light"] .btn-period:hover {
+    background: var(--bg-card-hover);
+}
+
+[data-theme="light"] .btn-period.active {
+    background: var(--color-primary);
+    color: white;
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
+// Professional color palette (non-fluorescent)
+const CHART_COLORS = {
+    primary: '#6366f1',      // Indigo
+    primaryLight: 'rgba(99, 102, 241, 0.15)',
+    success: '#10b981',      // Emerald
+    successLight: 'rgba(16, 185, 129, 0.7)',
+    danger: '#ef4444',       // Red
+    dangerLight: 'rgba(239, 68, 68, 0.7)',
+    text: '#64748b',
+    grid: 'rgba(100, 116, 139, 0.1)'
+};
+
 let equityChart = null;
 let monthlyChart = null;
+let currentPeriod = 30;
+
+// Period button selection handler
+function selectPeriod(button, days) {
+    // Remove active class from all buttons
+    document.querySelectorAll('.btn-period').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Add active class to clicked button
+    button.classList.add('active');
+    
+    // Update current period and reload chart
+    currentPeriod = days;
+    loadEquityCurve(days);
+}
 
 async function loadPerformanceOverview() {
     try {
@@ -185,18 +268,35 @@ function renderEquityChart(data) {
             datasets: [{
                 label: 'Equity',
                 data: data.map(d => d.equity),
-                borderColor: '#5865f2',
-                backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                borderColor: CHART_COLORS.primary,
+                backgroundColor: CHART_COLORS.primaryLight,
                 fill: true,
-                tension: 0.4
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: CHART_COLORS.primary,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#cbd5e1',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    padding: 12,
                     callbacks: {
                         label: (context) => `Equity: $${context.parsed.y.toLocaleString()}`
                     }
@@ -204,12 +304,21 @@ function renderEquityChart(data) {
             },
             scales: {
                 y: {
-                    ticks: { color: '#8e9297' },
-                    grid: { color: 'rgba(142, 146, 151, 0.1)' }
+                    ticks: { 
+                        color: CHART_COLORS.text,
+                        font: { size: 11 }
+                    },
+                    grid: { color: CHART_COLORS.grid },
+                    border: { display: false }
                 },
                 x: {
-                    ticks: { color: '#8e9297' },
-                    grid: { display: false }
+                    ticks: { 
+                        color: CHART_COLORS.text,
+                        font: { size: 11 },
+                        maxRotation: 0
+                    },
+                    grid: { display: false },
+                    border: { display: false }
                 }
             }
         }
@@ -243,8 +352,11 @@ function renderMonthlyChart(data) {
             datasets: [{
                 label: 'Monthly Return (%)',
                 data: data.map(d => d.return_pct),
-                backgroundColor: data.map(d => d.return_pct >= 0 ? 'rgba(87, 242, 135, 0.8)' : 'rgba(237, 66, 69, 0.8)'),
-                borderWidth: 0
+                backgroundColor: data.map(d => d.return_pct >= 0 ? CHART_COLORS.successLight : CHART_COLORS.dangerLight),
+                borderColor: data.map(d => d.return_pct >= 0 ? CHART_COLORS.success : CHART_COLORS.danger),
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false
             }]
         },
         options: {
@@ -253,6 +365,13 @@ function renderMonthlyChart(data) {
             plugins: {
                 legend: { display: false },
                 tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#cbd5e1',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    padding: 12,
                     callbacks: {
                         label: (context) => `Return: ${context.parsed.y.toFixed(2)}%`
                     }
@@ -260,12 +379,20 @@ function renderMonthlyChart(data) {
             },
             scales: {
                 y: {
-                    ticks: { color: '#8e9297' },
-                    grid: { color: 'rgba(142, 146, 151, 0.1)' }
+                    ticks: { 
+                        color: CHART_COLORS.text,
+                        font: { size: 11 }
+                    },
+                    grid: { color: CHART_COLORS.grid },
+                    border: { display: false }
                 },
                 x: {
-                    ticks: { color: '#8e9297' },
-                    grid: { display: false }
+                    ticks: { 
+                        color: CHART_COLORS.text,
+                        font: { size: 11 }
+                    },
+                    grid: { display: false },
+                    border: { display: false }
                 }
             }
         }
@@ -280,7 +407,7 @@ loadMonthlyPerformance();
 // Auto-refresh every 60 seconds
 setInterval(() => {
     loadPerformanceOverview();
-    loadEquityCurve(30);
+    loadEquityCurve(currentPeriod);
     loadMonthlyPerformance();
 }, 60000);
 </script>
