@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
-Bot Controller - Interface for controlling the trading bot
+Bot Controller - Interface to control bot operations from dashboard
 
-Provides a unified interface to control bot operations from the dashboard.
-In demo mode, simulates bot behavior without actual process management.
+Provides:
+- Bot start/stop/restart
+- Emergency stop
+- Pause/resume trading
+- Position management
 """
 
 import os
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+import signal
 import threading
+from datetime import datetime
+from typing import Dict, Any, Optional
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -20,44 +25,31 @@ _controller_instance = None
 
 class BotController:
     """
-    Controller for managing the trading bot process.
+    Controller for bot operations from dashboard.
     
-    In demo mode, simulates bot behavior.
-    In production mode, manages the actual bot process.
+    In demo/standalone mode, simulates bot operations.
+    In production, communicates with actual bot process.
     """
     
     def __init__(self):
         self.demo_mode = os.getenv('DEMO_MODE', 'false').lower() in ('true', '1', 'yes')
         
-        # Bot state
+        # Bot state (simulated in demo mode)
         self._status = 'stopped'
+        self._pid = None
+        self._start_time = None
         self._is_trading = False
-        self._pid: Optional[int] = None
-        self._start_time: Optional[datetime] = None
+        self._is_paused = False
         
-        # Simulated positions for demo
-        self._positions = []
-        
-        # Lock for thread safety
+        # Thread lock for state changes
         self._lock = threading.Lock()
         
-        if self.demo_mode:
-            logger.info("🎮 BotController initialized in DEMO mode")
-            # Auto-start in demo mode
-            self._status = 'running'
-            self._is_trading = True
-            self._pid = 99999
-            self._start_time = datetime.now()
-        else:
-            logger.info("🚀 BotController initialized in PRODUCTION mode")
+        logger.info(f"BotController initialized (demo={self.demo_mode})")
+    
+    # ==================== STATUS ====================
     
     def get_status(self) -> Dict[str, Any]:
-        """
-        Get current bot status.
-        
-        Returns:
-            Dict with status information
-        """
+        """Get current bot status"""
         with self._lock:
             uptime = 0
             if self._start_time:
@@ -69,111 +61,46 @@ class BotController:
                 'uptime': uptime,
                 'start_time': self._start_time.isoformat() if self._start_time else None,
                 'is_trading': self._is_trading,
-                'demo_mode': self.demo_mode,
-                'positions_count': len(self._positions)
+                'is_paused': self._is_paused,
+                'demo_mode': self.demo_mode
             }
     
+    # ==================== BOT CONTROL ====================
+    
     def start_bot(self) -> Dict[str, Any]:
-        """
-        Start the trading bot.
-        
-        Returns:
-            Dict with success status and message
-        """
+        """Start the bot"""
         with self._lock:
             if self._status == 'running':
                 return {
                     'success': False,
-                    'message': 'Bot is already running',
-                    'pid': self._pid
+                    'message': 'Bot is already running'
                 }
             
             if self.demo_mode:
                 # Simulate bot start
                 self._status = 'running'
-                self._is_trading = True
-                self._pid = 99999
+                self._pid = os.getpid() + 1000  # Fake PID
                 self._start_time = datetime.now()
+                self._is_trading = True
+                self._is_paused = False
                 
-                logger.info("🎮 [DEMO] Bot started")
+                logger.info(f"Bot started (demo mode, pid={self._pid})")
+                
                 return {
                     'success': True,
-                    'message': 'Bot started (demo mode)',
+                    'message': 'Bot started successfully (demo mode)',
                     'pid': self._pid
                 }
             else:
-                # Production: would start actual bot process
-                # TODO: Implement actual process management
-                self._status = 'running'
-                self._is_trading = True
-                self._start_time = datetime.now()
-                
+                # TODO: Implement real bot start logic
+                # This would involve starting the bot process
                 return {
-                    'success': True,
-                    'message': 'Bot started',
-                    'pid': self._pid
+                    'success': False,
+                    'message': 'Real bot start not implemented'
                 }
     
     def stop_bot(self, graceful: bool = True) -> Dict[str, Any]:
-        """
-        Stop the trading bot.
-        
-        Args:
-            graceful: If True, wait for current operations to complete
-        
-        Returns:
-            Dict with success status and message
-        """
-        with self._lock:
-            if self._status == 'stopped':
-                return {
-                    'success': False,
-                    'message': 'Bot is not running'
-                }
-            
-            stop_type = 'gracefully' if graceful else 'immediately'
-            
-            if self.demo_mode:
-                self._status = 'stopped'
-                self._is_trading = False
-                self._pid = None
-                self._start_time = None
-                
-                logger.info(f"🎮 [DEMO] Bot stopped {stop_type}")
-                return {
-                    'success': True,
-                    'message': f'Bot stopped {stop_type} (demo mode)'
-                }
-            else:
-                # Production: would stop actual bot process
-                self._status = 'stopped'
-                self._is_trading = False
-                
-                return {
-                    'success': True,
-                    'message': f'Bot stopping {stop_type}'
-                }
-    
-    def restart_bot(self) -> Dict[str, Any]:
-        """
-        Restart the trading bot.
-        
-        Returns:
-            Dict with success status and message
-        """
-        stop_result = self.stop_bot(graceful=True)
-        if not stop_result['success'] and 'not running' not in stop_result['message']:
-            return stop_result
-        
-        return self.start_bot()
-    
-    def pause_trading(self) -> Dict[str, Any]:
-        """
-        Pause trading without stopping the bot.
-        
-        Returns:
-            Dict with success status and message
-        """
+        """Stop the bot"""
         with self._lock:
             if self._status != 'running':
                 return {
@@ -181,21 +108,87 @@ class BotController:
                     'message': 'Bot is not running'
                 }
             
+            if self.demo_mode:
+                self._status = 'stopped'
+                self._is_trading = False
+                self._is_paused = False
+                
+                stop_type = 'gracefully' if graceful else 'forcefully'
+                logger.info(f"Bot stopped {stop_type} (demo mode)")
+                
+                return {
+                    'success': True,
+                    'message': f'Bot stopped {stop_type} (demo mode)'
+                }
+            else:
+                # TODO: Implement real bot stop
+                return {
+                    'success': False,
+                    'message': 'Real bot stop not implemented'
+                }
+    
+    def restart_bot(self) -> Dict[str, Any]:
+        """Restart the bot"""
+        stop_result = self.stop_bot(graceful=True)
+        if not stop_result['success'] and 'not running' not in stop_result.get('message', ''):
+            return stop_result
+        
+        # Brief delay before restart
+        time.sleep(0.5)
+        
+        return self.start_bot()
+    
+    def emergency_stop(self) -> Dict[str, Any]:
+        """Emergency stop - close all positions and shutdown immediately"""
+        with self._lock:
+            logger.warning("⚠️ EMERGENCY STOP triggered")
+            
+            if self.demo_mode:
+                self._status = 'stopped'
+                self._is_trading = False
+                self._is_paused = False
+                
+                return {
+                    'success': True,
+                    'message': 'Emergency stop executed - all positions closed (demo mode)',
+                    'positions_closed': 0
+                }
+            else:
+                # TODO: Implement real emergency stop
+                return {
+                    'success': False,
+                    'message': 'Real emergency stop not implemented'
+                }
+    
+    # ==================== TRADING CONTROL ====================
+    
+    def pause_trading(self) -> Dict[str, Any]:
+        """Pause trading (bot runs but doesn't execute trades)"""
+        with self._lock:
+            if self._status != 'running':
+                return {
+                    'success': False,
+                    'message': 'Bot is not running'
+                }
+            
+            if self._is_paused:
+                return {
+                    'success': False,
+                    'message': 'Trading is already paused'
+                }
+            
+            self._is_paused = True
             self._is_trading = False
             
             logger.info("Trading paused")
+            
             return {
                 'success': True,
                 'message': 'Trading paused'
             }
     
     def resume_trading(self) -> Dict[str, Any]:
-        """
-        Resume trading after pause.
-        
-        Returns:
-            Dict with success status and message
-        """
+        """Resume trading after pause"""
         with self._lock:
             if self._status != 'running':
                 return {
@@ -203,90 +196,61 @@ class BotController:
                     'message': 'Bot is not running'
                 }
             
+            if not self._is_paused:
+                return {
+                    'success': False,
+                    'message': 'Trading is not paused'
+                }
+            
+            self._is_paused = False
             self._is_trading = True
             
             logger.info("Trading resumed")
+            
             return {
                 'success': True,
                 'message': 'Trading resumed'
             }
     
-    def emergency_stop(self) -> Dict[str, Any]:
-        """
-        Emergency stop: Close all positions and stop immediately.
-        
-        Returns:
-            Dict with success status and message
-        """
-        with self._lock:
-            # First close all positions
-            close_result = self.close_all_positions()
-            
-            # Then stop the bot immediately
-            self._status = 'stopped'
-            self._is_trading = False
-            self._pid = None
-            
-            logger.warning("🚨 EMERGENCY STOP executed")
-            return {
-                'success': True,
-                'message': 'Emergency stop executed',
-                'positions_closed': close_result.get('positions_closed', 0)
-            }
+    # ==================== POSITION MANAGEMENT ====================
     
     def close_all_positions(self) -> Dict[str, Any]:
-        """
-        Close all open positions.
+        """Close all open positions"""
+        logger.info("Closing all positions")
         
-        Returns:
-            Dict with success status and message
-        """
-        with self._lock:
-            positions_count = len(self._positions)
-            
-            if self.demo_mode:
-                # Simulate closing positions
-                self._positions = []
-                
-                logger.info(f"🎮 [DEMO] Closed {positions_count} positions")
-                return {
-                    'success': True,
-                    'message': f'Closed {positions_count} positions (demo mode)',
-                    'positions_closed': positions_count
-                }
-            else:
-                # Production: would send close commands to exchange
-                self._positions = []
-                
-                return {
-                    'success': True,
-                    'message': f'Command sent to close {positions_count} positions',
-                    'positions_closed': positions_count
-                }
+        if self.demo_mode:
+            return {
+                'success': True,
+                'message': 'Command sent to close all positions (demo mode)',
+                'positions_closed': 0
+            }
+        else:
+            # TODO: Implement real position closing
+            return {
+                'success': False,
+                'message': 'Real position closing not implemented'
+            }
     
     def reduce_positions(self, percentage: float) -> Dict[str, Any]:
-        """
-        Reduce all positions by a percentage.
-        
-        Args:
-            percentage: Percentage to reduce (0-100)
-        
-        Returns:
-            Dict with success status and message
-        """
+        """Reduce all positions by percentage"""
         if not 0 < percentage <= 100:
             return {
                 'success': False,
                 'message': 'Percentage must be between 0 and 100'
             }
         
-        with self._lock:
-            positions_count = len(self._positions)
-            
-            logger.info(f"Reducing positions by {percentage}%")
+        logger.info(f"Reducing all positions by {percentage}%")
+        
+        if self.demo_mode:
             return {
                 'success': True,
-                'message': f'Command sent to reduce {positions_count} positions by {percentage}%'
+                'message': f'Command sent to reduce positions by {percentage}% (demo mode)'
+            }
+        else:
+            # TODO: Implement real position reduction
+            return {
+                'success': False,
+                'message': 'Real position reduction not implemented'
             }
 
 
