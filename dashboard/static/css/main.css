@@ -1,8 +1,9 @@
 /**
  * BotV2 Trading Dashboard - Professional Themes
- * Version: 5.0.0 - Refined Edition
+ * Version: 5.1.0 - Refined Edition
  * 
- * THEME IMPROVEMENTS v5.0:
+ * THEME IMPROVEMENTS v5.1:
+ * - Added stat-card and stat-icon styles
  * - Eliminated fluorescent colors for professional appearance
  * - Sophisticated color palette inspired by premium trading platforms
  * - Enhanced contrast ratios for better readability
@@ -610,6 +611,76 @@ img { max-width: 100%; height: auto; }
   }
 }
 
+/* ==========================================================================
+   5.1. STAT CARDS - Dashboard Statistics
+   ========================================================================== */
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-smooth);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-color-light);
+}
+
+.stat-card .card-body {
+  padding: var(--space-lg);
+}
+
+/* Stat Icon - Professional styling */
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Stat icon color variants */
+.stat-icon.bg-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+}
+
+.stat-icon.bg-success {
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
+}
+
+.stat-icon.bg-warning {
+  background: linear-gradient(135deg, var(--color-warning), var(--color-warning-dark));
+}
+
+.stat-icon.bg-danger {
+  background: linear-gradient(135deg, var(--color-danger), var(--color-danger-dark));
+}
+
+.stat-icon.bg-info {
+  background: linear-gradient(135deg, var(--color-info), var(--color-info-dark));
+}
+
+/* Stat icon inner icon */
+.stat-icon i,
+.stat-icon .fas,
+.stat-icon .far,
+.stat-icon .fab {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+/* Light theme adjustments for stat icons */
+[data-theme="light"] .stat-icon {
+  box-shadow: var(--shadow-md);
+}
+
 /* Metric Card */
 .metric-card {
   display: flex;
@@ -641,11 +712,11 @@ img { max-width: 100%; height: auto; }
   box-shadow: var(--shadow-sm);
 }
 
-.metric-card__icon.bg-primary { background: var(--color-primary); }
-.metric-card__icon.bg-success { background: var(--color-success); }
-.metric-card__icon.bg-warning { background: var(--color-warning); }
-.metric-card__icon.bg-danger { background: var(--color-danger); }
-.metric-card__icon.bg-info { background: var(--color-info); }
+.metric-card__icon.bg-primary { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); }
+.metric-card__icon.bg-success { background: linear-gradient(135deg, var(--color-success), var(--color-success-dark)); }
+.metric-card__icon.bg-warning { background: linear-gradient(135deg, var(--color-warning), var(--color-warning-dark)); }
+.metric-card__icon.bg-danger { background: linear-gradient(135deg, var(--color-danger), var(--color-danger-dark)); }
+.metric-card__icon.bg-info { background: linear-gradient(135deg, var(--color-info), var(--color-info-dark)); }
 
 .metric-card__content {
   flex: 1;
@@ -899,12 +970,12 @@ img { max-width: 100%; height: auto; }
   letter-spacing: 0.03em;
 }
 
-.badge.bg-primary { background: var(--color-primary); color: white; }
-.badge.bg-success { background: var(--color-success); color: white; }
-.badge.bg-warning { background: var(--color-warning); color: var(--text-inverse); }
-.badge.bg-danger { background: var(--color-danger); color: white; }
-.badge.bg-secondary { background: var(--bg-card-hover); color: var(--text-secondary); border: 1px solid var(--border-color); }
-.badge.bg-info { background: var(--color-info); color: white; }
+.badge.bg-primary { background: var(--color-primary) !important; color: white !important; }
+.badge.bg-success { background: var(--color-success) !important; color: white !important; }
+.badge.bg-warning { background: var(--color-warning) !important; color: var(--text-inverse) !important; }
+.badge.bg-danger { background: var(--color-danger) !important; color: white !important; }
+.badge.bg-secondary { background: var(--bg-card-hover) !important; color: var(--text-secondary) !important; border: 1px solid var(--border-color); }
+.badge.bg-info { background: var(--color-info) !important; color: white !important; }
 
 /* ==========================================================================
    10. ALERTS & NOTIFICATIONS
@@ -1111,6 +1182,7 @@ img { max-width: 100%; height: auto; }
 .mt-2 { margin-top: var(--space-sm) !important; }
 .mt-4 { margin-top: var(--space-lg) !important; }
 .mb-0 { margin-bottom: 0 !important; }
+.mb-1 { margin-bottom: var(--space-xs) !important; }
 .mb-2 { margin-bottom: var(--space-sm) !important; }
 .mb-3 { margin-bottom: var(--space-md) !important; }
 .mb-4 { margin-bottom: var(--space-lg) !important; }
