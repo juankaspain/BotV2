@@ -4,12 +4,35 @@ BotV2 - Main Trading System
 Complete Production System with 26 Audit Improvements + Phase 1 Enhancements
 """
 
+import os
+import sys
+from pathlib import Path
+
+# ============================================================================
+# CRITICAL: Load .env file FIRST before ANY other imports
+# This ensures all environment variables are available for validation
+# ============================================================================
+try:
+    from dotenv import load_dotenv
+    
+    # Find .env file
+    _PROJECT_ROOT = Path(__file__).parent
+    _ENV_FILE = _PROJECT_ROOT / '.env'
+    
+    if _ENV_FILE.exists():
+        load_dotenv(_ENV_FILE)
+        print(f"[+] Loaded environment from {_ENV_FILE}", flush=True)
+    else:
+        print(f"[!] No .env file found at {_ENV_FILE}", flush=True)
+except ImportError:
+    print("[!] python-dotenv not installed, using system environment variables only", flush=True)
+
+# ============================================================================
+# NOW SAFE TO IMPORT OTHER MODULES
+# ============================================================================
 import asyncio
 import logging
-import sys
 import signal
-import os
-from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
 
