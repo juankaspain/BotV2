@@ -36,7 +36,7 @@ backtrader==1.9.78.123
 
 # ===== WEB FRAMEWORK & DASHBOARD =====
 Flask==3.0.0
-Flask-CORS==4.0.0
+Flask-CORS==6.0.2
 Flask-SocketIO==5.3.5
 Flask-Limiter==3.5.0
 Flask-Talisman==1.1.0
