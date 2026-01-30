@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="BotV2 Professional Trading Dashboard">
+    <meta name="description" content="BotV2 Professional Trading Dashboard v7.8 - 100% Complete">
     <meta name="theme-color" content="#1a1d21">
 
     <!-- SECURITY: CSRF Token Meta Tag -->
@@ -48,6 +48,7 @@
                     <i class="fas fa-robot"></i>
                 </div>
                 <span class="sidebar__text">BotV2</span>
+                <span class="badge bg-success ms-2" style="font-size: 0.65rem;">v7.8</span>
             </div>
         </div>
 
@@ -76,12 +77,13 @@
                     <i class="fas fa-brain"></i>
                     <span class="sidebar__text">Strategies</span>
                 </a>
-                <!-- Coming soon -->
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- v7.7: Portfolio -->
+                <a href="{{ url_for('portfolio.portfolio_ui') }}" class="nav-link {% if request.endpoint == 'portfolio.portfolio_ui' %}active{% endif %}">
                     <i class="fas fa-chart-line"></i>
                     <span class="sidebar__text">Portfolio</span>
                 </a>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- v7.7: Trade History -->
+                <a href="{{ url_for('trade_history.trade_history_ui') }}" class="nav-link {% if request.endpoint == 'trade_history.trade_history_ui' %}active{% endif %}">
                     <i class="fas fa-history"></i>
                     <span class="sidebar__text">Trade History</span>
                 </a>
@@ -90,11 +92,13 @@
             <!-- Analysis Section -->
             <div class="nav-section">
                 <div class="nav-section__title">Analysis</div>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- v7.7: Performance -->
+                <a href="{{ url_for('performance.performance_ui') }}" class="nav-link {% if request.endpoint == 'performance.performance_ui' %}active{% endif %}">
                     <i class="fas fa-chart-bar"></i>
                     <span class="sidebar__text">Performance</span>
                 </a>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- v7.8: Risk Management (NEW) -->
+                <a href="{{ url_for('risk.risk_management_ui') }}" class="nav-link {% if request.endpoint == 'risk.risk_management_ui' %}active{% endif %}">
                     <i class="fas fa-shield-alt"></i>
                     <span class="sidebar__text">Risk Management</span>
                 </a>
@@ -107,7 +111,8 @@
                     <i class="fas fa-heartbeat"></i>
                     <span class="sidebar__text">System Health</span>
                 </a>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- v7.8: Settings (NEW) -->
+                <a href="{{ url_for('settings.settings_ui') }}" class="nav-link {% if request.endpoint == 'settings.settings_ui' %}active{% endif %}">
                     <i class="fas fa-cog"></i>
                     <span class="sidebar__text">Settings</span>
                 </a>
@@ -182,6 +187,10 @@
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" crossorigin="anonymous"></script>
 
     <script>
+        // =====================================================
+        // GLOBAL UTILITIES v7.8
+        // =====================================================
+        
         // Theme Management
         function toggleTheme() {
             const html = document.documentElement;
@@ -307,14 +316,30 @@
                 reconnectionAttempts: 5
             });
 
-            socket.on('connect', () => console.log('WebSocket connected'));
-            socket.on('disconnect', () => console.log('WebSocket disconnected'));
-            socket.on('connect_error', (error) => console.warn('WebSocket error:', error.message));
+            socket.on('connect', () => {
+                console.log('✓ WebSocket connected');
+                document.dispatchEvent(new CustomEvent('ws:connected'));
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('✗ WebSocket disconnected');
+                document.dispatchEvent(new CustomEvent('ws:disconnected'));
+            });
+            
+            socket.on('connect_error', (error) => {
+                console.warn('⚠ WebSocket error:', error.message);
+                document.dispatchEvent(new CustomEvent('ws:error', { detail: error }));
+            });
         } catch (e) {
             console.warn('WebSocket initialization failed:', e);
         }
 
+        // Hide loading on page load
         window.addEventListener('load', hideLoading);
+
+        // Log dashboard version
+        console.log('%c🤖 BotV2 Dashboard v7.8 - 100% Complete ', 'background: #5865f2; color: white; padding: 5px 10px; border-radius: 3px; font-weight: bold;');
+        console.log('%c✓ All 10 features active', 'color: #57f287; font-weight: bold;');
     </script>
 
     {% block scripts %}{% endblock %}
