@@ -12,6 +12,14 @@ logger = logging.getLogger(__name__)
 # Safe imports with fallbacks
 __all__ = []
 
+# Dashboard API
+try:
+    from .dashboard_api import dashboard_api_bp
+    __all__.append('dashboard_api_bp')
+except ImportError as e:
+    logger.warning(f"Could not import dashboard_api: {e}")
+    dashboard_api_bp = None
+
 # Additional endpoints
 try:
     from .additional_endpoints import additional_bp
@@ -73,6 +81,8 @@ def get_available_blueprints():
     """Get list of successfully loaded blueprints"""
     blueprints = []
     
+    if dashboard_api_bp is not None:
+        blueprints.append(('dashboard_api', dashboard_api_bp))
     if additional_bp is not None:
         blueprints.append(('additional', additional_bp))
     if ai_bp is not None:
