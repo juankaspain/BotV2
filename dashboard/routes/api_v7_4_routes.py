@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 # Create Blueprint
 api_v7_4 = Blueprint('api_v7_4', __name__, url_prefix='/api')
 
+# Alias for backward compatibility
+api_v7_4_bp = api_v7_4
+
 # ==================== CACHE SYSTEM ====================
 class SimpleCache:
     """Simple in-memory cache with TTL"""
@@ -58,14 +61,14 @@ def cached_response(cache_key_prefix: str):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             # Build cache key from prefix + args + query params
-            cache_key = f"{cache_key_prefix}:{':'.join(map(str, args))}"
+            cache_key = "{}:{}".format(cache_key_prefix, ':'.join(map(str, args)))
             if request.args:
-                cache_key += f":{json.dumps(dict(request.args), sort_keys=True)}"
+                cache_key += ":{}".format(json.dumps(dict(request.args), sort_keys=True))
             
             # Check cache
             cached = api_cache.get(cache_key)
             if cached:
-                logger.info(f"Cache HIT: {cache_key}")
+                logger.info("Cache HIT: %s", cache_key)
                 return jsonify(cached)
             
             # Execute function
@@ -74,7 +77,7 @@ def cached_response(cache_key_prefix: str):
             # Cache successful responses
             if result[1] == 200:  # Assuming (data, status_code) return
                 api_cache.set(cache_key, result[0].get_json())
-                logger.info(f"Cache SET: {cache_key}")
+                logger.info("Cache SET: %s", cache_key)
             
             return result
         return decorated_function
@@ -87,10 +90,10 @@ def handle_errors(f):
         try:
             return f(*args, **kwargs)
         except ValueError as e:
-            logger.error(f"ValueError in {f.__name__}: {e}")
+            logger.error("ValueError in %s: %s", f.__name__, e)
             return jsonify({'error': 'Invalid input', 'message': str(e)}), 400
         except Exception as e:
-            logger.error(f"Error in {f.__name__}: {e}", exc_info=True)
+            logger.error("Error in %s: %s", f.__name__, e, exc_info=True)
             return jsonify({'error': 'Internal server error', 'message': str(e)}), 500
     return decorated_function
 
@@ -128,7 +131,7 @@ class MockDataGenerator:
             },
             'trades': {
                 'recent': [
-                    {'id': i, 'symbol': f'Asset{i}', 'pnl': (i % 2 * 2 - 1) * 100 * i}
+                    {'id': i, 'symbol': 'Asset{}'.format(i), 'pnl': (i % 2 * 2 - 1) * 100 * i}
                     for i in range(1, 21)
                 ],
                 'total': 250,
@@ -156,7 +159,7 @@ class MockDataGenerator:
             }
         }
         
-        return data_map.get(section, {'message': f'No data for section: {section}'})
+        return data_map.get(section, {'message': 'No data for section: {}'.format(section)})
     
     @staticmethod
     def get_chart_data(chart_id: str) -> Dict[str, Any]:
@@ -204,7 +207,7 @@ class MockDataGenerator:
             }
         }
         
-        return chart_map.get(chart_id, {'error': f'Chart not found: {chart_id}'})
+        return chart_map.get(chart_id, {'error': 'Chart not found: {}'.format(chart_id)})
     
     @staticmethod
     def get_filters(section: str) -> Dict[str, Any]:
@@ -244,7 +247,7 @@ def get_section_data(section: str):
     Returns:
         JSON with section data
     """
-    logger.info(f"Fetching section data: {section}")
+    logger.info("Fetching section data: %s", section)
     
     # Validate section
     valid_sections = ['dashboard', 'portfolio', 'trades', 'performance', 'risk', 'markets',
@@ -282,7 +285,7 @@ def get_chart_data(chart_id: str):
     Returns:
         JSON with chart data and config
     """
-    logger.info(f"Fetching chart data: {chart_id}")
+    logger.info("Fetching chart data: %s", chart_id)
     
     # Get query params
     date_from = request.args.get('date_from')
@@ -334,13 +337,13 @@ def track_analytics():
         return jsonify({'error': 'Missing events array'}), 400
     
     events = data['events']
-    logger.info(f"Tracking {len(events)} analytics events")
+    logger.info("Tracking %d analytics events", len(events))
     
     # Process events (store in database, send to analytics service, etc.)
     for event in events:
         event_name = event.get('name')
         properties = event.get('properties', {})
-        logger.debug(f"Event: {event_name}, Properties: {properties}")
+        logger.debug("Event: %s, Properties: %s", event_name, properties)
         
         # TODO: Store in database or send to analytics service
     
@@ -364,7 +367,7 @@ def get_available_filters(section: str):
     Returns:
         JSON with available filters
     """
-    logger.info(f"Fetching filters for section: {section}")
+    logger.info("Fetching filters for section: %s", section)
     
     filters = MockDataGenerator.get_filters(section)
     
@@ -398,7 +401,7 @@ def compare_strategies():
     strategy_ids = data['strategy_ids']
     metrics = data.get('metrics', ['total_return', 'sharpe_ratio', 'max_drawdown', 'win_rate'])
     
-    logger.info(f"Comparing strategies: {strategy_ids}")
+    logger.info("Comparing strategies: %s", strategy_ids)
     
     # Mock comparison data
     comparison = {
@@ -447,7 +450,7 @@ def export_data(format: str):
     section = data.get('section', 'dashboard')
     filters = data.get('filters', {})
     
-    logger.info(f"Exporting {section} data as {format.upper()}")
+    logger.info("Exporting %s data as %s", section, format.upper())
     
     # Generate export (mock for now)
     export_result = {
@@ -455,7 +458,7 @@ def export_data(format: str):
         'section': section,
         'filters': filters,
         'status': 'ready',
-        'download_url': f'/downloads/export_{section}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.{format}',
+        'download_url': '/downloads/export_{}_{}.{}'.format(section, datetime.now().strftime("%Y%m%d_%H%M%S"), format),
         'expires_at': (datetime.now() + timedelta(hours=1)).isoformat(),
         'size_bytes': 1024 * (10 + hash(section) % 90),
         'timestamp': datetime.now().isoformat()
@@ -513,7 +516,7 @@ def not_found(error):
 
 @api_v7_4.errorhandler(500)
 def internal_error(error):
-    logger.error(f"Internal error: {error}", exc_info=True)
+    logger.error("Internal error: %s", error, exc_info=True)
     return jsonify({
         'error': 'Internal server error',
         'message': 'An unexpected error occurred',
