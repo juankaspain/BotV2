@@ -152,6 +152,11 @@
             font-size: 16px;
         }
 
+        .nav-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .sidebar-footer {
             padding: 16px 20px;
             border-top: 1px solid var(--border-color);
@@ -292,6 +297,7 @@
         </div>
 
         <nav class="sidebar-nav">
+            <!-- Main Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Main</div>
                 <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
@@ -308,47 +314,48 @@
                 </a>
             </div>
 
+            <!-- Trading Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Trading</div>
                 <a href="{{ url_for('strategy_editor.strategy_editor_ui') }}" class="nav-item {% if request.endpoint == 'strategy_editor.strategy_editor_ui' %}active{% endif %}">
                     <i class="fas fa-brain"></i>
                     <span>Strategies</span>
                 </a>
-                <a href="#" class="nav-item">
+                <!-- Coming soon items -->
+                <a href="#" class="nav-item disabled" title="Coming soon">
                     <i class="fas fa-chart-line"></i>
                     <span>Portfolio</span>
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item disabled" title="Coming soon">
                     <i class="fas fa-history"></i>
                     <span>Trade History</span>
                 </a>
             </div>
 
+            <!-- Analysis Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Analysis</div>
-                <a href="#" class="nav-item">
+                <!-- Removed metrics.dashboard - not existent -->
+                <a href="#" class="nav-item disabled" title="Coming soon">
                     <i class="fas fa-chart-bar"></i>
                     <span>Performance</span>
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" class="nav-item disabled" title="Coming soon">
                     <i class="fas fa-shield-alt"></i>
                     <span>Risk Management</span>
                 </a>
-                <a href="{{ url_for('metrics.dashboard') }}" class="nav-item {% if request.endpoint == 'metrics.dashboard' %}active{% endif %}">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>System Metrics</span>
-                </a>
             </div>
 
+            <!-- System Section -->
             <div class="nav-section">
-                <div class="nav-section-title">Settings</div>
-                <a href="#" class="nav-item">
-                    <i class="fas fa-cog"></i>
-                    <span>Configuration</span>
-                </a>
+                <div class="nav-section-title">System</div>
                 <a href="{{ url_for('health') }}" class="nav-item" target="_blank">
                     <i class="fas fa-heartbeat"></i>
                     <span>System Health</span>
+                </a>
+                <a href="#" class="nav-item disabled" title="Coming soon">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
                 </a>
             </div>
         </nav>
