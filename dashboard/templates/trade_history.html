@@ -115,7 +115,7 @@ const tradesPerPage = 20;
 
 async function loadStatistics() {
     try {
-        const res = await fetch('/api/trades/statistics');
+        const res = await fetch('/trade-history/api/statistics');
         const data = await res.json();
         
         if (data.success) {
@@ -137,7 +137,7 @@ async function loadTradeHistory() {
         showLoading('Loading trades...');
         
         const symbol = document.getElementById('symbol-filter').value;
-        const url = `/api/trades/history?limit=${tradesPerPage}${symbol ? '&symbol=' + symbol : ''}`;
+        const url = `/trade-history/api/history?limit=${tradesPerPage}${symbol ? '&symbol=' + symbol : ''}`;
         
         const res = await fetch(url);
         const data = await res.json();
