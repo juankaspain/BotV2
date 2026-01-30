@@ -43,7 +43,6 @@ if str(_DASHBOARD_DIR) not in sys.path:
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for, g
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
-from flask_talisman import Talisman
 from functools import wraps
 from datetime import datetime, timedelta
 import pandas as pd
@@ -52,11 +51,26 @@ from typing import Dict, Optional
 import hashlib
 import secrets
 from collections import defaultdict
-from pydantic import ValidationError
 
 # ============================================================================
 # OPTIONAL IMPORTS WITH FALLBACKS
 # ============================================================================
+
+# Pydantic - optional
+try:
+    from pydantic import ValidationError
+    HAS_PYDANTIC = True
+except ImportError:
+    HAS_PYDANTIC = False
+    class ValidationError(Exception):
+        pass
+
+# Talisman - optional for security headers
+try:
+    from flask_talisman import Talisman
+    HAS_TALISMAN = True
+except ImportError:
+    HAS_TALISMAN = False
 
 # SECURITY IMPORTS (New Modular Architecture)
 try:
@@ -314,77 +328,76 @@ class ProfessionalDashboard:
         """Initialize all security features (100% coverage)."""
         if not HAS_SECURITY:
             logger.warning("[!] Security features disabled - modules not available")
-            return
-        
-        # 1. CSRF Protection
-        self.csrf = init_csrf_protection(
-            self.app,
-            token_length=int(os.getenv('CSRF_TOKEN_LENGTH', 32)),
-            token_ttl=int(os.getenv('CSRF_TOKEN_TTL', 3600))
-        )
-        logger.info("[+] CSRF Protection enabled")
-        
-        # 2. XSS Protection Middleware
-        xss_protection_middleware(
-            self.app,
-            strip=True,  # Strip HTML tags completely
-            detect_only=False  # Block XSS attempts
-        )
-        logger.info("[+] XSS Protection middleware enabled")
-        
-        # 3. Rate Limiting
-        rate_limit_enabled = os.getenv('RATE_LIMITING_ENABLED', 'true').lower() == 'true'
-        if rate_limit_enabled:
-            self.limiter = init_rate_limiter(
-                self.app,
-                requests_per_minute=int(os.getenv('RATE_LIMIT_RPM', 60)),
-                burst_size=int(os.getenv('RATE_LIMIT_BURST', 10))
-            )
-            logger.info("[+] Rate Limiting enabled")
         else:
-            self.limiter = None
-            logger.info("[-] Rate Limiting disabled by configuration")
+            # 1. CSRF Protection
+            self.csrf = init_csrf_protection(
+                self.app,
+                token_length=int(os.getenv('CSRF_TOKEN_LENGTH', 32)),
+                token_ttl=int(os.getenv('CSRF_TOKEN_TTL', 3600))
+            )
+            logger.info("[+] CSRF Protection enabled")
+            
+            # 2. XSS Protection Middleware
+            xss_protection_middleware(
+                self.app,
+                strip=True,
+                detect_only=False
+            )
+            logger.info("[+] XSS Protection middleware enabled")
+            
+            # 3. Rate Limiting
+            rate_limit_enabled = os.getenv('RATE_LIMITING_ENABLED', 'true').lower() == 'true'
+            if rate_limit_enabled:
+                self.limiter = init_rate_limiter(
+                    self.app,
+                    requests_per_minute=int(os.getenv('RATE_LIMIT_RPM', 60)),
+                    burst_size=int(os.getenv('RATE_LIMIT_BURST', 10))
+                )
+                logger.info("[+] Rate Limiting enabled")
+            else:
+                self.limiter = None
+                logger.info("[-] Rate Limiting disabled by configuration")
+            
+            # 4. Session Manager
+            session_timeout_seconds = int(os.getenv('SESSION_TIMEOUT_MINUTES', 15)) * 60
+            self.session_manager = SessionManager(
+                self.app,
+                session_lifetime=session_timeout_seconds
+            )
+            logger.info("[+] Session Management enabled")
+            
+            # 5. Security Middleware (Headers, Request Validation)
+            init_security_middleware(self.app)
+            logger.info("[+] Security Middleware enabled")
         
-        # 4. Session Manager
-        session_timeout_seconds = int(os.getenv('SESSION_TIMEOUT_MINUTES', 15)) * 60
-        self.session_manager = SessionManager(
-            self.app,
-            session_lifetime=session_timeout_seconds
-        )
-        logger.info("[+] Session Management enabled")
-        
-        # 5. Security Middleware (Headers, Request Validation)
-        init_security_middleware(self.app)
-        logger.info("[+] Security Middleware enabled")
-        
-        # 6. CSP Configuration - Only in production
-        # In development, CSP is disabled to avoid blocking CDN resources
-        if self.is_production:
+        # 6. CSP Configuration with Talisman
+        # Only configure Talisman in production - DISABLED in development to avoid CSP issues
+        if HAS_TALISMAN and self.is_production:
             csp_config = {
                 'default-src': "'self'",
                 'script-src': [
                     "'self'",
                     "'unsafe-inline'",
                     "'unsafe-eval'",
-                    "https://cdn.jsdelivr.net",
-                    "https://cdn.socket.io",
-                    "https://cdn.plot.ly",
-                    "https://unpkg.com",
-                    "https://cdn.sheetjs.com",
-                    "https://cdnjs.cloudflare.com"
+                    "cdn.jsdelivr.net",
+                    "cdn.socket.io",
+                    "cdn.plot.ly",
+                    "unpkg.com",
+                    "cdn.sheetjs.com",
+                    "cdnjs.cloudflare.com"
                 ],
                 'style-src': [
                     "'self'",
                     "'unsafe-inline'",
-                    "https://fonts.googleapis.com",
-                    "https://cdn.jsdelivr.net",
-                    "https://cdnjs.cloudflare.com"
+                    "fonts.googleapis.com",
+                    "cdn.jsdelivr.net",
+                    "cdnjs.cloudflare.com"
                 ],
                 'font-src': [
                     "'self'",
-                    "https://fonts.gstatic.com",
-                    "https://fonts.googleapis.com",
-                    "https://cdnjs.cloudflare.com",
+                    "fonts.gstatic.com",
+                    "fonts.googleapis.com",
+                    "cdnjs.cloudflare.com",
                     "data:"
                 ],
                 'img-src': [
@@ -397,15 +410,12 @@ class ProfessionalDashboard:
                     "'self'",
                     "wss:",
                     "ws:",
-                    "http://localhost:*",
-                    "https://localhost:*",
-                    "ws://localhost:*",
-                    "wss://localhost:*",
-                    "https://cdn.sheetjs.com",
-                    "https://cdnjs.cloudflare.com",
-                    "https://cdn.jsdelivr.net",
-                    "https://cdn.plot.ly",
-                    "https://cdn.socket.io"
+                    "localhost:*",
+                    "cdn.sheetjs.com",
+                    "cdnjs.cloudflare.com",
+                    "cdn.jsdelivr.net",
+                    "cdn.plot.ly",
+                    "cdn.socket.io"
                 ],
                 'frame-ancestors': "'none'",
                 'base-uri': "'self'",
@@ -424,16 +434,8 @@ class ProfessionalDashboard:
             )
             logger.info("[+] HTTPS + CSP enabled (production)")
         else:
-            # Development mode: Disable CSP to avoid blocking CDN resources
-            # Security headers are still set but CSP is permissive
-            Talisman(
-                self.app,
-                force_https=False,
-                content_security_policy=False,  # Disable CSP in development
-                feature_policy={},
-                strict_transport_security=False
-            )
-            logger.info("[+] Security headers enabled (CSP disabled for development)")
+            # Development mode: NO Talisman - completely disabled to allow all CDN resources
+            logger.info("[+] Security headers DISABLED (development mode - CSP off)")
     
     def _setup_compression(self):
         """Setup GZIP compression."""
@@ -581,7 +583,7 @@ class ProfessionalDashboard:
             # POST request - process login
             try:
                 # Input validation with Pydantic
-                if HAS_SECURITY:
+                if HAS_SECURITY and HAS_PYDANTIC:
                     try:
                         login_data = validate_input(LoginRequest, {
                             'username': request.form.get('username', ''),
@@ -733,7 +735,7 @@ class ProfessionalDashboard:
                 data = request.get_json()
                 
                 # Validate and sanitize input with Pydantic
-                if HAS_SECURITY:
+                if HAS_SECURITY and HAS_PYDANTIC:
                     try:
                         validated = validate_input(AnnotationCreate, data)
                         annotation_data = validated.model_dump()
