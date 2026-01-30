@@ -81,12 +81,17 @@ try:
 except ImportError:
     HAS_PSUTIL = False
 
-# Flask version
+# Flask version - using importlib.metadata (recommended for Flask 3.2+)
 try:
-    import flask
-    FLASK_VERSION = flask.__version__
-except:
-    FLASK_VERSION = 'unknown'
+    from importlib.metadata import version as get_package_version
+    FLASK_VERSION = get_package_version('flask')
+except Exception:
+    # Fallback for older Python versions
+    try:
+        import pkg_resources
+        FLASK_VERSION = pkg_resources.get_distribution('flask').version
+    except Exception:
+        FLASK_VERSION = 'unknown'
 
 # Pydantic - optional
 try:
