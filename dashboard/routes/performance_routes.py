@@ -21,8 +21,8 @@ import random
 
 logger = logging.getLogger(__name__)
 
-# Create blueprint
-performance_bp = Blueprint('performance', __name__)
+# Create blueprint with url_prefix
+performance_bp = Blueprint('performance', __name__, url_prefix='/performance')
 
 
 # ==================== DECORATORS ====================
@@ -39,7 +39,7 @@ def login_required(f):
 
 # ==================== UI ROUTES ====================
 
-@performance_bp.route('/performance', methods=['GET'])
+@performance_bp.route('/', methods=['GET'])
 @login_required
 def performance_ui():
     """Performance UI page"""
@@ -48,7 +48,7 @@ def performance_ui():
 
 # ==================== API ROUTES ====================
 
-@performance_bp.route('/api/performance/overview', methods=['GET'])
+@performance_bp.route('/api/overview', methods=['GET'])
 @login_required
 def get_performance_overview():
     """Get performance overview"""
@@ -78,7 +78,7 @@ def get_performance_overview():
         return jsonify({'error': str(e)}), 500
 
 
-@performance_bp.route('/api/performance/equity-curve', methods=['GET'])
+@performance_bp.route('/api/equity-curve', methods=['GET'])
 @login_required
 def get_equity_curve():
     """Get equity curve data"""
@@ -112,7 +112,7 @@ def get_equity_curve():
         return jsonify({'error': str(e)}), 500
 
 
-@performance_bp.route('/api/performance/monthly', methods=['GET'])
+@performance_bp.route('/api/monthly', methods=['GET'])
 @login_required
 def get_monthly_performance():
     """Get monthly performance breakdown"""
@@ -140,3 +140,6 @@ def get_monthly_performance():
     except Exception as e:
         logger.error(f"Error getting monthly performance: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+
+logger.info("Performance routes initialized (v1.0)")
