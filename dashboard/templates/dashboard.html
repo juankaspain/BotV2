@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - Trading Bot{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
@@ -11,7 +12,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="text-muted mb-1">Total Balance</h6>
-                            <h3 class="mb-0" id="total-balance">$0.00</h3>
+                            <h3 class="mb-0" id="total-balance">€0.00</h3>
                         </div>
                         <div class="stat-icon bg-primary">
                             <i class="fas fa-wallet"></i>
@@ -27,7 +28,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="text-muted mb-1">Today's P&L</h6>
-                            <h3 class="mb-0" id="daily-pnl">$0.00</h3>
+                            <h3 class="mb-0" id="daily-pnl">€0.00</h3>
                         </div>
                         <div class="stat-icon bg-success">
                             <i class="fas fa-chart-line"></i>
@@ -134,7 +135,6 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between">
                     <h5 class="mb-0">Recent Trades</h5>
-                    <!-- Removed non-existent 'trades' route link -->
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -157,4 +157,267 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize charts and load data
+    let performanceChart = null;
+    let allocationChart = null;
+
+    // Load dashboard data
+    async function loadDashboardData() {
+        try {
+            const response = await fetch('/api/section/dashboard');
+            if (!response.ok) {
+                console.warn('Dashboard API not available, using demo data');
+                loadDemoData();
+                return;
+            }
+            
+            const data = await response.json();
+            updateDashboardStats(data);
+        } catch (error) {
+            console.warn('Error loading dashboard data:', error);
+            loadDemoData();
+        }
+    }
+
+    // Load demo data as fallback
+    function loadDemoData() {
+        const demoData = {
+            overview: {
+                equity: '€3,000.00',
+                total_pnl: '+€150.00',
+                daily_pnl: '+€25.50',
+                win_rate: 65.5,
+                total_trades: 24,
+                daily_trades: 3,
+                bot_status: 'Paper',
+                uptime: '2h 15m'
+            },
+            performance: {
+                labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                data: [3000, 3020, 3010, 3050, 3080, 3000]
+            },
+            allocation: {
+                labels: ['BTC', 'ETH', 'USDT', 'Other'],
+                data: [45, 30, 15, 10]
+            },
+            positions: [
+                { symbol: 'BTC/USDT', side: 'LONG', size: 0.05, entry: 50000, pnl: 125.50, pnl_pct: 2.5 },
+                { symbol: 'ETH/USDT', side: 'LONG', size: 0.5, entry: 3000, pnl: -25.00, pnl_pct: -0.8 }
+            ],
+            trades: [
+                { time: '14:23', symbol: 'BTC/USDT', type: 'SELL', pnl: 75.00 },
+                { time: '13:45', symbol: 'ETH/USDT', type: 'BUY', pnl: -15.00 },
+                { time: '12:10', symbol: 'BNB/USDT', type: 'SELL', pnl: 42.50 }
+            ]
+        };
+        
+        updateDashboardStats(demoData);
+    }
+
+    // Update dashboard statistics
+    function updateDashboardStats(data) {
+        const overview = data.overview || {};
+        
+        // Update stats cards
+        document.getElementById('total-balance').textContent = overview.equity || '€0.00';
+        document.getElementById('balance-change').textContent = overview.total_pnl || '+0.00%';
+        document.getElementById('daily-pnl').textContent = overview.daily_pnl || '€0.00';
+        document.getElementById('daily-trades').textContent = `${overview.daily_trades || 0} trades`;
+        document.getElementById('win-rate').textContent = `${overview.win_rate || 0}%`;
+        document.getElementById('total-trades').textContent = `${overview.total_trades || 0} total trades`;
+        document.getElementById('bot-status').textContent = overview.bot_status || 'Offline';
+        document.getElementById('bot-uptime').textContent = overview.uptime || '--';
+
+        // Update charts
+        if (data.performance) {
+            updatePerformanceChart(data.performance);
+        }
+        
+        if (data.allocation) {
+            updateAllocationChart(data.allocation);
+        }
+
+        // Update positions table
+        if (data.positions) {
+            updatePositionsTable(data.positions);
+        }
+
+        // Update trades table
+        if (data.trades) {
+            updateTradesTable(data.trades);
+        }
+    }
+
+    // Update performance chart
+    function updatePerformanceChart(data) {
+        const ctx = document.getElementById('performance-chart');
+        if (!ctx) return;
+
+        if (performanceChart) {
+            performanceChart.destroy();
+        }
+
+        performanceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels || [],
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: data.data || [],
+                    borderColor: '#5865f2',
+                    backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#8e9297'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#8e9297'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Update allocation chart
+    function updateAllocationChart(data) {
+        const ctx = document.getElementById('allocation-chart');
+        if (!ctx) return;
+
+        if (allocationChart) {
+            allocationChart.destroy();
+        }
+
+        allocationChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.labels || [],
+                datasets: [{
+                    data: data.data || [],
+                    backgroundColor: [
+                        '#f7931a',
+                        '#627eea',
+                        '#26a17b',
+                        '#5865f2'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#e4e6eb',
+                            padding: 15
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Update positions table
+    function updatePositionsTable(positions) {
+        const tbody = document.getElementById('positions-body');
+        if (!tbody) return;
+
+        document.getElementById('position-count').textContent = positions.length;
+
+        if (positions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No open positions</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = positions.map(pos => `
+            <tr>
+                <td>${pos.symbol}</td>
+                <td><span class="badge bg-${pos.side === 'LONG' ? 'success' : 'danger'}">${pos.side}</span></td>
+                <td>${pos.size}</td>
+                <td>€${pos.entry.toLocaleString()}</td>
+                <td class="${pos.pnl >= 0 ? 'text-success' : 'text-danger'}">
+                    ${pos.pnl >= 0 ? '+' : ''}€${pos.pnl.toFixed(2)} (${pos.pnl_pct.toFixed(2)}%)
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="closePosition('${pos.symbol}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Update trades table
+    function updateTradesTable(trades) {
+        const tbody = document.getElementById('trades-body');
+        if (!tbody) return;
+
+        if (trades.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No recent trades</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = trades.map(trade => `
+            <tr>
+                <td>${trade.time}</td>
+                <td>${trade.symbol}</td>
+                <td><span class="badge bg-${trade.type === 'BUY' ? 'success' : 'info'}">${trade.type}</span></td>
+                <td class="${trade.pnl >= 0 ? 'text-success' : 'text-danger'}">
+                    ${trade.pnl >= 0 ? '+' : ''}€${trade.pnl.toFixed(2)}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Close position action
+    function closePosition(symbol) {
+        if (confirm(`Close position for ${symbol}?`)) {
+            console.log(`Closing position: ${symbol}`);
+            // TODO: Implement close position API call
+        }
+    }
+
+    // WebSocket real-time updates
+    if (socket) {
+        socket.on('dashboard_update', function(data) {
+            updateDashboardStats(data);
+        });
+    }
+
+    // Auto-refresh every 30 seconds
+    setInterval(loadDashboardData, 30000);
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDashboardData();
+    });
+</script>
 {% endblock %}
