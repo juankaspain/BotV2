@@ -4,42 +4,53 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Risk Metrics Overview -->
-    <div class="row mb-4 g-3">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Portfolio Heat</h6>
-                    <h3 class="mb-1" id="portfolio-heat">0%</h3>
-                    <small class="text-muted">Total risk / Account</small>
-                </div>
+    <!-- Risk Metrics Overview - CSS v4.0 -->
+    <div class="card-grid mb-4">
+        <!-- Portfolio Heat -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-warning">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Portfolio Heat</span>
+                <span class="metric-card__value" id="portfolio-heat">0%</span>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">Total risk / Account</small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Current Drawdown</h6>
-                    <h3 class="mb-1 text-danger" id="current-drawdown">0%</h3>
-                    <small class="text-muted">From peak</small>
-                </div>
+
+        <!-- Current Drawdown -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-danger">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Current Drawdown</span>
+                <span class="metric-card__value text-danger" id="current-drawdown">0%</span>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">From peak</small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Max Drawdown</h6>
-                    <h3 class="mb-1 text-danger" id="max-drawdown">0%</h3>
-                    <small class="text-muted">Historical max</small>
-                </div>
+
+        <!-- Max Drawdown -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Max Drawdown</span>
+                <span class="metric-card__value text-danger" id="max-drawdown">0%</span>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">Historical max</small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Total Risk</h6>
-                    <h3 class="mb-1" id="total-risk">$0</h3>
-                    <small class="text-muted">All positions</small>
-                </div>
+
+        <!-- Total Risk -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-primary">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Total Risk</span>
+                <span class="metric-card__value" id="total-risk">$0</span>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">All positions</small>
             </div>
         </div>
     </div>
@@ -49,7 +60,9 @@
         <div class="col-lg-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Position Size Calculator</h5>
+                    <div class="card-header__title">
+                        <h5><i class="fas fa-calculator me-2"></i>Position Size Calculator</h5>
+                    </div>
                 </div>
                 <div class="card-body">
                     <form id="position-calculator-form">
@@ -124,11 +137,13 @@
         <div class="col-lg-6">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Portfolio Risk</h5>
+                    <div class="card-header__title">
+                        <h5><i class="fas fa-shield-alt me-2"></i>Portfolio Risk</h5>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm" id="portfolio-risk-table">
+                        <table class="table table-sm" id="portfolio-risk-table" style="display: none;">
                             <thead>
                                 <tr>
                                     <th>Symbol</th>
@@ -140,13 +155,24 @@
                             <tbody></tbody>
                         </table>
                     </div>
+                    
+                    <!-- Empty State - CSS v4.0 -->
+                    <div id="no-risk-positions" class="empty-state">
+                        <i class="empty-state__icon fas fa-shield-alt"></i>
+                        <div class="empty-state__title">No Active Positions</div>
+                        <div class="empty-state__description">
+                            Your portfolio risk breakdown will appear here
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Risk Limits -->
             <div class="card mt-3">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Risk Limits</h5>
+                    <div class="card-header__title">
+                        <h5><i class="fas fa-sliders-h me-2"></i>Risk Limits</h5>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="row g-2">
@@ -180,10 +206,15 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Drawdown History</h5>
+                    <div class="card-header__title">
+                        <h5><i class="fas fa-chart-area me-2"></i>Drawdown History</h5>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="drawdown-chart" height="200"></canvas>
+                    <!-- Chart Container - CSS v4.0 -->
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="drawdown-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -229,12 +260,11 @@
 
 {% block scripts %}
 <script>
+// ✅ Use ThemeManager
 let drawdownChart = null;
 
-// Load risk data
 async function loadRiskData() {
     try {
-        // Load portfolio risk
         const riskRes = await fetch('/risk/api/portfolio-risk');
         const riskData = await riskRes.json();
         
@@ -243,21 +273,31 @@ async function loadRiskData() {
             document.getElementById('portfolio-heat').textContent = pr.portfolio_heat_pct.toFixed(1) + '%';
             document.getElementById('total-risk').textContent = '$' + pr.total_risk_amount.toLocaleString();
             
-            // Update table
+            // Update table with empty state
             const tbody = document.querySelector('#portfolio-risk-table tbody');
-            tbody.innerHTML = '';
-            pr.positions.forEach(pos => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td><strong>${pos.symbol}</strong></td>
-                    <td>$${pos.exposure_usd.toLocaleString()}</td>
-                    <td class="text-danger">$${pos.risk_usd}</td>
-                    <td>${pos.stop_loss_distance_pct.toFixed(1)}%</td>
-                `;
-            });
+            const table = document.getElementById('portfolio-risk-table');
+            const emptyState = document.getElementById('no-risk-positions');
+            
+            if (pr.positions.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'flex';
+            } else {
+                table.style.display = 'table';
+                emptyState.style.display = 'none';
+                
+                tbody.innerHTML = '';
+                pr.positions.forEach(pos => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td><strong>${pos.symbol}</strong></td>
+                        <td>$${pos.exposure_usd.toLocaleString()}</td>
+                        <td class="text-danger">$${pos.risk_usd}</td>
+                        <td>${pos.stop_loss_distance_pct.toFixed(1)}%</td>
+                    `;
+                });
+            }
         }
         
-        // Load risk limits
         const limitsRes = await fetch('/risk/api/risk-limits');
         const limitsData = await limitsRes.json();
         
@@ -269,7 +309,6 @@ async function loadRiskData() {
             document.getElementById('max-leverage').textContent = l.max_leverage + 'x';
         }
         
-        // Load drawdown
         const ddRes = await fetch('/risk/api/drawdown');
         const ddData = await ddRes.json();
         
@@ -286,43 +325,42 @@ async function loadRiskData() {
     }
 }
 
+// ✅ Drawdown chart with ThemeManager
 function renderDrawdownChart(data) {
     const ctx = document.getElementById('drawdown-chart');
     
     if (drawdownChart) drawdownChart.destroy();
     
-    drawdownChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.map(d => d.date),
-            datasets: [{
-                label: 'Drawdown %',
-                data: data.map(d => d.drawdown_pct),
-                borderColor: '#ed4245',
-                backgroundColor: 'rgba(237, 66, 69, 0.1)',
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    ticks: { color: '#8e9297' },
-                    grid: { color: 'rgba(142, 146, 151, 0.1)' }
-                },
-                x: {
-                    ticks: { color: '#8e9297' },
-                    grid: { display: false }
-                }
-            }
-        }
-    });
+    const colors = ThemeManager.getChartColors();
+    const config = ThemeManager.getChartDefaults('line');
+    
+    config.data = {
+        labels: data.map(d => d.date),
+        datasets: [{
+            label: 'Drawdown %',
+            data: data.map(d => d.drawdown_pct),
+            borderColor: colors.danger,
+            backgroundColor: `${colors.danger}1A`,
+            fill: true,
+            tension: 0.4
+        }]
+    };
+    
+    drawdownChart = new Chart(ctx, config);
 }
+
+// ✅ Re-render on theme change
+window.addEventListener('themechange', function() {
+    if (drawdownChart) {
+        fetch('/risk/api/drawdown')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    renderDrawdownChart(data.drawdown.drawdown_history);
+                }
+            });
+    }
+});
 
 // Position calculator
 document.getElementById('position-calculator-form').addEventListener('submit', async (e) => {
@@ -369,7 +407,6 @@ function saveRiskLimits() {
     bootstrap.Modal.getInstance(document.getElementById('limitsModal')).hide();
 }
 
-// Load on page load
 loadRiskData();
 setInterval(loadRiskData, 60000);
 </script>
