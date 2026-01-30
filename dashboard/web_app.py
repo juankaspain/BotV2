@@ -300,7 +300,7 @@ class ProfessionalDashboard:
         self._setup_routes()
         self._setup_websocket_handlers()
         
-        # Startup banner
+        # Startup banner - MUST be called after all setup
         self._log_startup_banner()
     
     def _configure_flask(self):
@@ -502,48 +502,43 @@ class ProfessionalDashboard:
         logger.info("[+] All blueprints registered")
     
     def _log_startup_banner(self):
-        """Log startup banner."""
+        """Log startup banner with immediate flush to ensure visibility."""
         if self.audit_logger:
             self.audit_logger.log_system_startup(
                 version=__version__,
                 environment=self.env
             )
         
-        # Print ASCII banner
-        print(ASCII_BANNER.format(version=__version__, env=self.env.upper()))
+        # Print ASCII banner with flush=True to ensure immediate output
+        print(ASCII_BANNER.format(version=__version__, env=self.env.upper()), flush=True)
         
-        # Status table
-        status_lines = [
-            "",
-            "  COMPONENT               STATUS",
-            "  -----------------------------------------",
-            "  Security                {}".format('ENABLED' if HAS_SECURITY else 'DISABLED'),
-        ]
+        # Status table - each line with flush=True
+        print("", flush=True)
+        print("  COMPONENT               STATUS", flush=True)
+        print("  -----------------------------------------", flush=True)
+        print("  Security                {}".format('ENABLED' if HAS_SECURITY else 'DISABLED'), flush=True)
         
         if HAS_SECURITY:
-            status_lines.extend([
-                "    - CSRF Protection     OK",
-                "    - XSS Prevention      OK",
-                "    - Input Validation    OK",
-                "    - Rate Limiting       OK",
-                "    - Session Mgmt        OK",
-                "    - Audit Logging       OK",
-                "    - Security Headers    OK ({})".format(self.env),
-                "    - CSP                 {}".format('STRICT' if self.is_production else 'DISABLED'),
-            ])
+            print("    - CSRF Protection     OK", flush=True)
+            print("    - XSS Prevention      OK", flush=True)
+            print("    - Input Validation    OK", flush=True)
+            print("    - Rate Limiting       OK", flush=True)
+            print("    - Session Mgmt        OK", flush=True)
+            print("    - Audit Logging       OK", flush=True)
+            print("    - Security Headers    OK ({})".format(self.env), flush=True)
+            print("    - CSP                 {}".format('STRICT' if self.is_production else 'DISABLED'), flush=True)
         
-        status_lines.extend([
-            "  Metrics                 {}".format('ENABLED' if HAS_METRICS else 'DISABLED'),
-            "  GZIP Compression        {}".format('ENABLED' if HAS_COMPRESS else 'DISABLED'),
-            "  Database                {}".format('CONNECTED' if self.db_session else 'MOCK MODE'),
-            "  Auth User               {}".format(self.auth.username),
-            "  -----------------------------------------",
-            "  URL: http://{}:{}".format(self.host, self.port),
-            "",
-        ])
+        print("  Metrics                 {}".format('ENABLED' if HAS_METRICS else 'DISABLED'), flush=True)
+        print("  GZIP Compression        {}".format('ENABLED' if HAS_COMPRESS else 'DISABLED'), flush=True)
+        print("  Database                {}".format('CONNECTED' if self.db_session else 'MOCK MODE'), flush=True)
+        print("  Auth User               {}".format(self.auth.username), flush=True)
+        print("  -----------------------------------------", flush=True)
+        print("  URL: http://{}:{}".format(self.host, self.port), flush=True)
+        print("", flush=True)
         
-        for line in status_lines:
-            print(line)
+        # Force flush all output buffers
+        sys.stdout.flush()
+        sys.stderr.flush()
     
     def login_required(self, f):
         """Decorator for routes requiring authentication."""
