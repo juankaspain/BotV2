@@ -1,19 +1,19 @@
 """BotV2 Professional Dashboard v7.5 - Nonce-Based CSP
 Ultra-professional real-time trading dashboard with enterprise-grade security
 
-🔒 VERSION 7.5 - NONCE-BASED SECURITY:
-- ✅ CSRF Protection: Token-based validation (all forms + AJAX)
-- ✅ XSS Prevention: bleach backend + DOMPurify frontend
-- ✅ Input Validation: Pydantic models for type-safe validation
-- ✅ Session Management: Secure cookies + automatic timeout
-- ✅ Rate Limiting: Redis backend + per-endpoint limits
-- ✅ Security Audit Logging: Comprehensive JSON event logs
-- ✅ Security Headers: CSP with nonces, HSTS, X-Frame-Options
-- ✅ HTTPS Enforcement: Production-grade TLS (Talisman)
-- ✅ Nonce-Based CSP: Eliminates unsafe-inline vulnerability
-- ✅ SRI Protection: All CDN libraries with integrity checks
+VERSION 7.5 - NONCE-BASED SECURITY:
+- CSRF Protection: Token-based validation (all forms + AJAX)
+- XSS Prevention: bleach backend + DOMPurify frontend
+- Input Validation: Pydantic models for type-safe validation
+- Session Management: Secure cookies + automatic timeout
+- Rate Limiting: Redis backend + per-endpoint limits
+- Security Audit Logging: Comprehensive JSON event logs
+- Security Headers: CSP with nonces, HSTS, X-Frame-Options
+- HTTPS Enforcement: Production-grade TLS (Talisman)
+- Nonce-Based CSP: Eliminates unsafe-inline vulnerability
+- SRI Protection: All CDN libraries with integrity checks
 
-✅ All v6.0 features maintained:
+All v6.0 features maintained:
 - Metrics monitoring (RPM, latency, errors)
 - GZIP compression (60-85% reduction)
 - WebSocket real-time updates
@@ -58,7 +58,7 @@ from pydantic import ValidationError
 # OPTIONAL IMPORTS WITH FALLBACKS
 # ============================================================================
 
-# 🔒 SECURITY IMPORTS (New Modular Architecture)
+# SECURITY IMPORTS (New Modular Architecture)
 try:
     from shared.security import (
         init_csrf_protection,
@@ -77,20 +77,18 @@ try:
         sanitize_filename
     )
     HAS_SECURITY = True
-    logging.getLogger(__name__).info("✅ Security modules loaded")
 except ImportError as e:
     HAS_SECURITY = False
-    logging.getLogger(__name__).warning(f"⚠️ Security modules not available: {e}")
+    logging.getLogger(__name__).warning(f"Security modules not available: {e}")
 
-# ✅ GZIP COMPRESSION
+# GZIP COMPRESSION
 try:
     from flask_compress import Compress
     HAS_COMPRESS = True
 except ImportError:
     HAS_COMPRESS = False
-    logging.getLogger(__name__).warning("⚠️ Flask-Compress not installed")
 
-# 📊 METRICS MONITORING - Try both relative and absolute imports
+# METRICS MONITORING - Try both relative and absolute imports
 HAS_METRICS = False
 try:
     from dashboard.metrics_monitor import get_metrics_monitor, MetricsMiddleware
@@ -100,9 +98,9 @@ except ImportError:
         from metrics_monitor import get_metrics_monitor, MetricsMiddleware
         HAS_METRICS = True
     except ImportError:
-        logging.getLogger(__name__).warning("⚠️ Metrics monitoring not available")
+        pass
 
-# 💾 MOCK DATA - Try both relative and absolute imports
+# MOCK DATA - Try both relative and absolute imports
 HAS_MOCK_DATA = False
 try:
     from dashboard.mock_data import get_section_data
@@ -112,9 +110,9 @@ except ImportError:
         from mock_data import get_section_data
         HAS_MOCK_DATA = True
     except ImportError:
-        logging.getLogger(__name__).warning("⚠️ Mock data not found")
+        pass
 
-# 💾 DATABASE (OPTIONAL)
+# DATABASE (OPTIONAL)
 HAS_DATABASE = False
 try:
     from sqlalchemy import create_engine
@@ -125,9 +123,9 @@ try:
         from models import Base
     HAS_DATABASE = True
 except ImportError:
-    logging.getLogger(__name__).warning("⚠️ Database not available")
+    pass
 
-# 🧮 BLUEPRINTS - Try both import methods
+# BLUEPRINTS - Try both import methods
 try:
     from dashboard.routes.control_routes import control_bp
     from dashboard.routes.monitoring_routes import monitoring_bp
@@ -146,7 +144,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_csp_nonce() -> str:
-    """🔐 Generate cryptographically secure nonce for CSP
+    """Generate cryptographically secure nonce for CSP.
     
     Returns:
         str: 24-character URL-safe base64 nonce
@@ -155,7 +153,7 @@ def generate_csp_nonce() -> str:
 
 
 class DashboardAuth:
-    """🔒 Enhanced Session-Based Authentication with Security Audit Logging"""
+    """Enhanced Session-Based Authentication with Security Audit Logging."""
     
     def __init__(self, audit_logger=None):
         self.username = os.getenv('DASHBOARD_USERNAME', 'admin')
@@ -169,8 +167,6 @@ class DashboardAuth:
             # Demo mode: use 'admin' as default password
             demo_password = os.getenv('DASHBOARD_PASSWORD', 'admin')
             self.password_hash = self._hash_password(demo_password)
-            if os.getenv('DEMO_MODE', 'false').lower() == 'true':
-                logger.info(f"🔑 Demo mode: Using default credentials (admin/admin)")
     
     def _get_password_hash(self) -> str:
         password = os.getenv('DASHBOARD_PASSWORD')
@@ -225,7 +221,7 @@ class DashboardAuth:
 
 
 class ProfessionalDashboard:
-    """📊 Ultra-professional trading dashboard v7.5 with nonce-based CSP"""
+    """Ultra-professional trading dashboard v7.5 with nonce-based CSP."""
     
     def __init__(self, config):
         self.config = config
@@ -238,7 +234,7 @@ class ProfessionalDashboard:
         self.env = os.getenv('FLASK_ENV', 'development')
         self.is_production = self.env == 'production'
         
-        # 🔒 SECURITY: Initialize audit logger first
+        # SECURITY: Initialize audit logger first
         if HAS_SECURITY:
             self.audit_logger = init_audit_logger()
         else:
@@ -246,42 +242,42 @@ class ProfessionalDashboard:
         
         self.auth = DashboardAuth(self.audit_logger)
         
-        # 🏛️ Initialize Flask app
+        # Initialize Flask app
         self.app = Flask(
             __name__,
             template_folder=str(_DASHBOARD_DIR / 'templates'),
             static_folder=str(_DASHBOARD_DIR / 'static')
         )
         
-        # ⚙️ Flask configuration
+        # Flask configuration
         self._configure_flask()
         
-        # 🔒 SECURITY: Initialize all security features
+        # SECURITY: Initialize all security features
         self._setup_security()
         
-        # ✅ Other features
+        # Other features
         self._setup_compression()
         self._setup_cors()
         self._setup_socketio()
         self._setup_database()
         self._setup_metrics()
         
-        # 🧮 Register blueprints
+        # Register blueprints
         self._register_blueprints()
         
-        # 📊 Initialize state
+        # Initialize state
         self.alerts = []
         self.annotations = []
         
-        # 🚹️ Setup routes
+        # Setup routes
         self._setup_routes()
         self._setup_websocket_handlers()
         
-        # 📢 Startup banner
+        # Startup banner
         self._log_startup_banner()
     
     def _configure_flask(self):
-        """Configure Flask application settings"""
+        """Configure Flask application settings."""
         self.app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_urlsafe(32))
         self.app.config['SESSION_COOKIE_SECURE'] = self.is_production
         self.app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -291,20 +287,20 @@ class ProfessionalDashboard:
         )
         self.app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
         
-        # 🔒 CSRF Configuration
+        # CSRF Configuration
         self.app.config['CSRF_ENABLED'] = os.getenv('CSRF_ENABLED', 'true').lower() == 'true'
         self.app.config['CSRF_TOKEN_TTL'] = int(os.getenv('CSRF_TOKEN_TTL', 3600))
         
-        # 🔐 CSP Nonce: Generate for each request
+        # CSP Nonce: Generate for each request
         @self.app.before_request
         def set_csp_nonce():
-            """Generate unique CSP nonce for each request"""
+            """Generate unique CSP nonce for each request."""
             g.csp_nonce = generate_csp_nonce()
     
     def _setup_security(self):
-        """🔒 Initialize all security features (100% coverage)"""
+        """Initialize all security features (100% coverage)."""
         if not HAS_SECURITY:
-            logger.warning("⚠️ Security features disabled - modules not available")
+            logger.warning("[!] Security features disabled - modules not available")
             return
         
         # 1. CSRF Protection
@@ -313,7 +309,7 @@ class ProfessionalDashboard:
             token_length=int(os.getenv('CSRF_TOKEN_LENGTH', 32)),
             token_ttl=int(os.getenv('CSRF_TOKEN_TTL', 3600))
         )
-        logger.info("✅ CSRF Protection enabled")
+        logger.info("[+] CSRF Protection enabled")
         
         # 2. XSS Protection Middleware
         xss_protection_middleware(
@@ -321,9 +317,9 @@ class ProfessionalDashboard:
             strip=True,  # Strip HTML tags completely
             detect_only=False  # Block XSS attempts
         )
-        logger.info("✅ XSS Protection middleware enabled")
+        logger.info("[+] XSS Protection middleware enabled")
         
-        # 3. Rate Limiting (use correct signature: app, requests_per_minute, burst_size)
+        # 3. Rate Limiting
         rate_limit_enabled = os.getenv('RATE_LIMITING_ENABLED', 'true').lower() == 'true'
         if rate_limit_enabled:
             self.limiter = init_rate_limiter(
@@ -331,24 +327,24 @@ class ProfessionalDashboard:
                 requests_per_minute=int(os.getenv('RATE_LIMIT_RPM', 60)),
                 burst_size=int(os.getenv('RATE_LIMIT_BURST', 10))
             )
-            logger.info("✅ Rate Limiting enabled")
+            logger.info("[+] Rate Limiting enabled")
         else:
             self.limiter = None
-            logger.info("⚠️ Rate Limiting disabled by configuration")
+            logger.info("[-] Rate Limiting disabled by configuration")
         
-        # 4. Session Manager (correct signature: app, session_lifetime)
+        # 4. Session Manager
         session_timeout_seconds = int(os.getenv('SESSION_TIMEOUT_MINUTES', 15)) * 60
         self.session_manager = SessionManager(
             self.app,
             session_lifetime=session_timeout_seconds
         )
-        logger.info("✅ Session Management enabled")
+        logger.info("[+] Session Management enabled")
         
         # 5. Security Middleware (Headers, Request Validation)
         init_security_middleware(self.app)
-        logger.info("✅ Security Middleware enabled (Headers + Validation)")
+        logger.info("[+] Security Middleware enabled")
         
-        # 6. 🔐 CSP Configuration
+        # 6. CSP Configuration
         csp_config = {
             'default-src': "'self'",
             'script-src': [
@@ -410,7 +406,7 @@ class ProfessionalDashboard:
                 content_security_policy=csp_config,
                 content_security_policy_nonce_in=['script-src']
             )
-            logger.info("✅ HTTPS Enforcement + CSP enabled (production)")
+            logger.info("[+] HTTPS + CSP enabled (production)")
         else:
             Talisman(
                 self.app,
@@ -420,10 +416,10 @@ class ProfessionalDashboard:
                 feature_policy={},
                 strict_transport_security=False
             )
-            logger.info("✅ CSP enabled (development mode)")
+            logger.info("[+] CSP enabled (development)")
     
     def _setup_compression(self):
-        """✅ Setup GZIP compression"""
+        """Setup GZIP compression."""
         if HAS_COMPRESS:
             self.app.config['COMPRESS_MIMETYPES'] = [
                 'text/html', 'text/css', 'text/javascript',
@@ -433,20 +429,20 @@ class ProfessionalDashboard:
             self.app.config['COMPRESS_LEVEL'] = 6
             self.app.config['COMPRESS_MIN_SIZE'] = 500
             self.compress = Compress(self.app)
-            logger.info("✅ GZIP compression enabled (level 6)")
+            logger.info("[+] GZIP compression enabled (level 6)")
         else:
             self.compress = None
     
     def _setup_cors(self):
-        """Setup CORS"""
+        """Setup CORS."""
         CORS(self.app)
     
     def _setup_socketio(self):
-        """Setup WebSocket"""
+        """Setup WebSocket."""
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
     
     def _setup_database(self):
-        """Setup database connection"""
+        """Setup database connection."""
         self.db_session = None
         
         if not HAS_DATABASE:
@@ -464,66 +460,90 @@ class ProfessionalDashboard:
             Base.metadata.create_all(engine)
             
             self.db_session = Session
-            logger.info(f"✅ Database connected: {DATABASE_URL}")
+            logger.info(f"[+] Database connected: {DATABASE_URL}")
         except Exception as e:
-            logger.warning(f"⚠️ Database failed: {e}")
+            logger.warning(f"[-] Database failed: {e}")
             self.db_session = None
     
     def _setup_metrics(self):
-        """📊 Setup metrics monitoring"""
+        """Setup metrics monitoring."""
         if HAS_METRICS:
             self.metrics_monitor = get_metrics_monitor(window_seconds=300)
             MetricsMiddleware(self.app, self.metrics_monitor)
-            logger.info("✅ Metrics monitoring enabled (5min window)")
+            logger.info("[+] Metrics monitoring enabled (5min window)")
         else:
             self.metrics_monitor = None
     
     def _register_blueprints(self):
-        """🧮 Register Flask blueprints"""
+        """Register Flask blueprints."""
         self.app.register_blueprint(control_bp)
         self.app.register_blueprint(monitoring_bp)
         self.app.register_blueprint(strategy_bp)
         self.app.register_blueprint(metrics_routes_bp)
-        logger.info("✅ All blueprints registered")
+        logger.info("[+] All blueprints registered")
     
     def _log_startup_banner(self):
-        """📢 Log startup banner"""
+        """Log startup banner."""
         if self.audit_logger:
             self.audit_logger.log_system_startup(
                 version=__version__,
                 environment=self.env
             )
         
-        logger.info("")
-        logger.info("=" * 80)
-        logger.info(f"   BotV2 Dashboard v{__version__} - Security Phase 1 COMPLETE ✅")
-        logger.info("=" * 80)
-        logger.info(f"Environment: {self.env.upper()}")
-        logger.info(f"URL: http://{self.host}:{self.port}")
-        logger.info(f"🔒 Security: {'ENABLED' if HAS_SECURITY else 'DISABLED'}")
+        # Professional ASCII banner
+        banner = f"""
+================================================================================
+    ____        __ _    _____    ____            __    __                       
+   / __ )____  / /| |  / /__ \  / __ \____ ___  / /_  / /_  ____  ____ _________
+  / __  / __ \/ __/ | / /__/ / / / / / __ `__ \/ __ \/ __ \/ __ \/ __ `/ ___/ _ \\
+ / /_/ / /_/ / /_ | |/ / __/  / /_/ / / / / / / /_/ / /_/ / /_/ / /_/ / /  /  __/
+/_____/\____/\__/ |___/____/ /_____/_/ /_/ /_/_.___/_.___/\____/\__,_/_/   \___/ 
+                                                                                 
+    Version {__version__}  |  Security Phase 1 Complete  |  {self.env.upper()}
+================================================================================
+"""
+        print(banner)
+        
+        # Status table
+        status_lines = [
+            "",
+            "  COMPONENT               STATUS",
+            "  -----------------------------------------",
+            f"  Security                {'ENABLED' if HAS_SECURITY else 'DISABLED'}",
+        ]
+        
         if HAS_SECURITY:
-            logger.info("   - CSRF Protection: ✅")
-            logger.info("   - XSS Prevention: ✅")
-            logger.info("   - Input Validation: ✅")
-            logger.info("   - Rate Limiting: ✅")
-            logger.info("   - Session Management: ✅")
-            logger.info("   - Audit Logging: ✅")
-            logger.info(f"   - Security Headers: ✅ ({'Production' if self.is_production else 'Development'} mode)")
-        logger.info(f"📊 Metrics: {'✅ Active' if HAS_METRICS else '⚠️ Disabled'}")
-        logger.info(f"✅ GZIP: {'✅ Enabled' if HAS_COMPRESS else '⚠️ Disabled'}")
-        logger.info(f"💾 Database: {'✅ Connected' if self.db_session else '⚠️ Mock Mode'}")
-        logger.info(f"🔑 Auth: {self.auth.username} / {'CONFIGURED' if self.auth.password_hash else 'NOT SET'}")
-        logger.info("=" * 80)
-        logger.info("")
+            status_lines.extend([
+                "    - CSRF Protection     OK",
+                "    - XSS Prevention      OK",
+                "    - Input Validation    OK",
+                "    - Rate Limiting       OK",
+                "    - Session Mgmt        OK",
+                "    - Audit Logging       OK",
+                f"    - Security Headers    OK ({self.env})",
+            ])
+        
+        status_lines.extend([
+            f"  Metrics                 {'ENABLED' if HAS_METRICS else 'DISABLED'}",
+            f"  GZIP Compression        {'ENABLED' if HAS_COMPRESS else 'DISABLED'}",
+            f"  Database                {'CONNECTED' if self.db_session else 'MOCK MODE'}",
+            f"  Auth User               {self.auth.username}",
+            "  -----------------------------------------",
+            f"  URL: http://{self.host}:{self.port}",
+            "",
+        ])
+        
+        for line in status_lines:
+            print(line)
     
     def login_required(self, f):
-        """Decorator for routes requiring authentication"""
+        """Decorator for routes requiring authentication."""
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user' not in session:
                 return redirect(url_for('login'))
             
-            # 🔒 Validate session if session manager available
+            # Validate session if session manager available
             if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
                 if not self.session_manager.is_valid():
                     session.clear()
@@ -539,7 +559,7 @@ class ProfessionalDashboard:
         return decorated_function
     
     def _setup_routes(self):
-        """🚹️ Setup all Flask routes with 100% security coverage"""
+        """Setup all Flask routes with 100% security coverage."""
         
         # ==================== AUTHENTICATION ====================
         
@@ -548,12 +568,12 @@ class ProfessionalDashboard:
             if request.method == 'GET':
                 if 'user' in session:
                     return redirect(url_for('index'))
-                # 🔐 Pass nonce to login template
+                # Pass nonce to login template
                 return render_template('login.html', csp_nonce=g.csp_nonce)
             
             # POST request - process login
             try:
-                # 🔒 Input validation with Pydantic
+                # Input validation with Pydantic
                 if HAS_SECURITY:
                     try:
                         login_data = validate_input(LoginRequest, {
@@ -583,27 +603,27 @@ class ProfessionalDashboard:
                 
                 # Verify credentials
                 if self.auth.check_credentials(username, password):
-                    # ✅ CRITICAL: Set session data FIRST
+                    # Set session data
                     session.permanent = True
                     session['user'] = username
                     session['login_time'] = datetime.now().isoformat()
                     session['last_activity'] = datetime.now().isoformat()
                     
-                    # 🔒 Create session with session_manager
+                    # Create session with session_manager
                     if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
                         session_id = self.session_manager.create_session(username)
                         session['session_id'] = session_id
                     
                     self.auth.record_successful_login(ip, username)
                     
-                    # 📊 Track user activity
+                    # Track user activity
                     if HAS_METRICS and self.metrics_monitor:
                         self.metrics_monitor.record_user_activity(username)
                     
-                    # ✅ Force session save before response
+                    # Force session save before response
                     session.modified = True
                     
-                    # ✅ Return JSON with success
+                    # Return JSON with success
                     return jsonify({
                         'success': True, 
                         'redirect': '/',
@@ -621,7 +641,7 @@ class ProfessionalDashboard:
         def logout():
             username = session.get('user')
             
-            # 🔒 Destroy session
+            # Destroy session
             if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
                 self.session_manager.destroy_session()
             
@@ -636,13 +656,13 @@ class ProfessionalDashboard:
         @self.app.route('/')
         @self.login_required
         def index():
-            # 📊 Track user activity
+            # Track user activity
             if HAS_METRICS and self.metrics_monitor:
                 user = session.get('user')
                 if user:
                     self.metrics_monitor.record_user_activity(user)
             
-            # 🔐 Pass nonce to dashboard template
+            # Pass nonce to dashboard template
             return render_template(
                 'dashboard.html', 
                 user=session.get('user'),
@@ -654,9 +674,9 @@ class ProfessionalDashboard:
         @self.app.route('/api/section/<section>')
         @self.login_required
         def get_section_data_route(section):
-            """📊 Get section data (with XSS protection)"""
+            """Get section data (with XSS protection)."""
             try:
-                # 🔒 Validate section name
+                # Validate section name
                 if not section.replace('_', '').isalnum():
                     if self.audit_logger:
                         self.audit_logger.log_invalid_input('section', 'invalid_format')
@@ -665,7 +685,7 @@ class ProfessionalDashboard:
                 if HAS_MOCK_DATA:
                     data = get_section_data(section)
                     if data:
-                        # 🔒 Sanitize output
+                        # Sanitize output
                         if HAS_SECURITY:
                             data = sanitize_dict(data)
                         return jsonify(data)
@@ -683,8 +703,8 @@ class ProfessionalDashboard:
         @self.app.route('/api/annotations/<chart_id>')
         @self.login_required
         def get_annotations(chart_id):
-            """📋 Get annotations for chart"""
-            # 🔒 Sanitize chart_id
+            """Get annotations for chart."""
+            # Sanitize chart_id
             if HAS_SECURITY:
                 chart_id = sanitize_html(chart_id, strip=True)
             
@@ -701,11 +721,11 @@ class ProfessionalDashboard:
         @self.app.route('/api/annotations', methods=['POST'])
         @self.login_required
         def create_annotation():
-            """✏️ Create annotation with Pydantic validation"""
+            """Create annotation with Pydantic validation."""
             try:
                 data = request.get_json()
                 
-                # 🔒 Validate and sanitize input with Pydantic
+                # Validate and sanitize input with Pydantic
                 if HAS_SECURITY:
                     try:
                         validated = validate_input(AnnotationCreate, data)
@@ -743,7 +763,7 @@ class ProfessionalDashboard:
         @self.app.route('/api/annotations/<int:annotation_id>', methods=['DELETE'])
         @self.login_required
         def delete_annotation(annotation_id):
-            """🗑️ Delete annotation"""
+            """Delete annotation."""
             annotation = next(
                 (ann for ann in self.annotations if ann['id'] == annotation_id),
                 None
@@ -761,7 +781,7 @@ class ProfessionalDashboard:
         
         @self.app.route('/health')
         def health():
-            """🏭 Health check endpoint (no auth required)"""
+            """Health check endpoint (no auth required)."""
             health_data = {
                 'status': 'healthy',
                 'version': __version__,
@@ -772,7 +792,7 @@ class ProfessionalDashboard:
                 'metrics': HAS_METRICS
             }
             
-            # 📊 Add metrics snapshot
+            # Add metrics snapshot
             if HAS_METRICS and self.metrics_monitor:
                 try:
                     snapshot = self.metrics_monitor.get_current_snapshot()
@@ -788,9 +808,9 @@ class ProfessionalDashboard:
             return jsonify(health_data)
     
     def _get_fallback_data(self, section: str) -> Dict:
-        """Fallback data if mock_data.py not available"""
+        """Fallback data if mock_data.py not available."""
         fallback = {
-            'dashboard': {'overview': {'equity': '€10,000', 'total_pnl': '+€500'}},
+            'dashboard': {'overview': {'equity': 'EUR 10,000', 'total_pnl': '+EUR 500'}},
             'portfolio': {'summary': {'total_value': 10000}, 'positions': []},
             'strategies': {'summary': {'active': 0}, 'strategies': []},
             'risk': {'metrics': {'var_95': 0, 'max_drawdown': 0}},
@@ -800,14 +820,13 @@ class ProfessionalDashboard:
         return fallback.get(section, {'error': 'Section not found'})
     
     def _setup_websocket_handlers(self):
-        """🔌 Setup WebSocket event handlers"""
+        """Setup WebSocket event handlers."""
         
         @self.socketio.on('connect')
         def handle_connect():
-            # 📊 Track WebSocket connection
+            # Track WebSocket connection
             if HAS_METRICS and self.metrics_monitor:
                 self.metrics_monitor.increment_websocket_connections()
-                logger.debug(f"WebSocket connected (total: {self.metrics_monitor.get_websocket_connections()})")
             
             emit('connected', {
                 'message': f'Connected to BotV2 v{__version__}',
@@ -817,29 +836,21 @@ class ProfessionalDashboard:
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            # 📊 Track WebSocket disconnection
+            # Track WebSocket disconnection
             if HAS_METRICS and self.metrics_monitor:
                 self.metrics_monitor.decrement_websocket_connections()
-                logger.debug(f"WebSocket disconnected (total: {self.metrics_monitor.get_websocket_connections()})")
     
     def run(self):
-        """🚀 Start the dashboard server"""
-        logger.info("🚀 Starting BotV2 Dashboard...")
+        """Start the dashboard server."""
+        logger.info("Starting BotV2 Dashboard...")
         
         if HAS_SECURITY:
-            logger.info("🔒 Security Phase 1: ACTIVE")
-            logger.info("   ✅ CSRF Protection")
-            logger.info("   ✅ XSS Prevention")
-            logger.info("   ✅ Input Validation")
-            logger.info("   ✅ Rate Limiting")
-            logger.info("   ✅ Session Management")
-            logger.info("   ✅ Security Audit Logging")
-            logger.info(f"   ✅ Security Headers (CSP, {'HSTS' if self.is_production else 'dev mode'})")
+            logger.info("Security Phase 1: ACTIVE")
         else:
-            logger.warning("⚠️ Security Phase 1: DISABLED (modules not available)")
+            logger.warning("Security Phase 1: DISABLED")
         
         if HAS_METRICS and self.metrics_monitor:
-            logger.info("📊 Metrics monitoring: /api/metrics")
+            logger.info("Metrics endpoint: /api/metrics")
         
         self.socketio.run(
             self.app,
@@ -856,7 +867,7 @@ TradingDashboard = ProfessionalDashboard
 
 
 def create_app(config=None):
-    """Factory function to create dashboard app"""
+    """Factory function to create dashboard app."""
     if config is None:
         # Create minimal config for standalone/demo mode
         config = {
@@ -883,7 +894,7 @@ if __name__ == "__main__":
         from bot.config.config_manager import ConfigManager
         config = ConfigManager()
     except ImportError:
-        logger.info("📦 Running in standalone/demo mode")
+        logger.info("Running in standalone/demo mode")
         config = {
             'dashboard': {
                 'host': '0.0.0.0',
