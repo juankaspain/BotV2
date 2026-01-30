@@ -136,4 +136,22 @@ main() {
         ;;
       2)
         start_dashboard
-        b
+        break
+        ;;
+      3)
+        start_both
+        break
+        ;;
+      4)
+        log_info "Saliendo sin levantar servicios."
+        exit 0
+        ;;
+      *)
+        log_warn "Opción inválida. Intenta de nuevo."
+        sleep 1
+        ;;
+    esac
+  done
+}
+
+main "$@"
