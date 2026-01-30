@@ -4,53 +4,53 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <!-- Header Stats - CSS v4.0 Metric Cards -->
-    <div class="card-grid mb-4">
-        <!-- Total Balance Metric -->
-        <div class="metric-card">
-            <div class="metric-card__icon bg-primary">
+    <!-- Header Stats - Professional 4-Column Layout -->
+    <div class="stats-row mb-4">
+        <!-- Total Balance -->
+        <div class="stat-item">
+            <div class="stat-item__icon bg-primary">
                 <i class="fas fa-wallet"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">Total Balance</span>
-                <span class="metric-card__value" id="total-balance">€0.00</span>
-                <small id="balance-change" class="text-success" style="font-size: 0.75rem; margin-top: 4px; display: block;">+0.00%</small>
+            <div class="stat-item__content">
+                <span class="stat-item__label">Total Balance</span>
+                <span class="stat-item__value" id="total-balance">€0.00</span>
+                <span class="stat-item__change text-success" id="balance-change">+0.00%</span>
             </div>
         </div>
 
-        <!-- Today's P&L Metric -->
-        <div class="metric-card">
-            <div class="metric-card__icon bg-success">
+        <!-- Today's P&L -->
+        <div class="stat-item">
+            <div class="stat-item__icon bg-success">
                 <i class="fas fa-chart-line"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">Today's P&L</span>
-                <span class="metric-card__value" id="daily-pnl">€0.00</span>
-                <small id="daily-trades" style="font-size: 0.75rem; margin-top: 4px; display: block;">0 trades</small>
+            <div class="stat-item__content">
+                <span class="stat-item__label">Today's P&L</span>
+                <span class="stat-item__value" id="daily-pnl">€0.00</span>
+                <span class="stat-item__change text-muted" id="daily-trades">0 trades</span>
             </div>
         </div>
 
-        <!-- Win Rate Metric -->
-        <div class="metric-card">
-            <div class="metric-card__icon bg-info">
+        <!-- Win Rate -->
+        <div class="stat-item">
+            <div class="stat-item__icon bg-info">
                 <i class="fas fa-trophy"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">Win Rate</span>
-                <span class="metric-card__value" id="win-rate">0%</span>
-                <small id="total-trades" class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">0 total trades</small>
+            <div class="stat-item__content">
+                <span class="stat-item__label">Win Rate</span>
+                <span class="stat-item__value" id="win-rate">0%</span>
+                <span class="stat-item__change text-muted" id="total-trades">0 total trades</span>
             </div>
         </div>
 
-        <!-- Bot Status Metric -->
-        <div class="metric-card">
-            <div class="metric-card__icon bg-warning" id="status-icon">
+        <!-- Bot Status -->
+        <div class="stat-item">
+            <div class="stat-item__icon bg-warning" id="status-icon">
                 <i class="fas fa-robot"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">Bot Status</span>
-                <span class="metric-card__value" id="bot-status">Offline</span>
-                <small id="bot-uptime" class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">--</small>
+            <div class="stat-item__content">
+                <span class="stat-item__label">Bot Status</span>
+                <span class="stat-item__value" id="bot-status">Offline</span>
+                <span class="stat-item__change text-muted" id="bot-uptime">--</span>
             </div>
         </div>
     </div>
@@ -174,6 +174,98 @@
 </div>
 
 <style>
+/* ==========================================================================
+   STATS ROW - Professional 4-Column Horizontal Layout
+   ========================================================================== */
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-smooth);
+}
+
+.stat-item:hover {
+    background: var(--bg-card-hover);
+}
+
+.stat-item__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-item__icon.bg-primary { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); }
+.stat-item__icon.bg-success { background: linear-gradient(135deg, var(--color-success), var(--color-success-dark)); }
+.stat-item__icon.bg-warning { background: linear-gradient(135deg, var(--color-warning), var(--color-warning-dark)); }
+.stat-item__icon.bg-danger { background: linear-gradient(135deg, var(--color-danger), var(--color-danger-dark)); }
+.stat-item__icon.bg-info { background: linear-gradient(135deg, var(--color-info), var(--color-info-dark)); }
+
+.stat-item__content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.stat-item__label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.stat-item__value {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-mono);
+    color: var(--text-heading);
+    line-height: 1.2;
+}
+
+.stat-item__change {
+    font-size: var(--font-size-xs);
+    margin-top: 2px;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1199.98px) {
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-item {
+        padding: var(--space-md);
+    }
+}
+
 /* Period Button Group - Professional Styling */
 .btn-group-period {
     display: inline-flex;
@@ -343,7 +435,7 @@
         
         const balanceChange = document.getElementById('balance-change');
         balanceChange.textContent = overview.total_pnl || '+0.00%';
-        balanceChange.className = (overview.total_pnl && overview.total_pnl.includes('+')) ? 'text-success' : 'text-danger';
+        balanceChange.className = 'stat-item__change ' + ((overview.total_pnl && overview.total_pnl.includes('+')) ? 'text-success' : 'text-danger');
         
         document.getElementById('daily-pnl').textContent = overview.daily_pnl || '€0.00';
         document.getElementById('daily-trades').textContent = `${overview.daily_trades || 0} trades`;
