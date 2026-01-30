@@ -59,7 +59,7 @@ tqdm==4.66.1
 jsonschema>=4.19.0
 
 # ===== SECURITY =====
-cryptography==41.0.7
+cryptography==46.0.4
 pydantic==2.5.3
 python-jose==3.3.0
 
