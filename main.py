@@ -9,23 +9,24 @@ import sys
 from pathlib import Path
 
 # ============================================================================
-# CRITICAL: Load .env file FIRST before ANY other imports
-# This ensures all environment variables are available for validation
+# CRITICAL: Load .env file FIRST using centralized loader
+# This ensures environment is loaded only once across entire application
 # ============================================================================
+sys.path.insert(0, str(Path(__file__).parent))
+
 try:
-    from dotenv import load_dotenv
-    
-    # Find .env file
-    _PROJECT_ROOT = Path(__file__).parent
-    _ENV_FILE = _PROJECT_ROOT / '.env'
-    
-    if _ENV_FILE.exists():
-        load_dotenv(_ENV_FILE)
-        print(f"[+] Loaded environment from {_ENV_FILE}", flush=True)
-    else:
-        print(f"[!] No .env file found at {_ENV_FILE}", flush=True)
+    from shared.utils.env_loader import load_env_once
+    load_env_once(verbose=True)
 except ImportError:
-    print("[!] python-dotenv not installed, using system environment variables only", flush=True)
+    # Fallback if shared module not available
+    try:
+        from dotenv import load_dotenv
+        _ENV_FILE = Path(__file__).parent / '.env'
+        if _ENV_FILE.exists():
+            load_dotenv(_ENV_FILE)
+            print(f"[+] Loaded environment from {_ENV_FILE}", flush=True)
+    except ImportError:
+        print("[!] python-dotenv not installed", flush=True)
 
 # ============================================================================
 # NOW SAFE TO IMPORT OTHER MODULES
@@ -35,9 +36,6 @@ import logging
 import signal
 from datetime import datetime
 from typing import Dict, List, Optional
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
 
 # ===== CRITICAL: VALIDATE SECRETS BEFORE ANY OTHER IMPORTS =====
 # This ensures the application fails fast if required configuration is missing
