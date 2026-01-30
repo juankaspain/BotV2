@@ -103,7 +103,7 @@ async function loadPortfolioData() {
         showLoading('Loading portfolio...');
         
         // Load summary
-        const summaryRes = await fetch('/api/portfolio/summary');
+        const summaryRes = await fetch('/portfolio/api/summary');
         const summary = await summaryRes.json();
         
         if (summary.success) {
@@ -126,7 +126,7 @@ async function loadPortfolioData() {
         }
         
         // Load positions
-        const positionsRes = await fetch('/api/portfolio/positions');
+        const positionsRes = await fetch('/portfolio/api/positions');
         const positions = await positionsRes.json();
         
         if (positions.success) {
@@ -160,7 +160,7 @@ async function loadPortfolioData() {
         }
         
         // Load allocation for chart
-        const allocationRes = await fetch('/api/portfolio/allocation');
+        const allocationRes = await fetch('/portfolio/api/allocation');
         const allocation = await allocationRes.json();
         
         if (allocation.success) {
