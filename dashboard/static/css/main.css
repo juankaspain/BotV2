@@ -4347,4 +4347,726 @@ textarea:focus-visible,
    END PHASE 3: MEDIUM PRIORITY - Advanced UI Components & Micro-interactions
    ======================================================================== */
 
+/* ========================================================================
+   PHASE 4: OPTIMIZATION - Performance, Accessible Animations & Modern CSS
+   ======================================================================== */
+
+/* ---------------------------------------------------------------------
+   4.1 PERFORMANCE VISUAL - Self-hosted Fonts & Optimization
+   --------------------------------------------------------------------- */
+
+/* Font Face Declarations - Self-hosted for performance */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Inter Regular'), local('Inter-Regular'),
+       url('/static/fonts/inter-regular.woff2') format('woff2'),
+       url('/static/fonts/inter-regular.woff') format('woff');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Inter Medium'), local('Inter-Medium'),
+       url('/static/fonts/inter-medium.woff2') format('woff2'),
+       url('/static/fonts/inter-medium.woff') format('woff');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Inter SemiBold'), local('Inter-SemiBold'),
+       url('/static/fonts/inter-semibold.woff2') format('woff2'),
+       url('/static/fonts/inter-semibold.woff') format('woff');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Inter Bold'), local('Inter-Bold'),
+       url('/static/fonts/inter-bold.woff2') format('woff2'),
+       url('/static/fonts/inter-bold.woff') format('woff');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+/* Monospace font for code and numbers */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('JetBrains Mono'), local('JetBrainsMono-Regular'),
+       url('/static/fonts/jetbrains-mono-regular.woff2') format('woff2');
+}
+
+/* Lazy Loading Styles for Images and Charts */
+.lazy-load {
+  opacity: 0;
+  transition: opacity 0.3s ease-in;
+}
+
+.lazy-load.loaded {
+  opacity: 1;
+}
+
+.lazy-load-placeholder {
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 0px,
+    var(--bg-card-hover) 40px,
+    var(--bg-card) 80px
+  );
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+/* Image Loading States */
+img[loading="lazy"] {
+  background: var(--bg-card);
+}
+
+img.loading {
+  filter: blur(5px);
+  transition: filter 0.3s ease;
+}
+
+img.loaded {
+  filter: blur(0);
+}
+
+/* CSS Containment for Heavy Components */
+.contain-strict {
+  contain: strict;
+}
+
+.contain-content {
+  contain: content;
+}
+
+.contain-layout {
+  contain: layout;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+.contain-size {
+  contain: size;
+}
+
+/* Chart Containment - Optimized rendering */
+.chart-container {
+  contain: layout paint style;
+  will-change: contents;
+}
+
+/* Data Table Containment */
+.data-table-container {
+  contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* Card Containment */
+.card-contained {
+  contain: layout paint;
+}
+
+/* Sidebar Containment */
+.sidebar-contained {
+  contain: layout paint style;
+}
+
+/* Content Visibility Auto for Off-screen Content */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
+}
+
+/* Hidden content optimization */
+.offscreen {
+  content-visibility: hidden;
+}
+
+/* Will-change Utilities */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+.will-change-scroll {
+  will-change: scroll-position;
+}
+
+/* GPU Acceleration */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Optimized Scrolling */
+.scroll-optimized {
+  overflow-anchor: auto;
+  overscroll-behavior: contain;
+}
+
+/* Touch Optimization */
+.touch-optimized {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------------------------------------------------------------------
+   4.2 ACCESSIBLE ANIMATIONS - Reduced Motion & Smooth Transitions
+   --------------------------------------------------------------------- */
+
+/* Enhanced Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all animations */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable specific problematic animations */
+  .skeleton,
+  .shimmer,
+  .loading-pulse,
+  .animate-spin,
+  .animate-bounce,
+  .animate-pulse {
+    animation: none !important;
+  }
+
+  /* Keep essential state changes visible */
+  .toast {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Disable parallax and scroll effects */
+  .parallax {
+    transform: none !important;
+  }
+
+  /* Disable hover lift effects */
+  .card--interactive:hover {
+    transform: none !important;
+  }
+}
+
+/* Smooth Card Hover Transitions */
+.card-hover-smooth {
+  transition: 
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s ease;
+}
+
+.card-hover-smooth:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Subtle Card Elevation */
+.card-hover-subtle {
+  transition: box-shadow 0.2s ease;
+}
+
+.card-hover-subtle:hover {
+  box-shadow: 0 0 0 1px var(--color-primary),
+              0 4px 12px rgba(var(--color-primary-rgb), 0.15);
+}
+
+/* Card Glow Effect */
+.card-hover-glow {
+  transition: box-shadow 0.3s ease;
+}
+
+.card-hover-glow:hover {
+  box-shadow: 0 0 20px rgba(var(--color-primary-rgb), 0.3);
+}
+
+/* Button Transitions */
+.btn-transition {
+  transition: 
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.btn-transition:active {
+  transform: scale(0.98);
+}
+
+/* Link Transitions */
+a.link-transition {
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+/* Input Focus Transitions */
+.input-transition {
+  transition: 
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+/* Smooth Color Transitions for Theme Switching */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: 
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    fill 0.3s ease,
+    stroke 0.3s ease;
+}
+
+/* Disable theme transition during initial load */
+.no-transition,
+.no-transition *,
+.no-transition *::before,
+.no-transition *::after {
+  transition: none !important;
+}
+
+/* Smooth Expand/Collapse */
+.expand-transition {
+  transition: 
+    max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.expand-transition.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.expand-transition.expanded {
+  opacity: 1;
+}
+
+/* Table Row Hover */
+.table-row-transition {
+  transition: background-color 0.1s ease;
+}
+
+/* Sidebar Transition */
+.sidebar-transition {
+  transition: 
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Modal Transitions */
+.modal-transition {
+  transition: 
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-transition.entering {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.modal-transition.entered {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.modal-transition.exiting {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Dropdown Transitions */
+.dropdown-transition {
+  transition: 
+    opacity 0.15s ease,
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top;
+}
+
+.dropdown-transition.closed {
+  opacity: 0;
+  transform: scaleY(0.95);
+  pointer-events: none;
+}
+
+.dropdown-transition.open {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+/* ---------------------------------------------------------------------
+   4.3 MODERN CSS - Grid Layouts, Container Queries & Logical Properties
+   --------------------------------------------------------------------- */
+
+/* Dashboard Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+}
+
+/* Dashboard Main Layout with Sidebar */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar main"
+    "sidebar footer";
+  min-height: 100vh;
+  gap: 0;
+}
+
+.dashboard-layout__sidebar {
+  grid-area: sidebar;
+}
+
+.dashboard-layout__header {
+  grid-area: header;
+}
+
+.dashboard-layout__main {
+  grid-area: main;
+}
+
+.dashboard-layout__footer {
+  grid-area: footer;
+}
+
+/* Responsive Grid Columns */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      "header"
+      "sidebar"
+      "main"
+      "footer";
+  }
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-md);
+}
+
+/* Card Grid with Auto-flow */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-auto-rows: min-content;
+  gap: var(--space-md);
+}
+
+/* Masonry-like Grid */
+.masonry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-auto-rows: 10px;
+  gap: var(--space-md);
+}
+
+/* Trading Panel Grid */
+.trading-panel-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-md);
+  height: 100%;
+}
+
+.trading-panel-grid__chart {
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
+}
+
+.trading-panel-grid__orders {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+}
+
+.trading-panel-grid__positions {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+}
+
+/* Container Queries Support */
+@container (min-width: 400px) {
+  .container-query-card {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--space-md);
+  }
+}
+
+@container (min-width: 600px) {
+  .container-query-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container (min-width: 900px) {
+  .container-query-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Container Query Types */
+.card-container {
+  container-type: inline-size;
+  container-name: card;
+}
+
+.stats-container {
+  container-type: inline-size;
+  container-name: stats;
+}
+
+.panel-container {
+  container-type: size;
+  container-name: panel;
+}
+
+/* Logical Properties - Internationalization Ready */
+
+/* Spacing */
+.spacing-inline {
+  padding-inline: var(--space-md);
+  margin-inline: auto;
+}
+
+.spacing-block {
+  padding-block: var(--space-lg);
+}
+
+.spacing-inline-start {
+  padding-inline-start: var(--space-md);
+}
+
+.spacing-inline-end {
+  padding-inline-end: var(--space-md);
+}
+
+.spacing-block-start {
+  padding-block-start: var(--space-md);
+}
+
+.spacing-block-end {
+  padding-block-end: var(--space-md);
+}
+
+/* Borders */
+.border-inline {
+  border-inline: 1px solid var(--border-color);
+}
+
+.border-inline-start {
+  border-inline-start: 1px solid var(--border-color);
+}
+
+.border-inline-end {
+  border-inline-end: 1px solid var(--border-color);
+}
+
+.border-block-start {
+  border-block-start: 1px solid var(--border-color);
+}
+
+.border-block-end {
+  border-block-end: 1px solid var(--border-color);
+}
+
+/* Text Alignment */
+.text-start {
+  text-align: start;
+}
+
+.text-end {
+  text-align: end;
+}
+
+/* Inset Properties */
+.inset-inline-start-0 {
+  inset-inline-start: 0;
+}
+
+.inset-inline-end-0 {
+  inset-inline-end: 0;
+}
+
+.inset-block-start-0 {
+  inset-block-start: 0;
+}
+
+.inset-block-end-0 {
+  inset-block-end: 0;
+}
+
+/* Max Inline Size (width equivalent) */
+.max-inline-size-full {
+  max-inline-size: 100%;
+}
+
+.max-inline-size-prose {
+  max-inline-size: 65ch;
+}
+
+.max-inline-size-reading {
+  max-inline-size: 80ch;
+}
+
+/* Min Block Size (height equivalent) */
+.min-block-size-screen {
+  min-block-size: 100vh;
+}
+
+.min-block-size-full {
+  min-block-size: 100%;
+}
+
+/* Flex with Logical Properties */
+.flex-inline {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-md);
+}
+
+.flex-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* RTL Support */
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Responsive Grid with Logical Properties */
+.responsive-grid-logical {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--space-md);
+  padding-inline: var(--space-lg);
+  padding-block: var(--space-lg);
+}
+
+/* Modern Aspect Ratio */
+.aspect-ratio-16-9 {
+  aspect-ratio: 16 / 9;
+}
+
+.aspect-ratio-4-3 {
+  aspect-ratio: 4 / 3;
+}
+
+.aspect-ratio-1-1 {
+  aspect-ratio: 1 / 1;
+}
+
+.aspect-ratio-21-9 {
+  aspect-ratio: 21 / 9;
+}
+
+/* CSS Grid Advanced Layouts */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grid-item-min, 250px)), 1fr));
+  gap: var(--grid-gap, var(--space-md));
+}
+
+.grid-auto-fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--grid-item-min, 250px)), 1fr));
+  gap: var(--grid-gap, var(--space-md));
+}
+
+/* Subgrid Support */
+.subgrid-parent {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.subgrid-child {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: span 3;
+}
+
+/* Place Items Utilities */
+.place-items-center {
+  place-items: center;
+}
+
+.place-items-start {
+  place-items: start;
+}
+
+.place-items-end {
+  place-items: end;
+}
+
+.place-content-center {
+  place-content: center;
+}
+
+/* Gap Utilities */
+.gap-0 { gap: 0; }
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+.gap-xl { gap: var(--space-xl); }
+.gap-2xl { gap: var(--space-2xl); }
+
+/* ========================================================================
+   END PHASE 4: OPTIMIZATION - Performance, Accessible Animations & Modern CSS
+   ======================================================================== */
+
    
