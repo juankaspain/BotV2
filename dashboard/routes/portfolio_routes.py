@@ -21,8 +21,8 @@ import random
 
 logger = logging.getLogger(__name__)
 
-# Create blueprint
-portfolio_bp = Blueprint('portfolio', __name__)
+# Create blueprint with url_prefix
+portfolio_bp = Blueprint('portfolio', __name__, url_prefix='/portfolio')
 
 
 # ==================== DECORATORS ====================
@@ -39,7 +39,7 @@ def login_required(f):
 
 # ==================== UI ROUTES ====================
 
-@portfolio_bp.route('/portfolio', methods=['GET'])
+@portfolio_bp.route('/', methods=['GET'])
 @login_required
 def portfolio_ui():
     """Portfolio UI page"""
@@ -48,7 +48,7 @@ def portfolio_ui():
 
 # ==================== API ROUTES ====================
 
-@portfolio_bp.route('/api/portfolio/summary', methods=['GET'])
+@portfolio_bp.route('/api/summary', methods=['GET'])
 @login_required
 def get_portfolio_summary():
     """Get portfolio summary"""
@@ -75,7 +75,7 @@ def get_portfolio_summary():
         return jsonify({'error': str(e)}), 500
 
 
-@portfolio_bp.route('/api/portfolio/positions', methods=['GET'])
+@portfolio_bp.route('/api/positions', methods=['GET'])
 @login_required
 def get_positions():
     """Get current positions"""
@@ -116,7 +116,7 @@ def get_positions():
         return jsonify({'error': str(e)}), 500
 
 
-@portfolio_bp.route('/api/portfolio/allocation', methods=['GET'])
+@portfolio_bp.route('/api/allocation', methods=['GET'])
 @login_required
 def get_allocation():
     """Get asset allocation"""
@@ -138,3 +138,6 @@ def get_allocation():
     except Exception as e:
         logger.error(f"Error getting allocation: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+
+logger.info("Portfolio routes initialized (v1.0)")
