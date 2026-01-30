@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+{% block title %}Risk Management - BotV2{% endblock %}
+{% block page_title %}Risk Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Risk Metrics Overview -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Portfolio Heat</h6>
+                    <h3 class="mb-1" id="portfolio-heat">0%</h3>
+                    <small class="text-muted">Total risk / Account</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Current Drawdown</h6>
+                    <h3 class="mb-1 text-danger" id="current-drawdown">0%</h3>
+                    <small class="text-muted">From peak</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Max Drawdown</h6>
+                    <h3 class="mb-1 text-danger" id="max-drawdown">0%</h3>
+                    <small class="text-muted">Historical max</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Risk</h6>
+                    <h3 class="mb-1" id="total-risk">$0</h3>
+                    <small class="text-muted">All positions</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Position Size Calculator -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Position Size Calculator</h5>
+                </div>
+                <div class="card-body">
+                    <form id="position-calculator-form">
+                        <div class="mb-3">
+                            <label class="form-label">Account Balance (USD)</label>
+                            <input type="number" class="form-control" id="account-balance" value="10000" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Risk per Trade (%)</label>
+                            <input type="number" class="form-control" id="risk-percentage" value="2" step="0.1" min="0.1" max="10" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Entry Price</label>
+                            <input type="number" class="form-control" id="entry-price" value="50000" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Stop Loss Price</label>
+                            <input type="number" class="form-control" id="stop-loss-price" value="48000" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Leverage (1-10x)</label>
+                            <input type="number" class="form-control" id="leverage" value="1" step="0.1" min="1" max="10" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-calculator me-2"></i>Calculate Position Size
+                        </button>
+                    </form>
+
+                    <div id="calculation-result" class="mt-4" style="display: none;">
+                        <hr>
+                        <h6 class="text-success mb-3"><i class="fas fa-check-circle me-2"></i>Calculation Results</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <small class="text-muted">Position Size:</small><br>
+                                <strong id="result-position-size">0</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Position Value:</small><br>
+                                <strong id="result-position-value">$0</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Margin Required:</small><br>
+                                <strong id="result-margin">$0</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Risk Amount:</small><br>
+                                <strong class="text-danger" id="result-risk">$0</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Potential Loss:</small><br>
+                                <strong class="text-danger" id="result-loss">$0</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Potential Profit:</small><br>
+                                <strong class="text-success" id="result-profit">$0</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Take Profit:</small><br>
+                                <strong id="result-tp">$0</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Risk/Reward:</small><br>
+                                <strong id="result-rr">1:0</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Risk -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Portfolio Risk</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm" id="portfolio-risk-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Exposure</th>
+                                    <th>Risk</th>
+                                    <th>SL %</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk Limits -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Risk Limits</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small class="text-muted">Max Risk/Trade:</small><br>
+                            <strong id="max-risk-trade">2%</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Max Portfolio Heat:</small><br>
+                            <strong id="max-portfolio-heat">6%</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Max Positions:</small><br>
+                            <strong id="max-positions">5</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Max Leverage:</small><br>
+                            <strong id="max-leverage">3x</strong>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary mt-3 w-100" data-bs-toggle="modal" data-bs-target="#limitsModal">
+                        <i class="fas fa-edit me-2"></i>Edit Limits
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawdown Chart -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Drawdown History</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="drawdown-chart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Limits Modal -->
+<div class="modal fade" id="limitsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Risk Limits</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="risk-limits-form">
+                    <div class="mb-3">
+                        <label class="form-label">Max Risk per Trade (%)</label>
+                        <input type="number" class="form-control" id="limit-risk-trade" step="0.1" min="0.1" max="10">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max Portfolio Heat (%)</label>
+                        <input type="number" class="form-control" id="limit-portfolio-heat" step="0.5" min="1" max="20">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max Open Positions</label>
+                        <input type="number" class="form-control" id="limit-positions" step="1" min="1" max="20">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max Leverage</label>
+                        <input type="number" class="form-control" id="limit-leverage" step="0.1" min="1" max="10">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveRiskLimits()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let drawdownChart = null;
+
+// Load risk data
+async function loadRiskData() {
+    try {
+        // Load portfolio risk
+        const riskRes = await fetch('/risk/api/portfolio-risk');
+        const riskData = await riskRes.json();
+        
+        if (riskData.success) {
+            const pr = riskData.portfolio_risk;
+            document.getElementById('portfolio-heat').textContent = pr.portfolio_heat_pct.toFixed(1) + '%';
+            document.getElementById('total-risk').textContent = '$' + pr.total_risk_amount.toLocaleString();
+            
+            // Update table
+            const tbody = document.querySelector('#portfolio-risk-table tbody');
+            tbody.innerHTML = '';
+            pr.positions.forEach(pos => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${pos.symbol}</strong></td>
+                    <td>$${pos.exposure_usd.toLocaleString()}</td>
+                    <td class="text-danger">$${pos.risk_usd}</td>
+                    <td>${pos.stop_loss_distance_pct.toFixed(1)}%</td>
+                `;
+            });
+        }
+        
+        // Load risk limits
+        const limitsRes = await fetch('/risk/api/risk-limits');
+        const limitsData = await limitsRes.json();
+        
+        if (limitsData.success) {
+            const l = limitsData.risk_limits;
+            document.getElementById('max-risk-trade').textContent = l.max_risk_per_trade_pct + '%';
+            document.getElementById('max-portfolio-heat').textContent = l.max_portfolio_heat_pct + '%';
+            document.getElementById('max-positions').textContent = l.max_positions;
+            document.getElementById('max-leverage').textContent = l.max_leverage + 'x';
+        }
+        
+        // Load drawdown
+        const ddRes = await fetch('/risk/api/drawdown');
+        const ddData = await ddRes.json();
+        
+        if (ddData.success) {
+            const dd = ddData.drawdown;
+            document.getElementById('current-drawdown').textContent = dd.current_drawdown_pct.toFixed(2) + '%';
+            document.getElementById('max-drawdown').textContent = dd.max_drawdown_pct.toFixed(2) + '%';
+            
+            renderDrawdownChart(dd.drawdown_history);
+        }
+        
+    } catch (error) {
+        console.error('Error loading risk data:', error);
+    }
+}
+
+function renderDrawdownChart(data) {
+    const ctx = document.getElementById('drawdown-chart');
+    
+    if (drawdownChart) drawdownChart.destroy();
+    
+    drawdownChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => d.date),
+            datasets: [{
+                label: 'Drawdown %',
+                data: data.map(d => d.drawdown_pct),
+                borderColor: '#ed4245',
+                backgroundColor: 'rgba(237, 66, 69, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    ticks: { color: '#8e9297' },
+                    grid: { color: 'rgba(142, 146, 151, 0.1)' }
+                },
+                x: {
+                    ticks: { color: '#8e9297' },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+// Position calculator
+document.getElementById('position-calculator-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const data = {
+        account_balance: parseFloat(document.getElementById('account-balance').value),
+        risk_percentage: parseFloat(document.getElementById('risk-percentage').value),
+        entry_price: parseFloat(document.getElementById('entry-price').value),
+        stop_loss_price: parseFloat(document.getElementById('stop-loss-price').value),
+        leverage: parseFloat(document.getElementById('leverage').value)
+    };
+    
+    try {
+        const res = await fetch('/risk/api/calculate-position', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+            const calc = result.calculation;
+            document.getElementById('result-position-size').textContent = calc.position_size;
+            document.getElementById('result-position-value').textContent = '$' + calc.position_value_usd.toLocaleString();
+            document.getElementById('result-margin').textContent = '$' + calc.margin_required_usd.toLocaleString();
+            document.getElementById('result-risk').textContent = '$' + calc.risk_amount_usd.toLocaleString();
+            document.getElementById('result-loss').textContent = '$' + calc.potential_loss_usd.toLocaleString();
+            document.getElementById('result-profit').textContent = '$' + calc.potential_profit_usd.toLocaleString();
+            document.getElementById('result-tp').textContent = '$' + calc.take_profit_price.toLocaleString();
+            document.getElementById('result-rr').textContent = '1:' + calc.risk_reward_ratio.toFixed(2);
+            
+            document.getElementById('calculation-result').style.display = 'block';
+            showToast('Position size calculated successfully', 'success');
+        }
+    } catch (error) {
+        showToast('Error calculating position size', 'error');
+    }
+});
+
+function saveRiskLimits() {
+    showToast('Risk limits saved successfully', 'success');
+    bootstrap.Modal.getInstance(document.getElementById('limitsModal')).hide();
+}
+
+// Load on page load
+loadRiskData();
+setInterval(loadRiskData, 60000);
+</script>
+{% endblock %}
