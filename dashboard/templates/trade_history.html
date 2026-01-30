@@ -4,54 +4,71 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Statistics Cards -->
-    <div class="row mb-4 g-3">
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Total Trades</h6>
-                    <h3 class="mb-0" id="total-trades">0</h3>
-                </div>
+    <!-- Statistics Cards - CSS v4.0 -->
+    <div class="card-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+        <!-- Total Trades -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-primary">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Total Trades</span>
+                <span class="metric-card__value" id="total-trades">0</span>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Win Rate</h6>
-                    <h3 class="mb-0 text-success" id="win-rate">0%</h3>
-                </div>
+
+        <!-- Win Rate -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-success">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Win Rate</span>
+                <span class="metric-card__value text-success" id="win-rate">0%</span>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Profit Factor</h6>
-                    <h3 class="mb-0" id="profit-factor">0.00</h3>
-                </div>
+
+        <!-- Profit Factor -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-info">
+                <i class="fas fa-calculator"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Profit Factor</span>
+                <span class="metric-card__value" id="profit-factor">0.00</span>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Avg Win</h6>
-                    <h3 class="mb-0 text-success" id="avg-win">$0</h3>
-                </div>
+
+        <!-- Avg Win -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-success">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Avg Win</span>
+                <span class="metric-card__value text-success" id="avg-win">$0</span>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Avg Loss</h6>
-                    <h3 class="mb-0 text-danger" id="avg-loss">$0</h3>
-                </div>
+
+        <!-- Avg Loss -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-danger">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Avg Loss</span>
+                <span class="metric-card__value text-danger" id="avg-loss">$0</span>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Total Fees</h6>
-                    <h3 class="mb-0" id="total-fees">$0</h3>
-                </div>
+
+        <!-- Total Fees -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-warning">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Total Fees</span>
+                <span class="metric-card__value" id="total-fees">$0</span>
             </div>
         </div>
     </div>
@@ -59,31 +76,29 @@
     <!-- Filters and Table -->
     <div class="card">
         <div class="card-header">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Trades</h5>
-                </div>
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <select class="form-select" id="symbol-filter">
-                            <option value="">All Symbols</option>
-                            <option value="BTC/USDT">BTC/USDT</option>
-                            <option value="ETH/USDT">ETH/USDT</option>
-                            <option value="SOL/USDT">SOL/USDT</option>
-                        </select>
-                        <button class="btn btn-outline-primary" onclick="loadTradeHistory()">
-                            <i class="fas fa-filter"></i> Filter
-                        </button>
-                        <button class="btn btn-outline-success" onclick="exportTrades()">
-                            <i class="fas fa-download"></i> Export
-                        </button>
-                    </div>
+            <div class="card-header__title">
+                <h5><i class="fas fa-history me-2"></i>Recent Trades</h5>
+            </div>
+            <div class="card-header__actions">
+                <div class="input-group" style="width: auto;">
+                    <select class="form-select" id="symbol-filter" style="min-width: 150px;">
+                        <option value="">All Symbols</option>
+                        <option value="BTC/USDT">BTC/USDT</option>
+                        <option value="ETH/USDT">ETH/USDT</option>
+                        <option value="SOL/USDT">SOL/USDT</option>
+                    </select>
+                    <button class="btn btn-outline-primary" onclick="loadTradeHistory()">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <button class="btn btn-outline-success" onclick="exportTrades()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
                 </div>
             </div>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover table-sm" id="trades-table">
+                <table class="table table-hover table-sm" id="trades-table" style="display: none;">
                     <thead>
                         <tr>
                             <th>Time</th>
@@ -100,7 +115,17 @@
                     <tbody></tbody>
                 </table>
             </div>
-            <nav class="mt-3">
+            
+            <!-- Empty State - CSS v4.0 -->
+            <div id="no-trades" class="empty-state">
+                <i class="empty-state__icon fas fa-history"></i>
+                <div class="empty-state__title">No Trades Yet</div>
+                <div class="empty-state__description">
+                    Your trade history will appear here once you execute trades
+                </div>
+            </div>
+            
+            <nav class="mt-3 px-3 pb-3" id="pagination-container" style="display: none;">
                 <ul class="pagination justify-content-center" id="pagination"></ul>
             </nav>
         </div>
@@ -144,25 +169,38 @@ async function loadTradeHistory() {
         
         if (data.success) {
             const tbody = document.querySelector('#trades-table tbody');
-            tbody.innerHTML = '';
+            const table = document.getElementById('trades-table');
+            const emptyState = document.getElementById('no-trades');
+            const paginationContainer = document.getElementById('pagination-container');
             
-            data.trades.forEach(trade => {
-                const row = tbody.insertRow();
-                const pnlClass = trade.pnl_usd >= 0 ? 'text-success' : 'text-danger';
-                const timestamp = new Date(trade.timestamp);
+            if (data.trades.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'flex';
+                paginationContainer.style.display = 'none';
+            } else {
+                table.style.display = 'table';
+                emptyState.style.display = 'none';
+                paginationContainer.style.display = 'block';
                 
-                row.innerHTML = `
-                    <td>${timestamp.toLocaleString()}</td>
-                    <td><strong>${trade.symbol}</strong></td>
-                    <td><span class="badge bg-${trade.side === 'buy' ? 'success' : 'danger'}">${trade.side.toUpperCase()}</span></td>
-                    <td><span class="badge bg-secondary">${trade.type}</span></td>
-                    <td>${trade.size}</td>
-                    <td>$${trade.price.toLocaleString()}</td>
-                    <td class="${pnlClass}"><strong>$${trade.pnl_usd.toFixed(2)}</strong> (${trade.pnl_pct.toFixed(2)}%)</td>
-                    <td>$${trade.fee_usd.toFixed(2)}</td>
-                    <td><span class="badge bg-success">${trade.status}</span></td>
-                `;
-            });
+                tbody.innerHTML = '';
+                data.trades.forEach(trade => {
+                    const row = tbody.insertRow();
+                    const pnlClass = trade.pnl_usd >= 0 ? 'text-success' : 'text-danger';
+                    const timestamp = new Date(trade.timestamp);
+                    
+                    row.innerHTML = `
+                        <td>${timestamp.toLocaleString()}</td>
+                        <td><strong>${trade.symbol}</strong></td>
+                        <td><span class="badge bg-${trade.side === 'buy' ? 'success' : 'danger'}">${trade.side.toUpperCase()}</span></td>
+                        <td><span class="badge bg-secondary">${trade.type}</span></td>
+                        <td>${trade.size}</td>
+                        <td>$${trade.price.toLocaleString()}</td>
+                        <td class="${pnlClass}"><strong>$${trade.pnl_usd.toFixed(2)}</strong> (${trade.pnl_pct.toFixed(2)}%)</td>
+                        <td>$${trade.fee_usd.toFixed(2)}</td>
+                        <td><span class="badge bg-success">${trade.status}</span></td>
+                    `;
+                });
+            }
         }
         
         hideLoading();
@@ -177,11 +215,9 @@ function exportTrades() {
     showToast('Export functionality coming soon', 'info');
 }
 
-// Load data on page load
 loadStatistics();
 loadTradeHistory();
 
-// Auto-refresh every minute
 setInterval(() => {
     loadStatistics();
     loadTradeHistory();
