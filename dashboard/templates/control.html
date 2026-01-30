@@ -47,7 +47,7 @@
                                     <option value="{{ strategy.id }}">{{ strategy.name }}</option>
                                     {% endfor %}
                                 </select>
-                                <a href="{{ url_for('strategy_editor') }}" class="btn btn-outline-primary">
+                                <a href="{{ url_for('strategy_editor.strategy_editor_ui') }}" class="btn btn-outline-primary">
                                     <i class="fas fa-edit me-1"></i>Edit Strategies
                                 </a>
                             </div>
@@ -139,4 +139,181 @@
         </div>
     </div>
 </div>
+
+<script>
+// Control Bot Functions
+function controlBot(action) {
+    fetch(`/api/control/bot/${action}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Bot ${action} successful`);
+            updateBotStatus(action);
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to control bot');
+    });
+}
+
+function updateBotStatus(status) {
+    const indicator = document.getElementById('status-indicator');
+    const text = document.getElementById('status-text');
+    const btnStart = document.getElementById('btn-start');
+    const btnPause = document.getElementById('btn-pause');
+    const btnStop = document.getElementById('btn-stop');
+
+    if (status === 'start') {
+        indicator.style.backgroundColor = '#10b981';
+        text.textContent = 'Running';
+        btnStart.disabled = true;
+        btnPause.disabled = false;
+        btnStop.disabled = false;
+    } else if (status === 'pause') {
+        indicator.style.backgroundColor = '#f59e0b';
+        text.textContent = 'Paused';
+        btnStart.disabled = false;
+        btnPause.disabled = true;
+        btnStop.disabled = false;
+    } else if (status === 'stop') {
+        indicator.style.backgroundColor = '#ef4444';
+        text.textContent = 'Stopped';
+        btnStart.disabled = false;
+        btnPause.disabled = true;
+        btnStop.disabled = true;
+    }
+}
+
+function addPair() {
+    const select = document.getElementById('pair-select');
+    const pair = select.value;
+    if (!pair) return;
+
+    const badge = document.createElement('span');
+    badge.className = 'badge bg-primary';
+    badge.textContent = pair;
+    document.getElementById('active-pairs').appendChild(badge);
+    select.value = '';
+}
+
+function saveRiskParams() {
+    const params = {
+        max_position: document.getElementById('max-position').value,
+        stop_loss: document.getElementById('stop-loss').value,
+        take_profit: document.getElementById('take-profit').value
+    };
+
+    fetch('/api/control/risk-params', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(params)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Risk parameters saved successfully');
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to save risk parameters');
+    });
+}
+
+function closeAllPositions() {
+    if (!confirm('Are you sure you want to close ALL positions?')) return;
+
+    fetch('/api/control/close-all', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('All positions closed');
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to close positions');
+    });
+}
+
+function cancelAllOrders() {
+    if (!confirm('Are you sure you want to cancel ALL orders?')) return;
+
+    fetch('/api/control/cancel-all', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('All orders cancelled');
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to cancel orders');
+    });
+}
+
+function emergencyStop() {
+    if (!confirm('EMERGENCY STOP: This will immediately stop the bot and close all positions. Continue?')) return;
+
+    fetch('/api/control/emergency-stop', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Emergency stop executed');
+            updateBotStatus('stop');
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to execute emergency stop');
+    });
+}
+
+// Max position slider
+document.getElementById('max-position').addEventListener('input', function() {
+    document.getElementById('max-position-value').textContent = this.value + '%';
+});
+</script>
+
+<style>
+.status-indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #ef4444;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.control-section {
+    padding: 1rem 0;
+}
+</style>
 {% endblock %}
