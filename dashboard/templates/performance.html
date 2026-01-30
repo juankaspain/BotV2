@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% block title %}Performance - BotV2{% endblock %}
+{% block page_title %}Performance Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Key Metrics -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2"><i class="fas fa-chart-line me-2"></i>Total Return</h6>
+                    <h3 class="mb-1" id="total-return">0%</h3>
+                    <small id="total-return-usd" class="text-muted">$0.00</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2"><i class="fas fa-tachometer-alt me-2"></i>Sharpe Ratio</h6>
+                    <h3 class="mb-1" id="sharpe-ratio">0.00</h3>
+                    <small class="text-muted">Risk-adjusted return</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2"><i class="fas fa-arrow-down me-2 text-danger"></i>Max Drawdown</h6>
+                    <h3 class="mb-1 text-danger" id="max-drawdown">0%</h3>
+                    <small class="text-muted">Peak to trough</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2"><i class="fas fa-percentage me-2"></i>Win Rate</h6>
+                    <h3 class="mb-1" id="win-rate">0%</h3>
+                    <small class="text-muted">Profitable trades</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-3">
+        <!-- Equity Curve -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Equity Curve</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadEquityCurve(7)">7D</button>
+                        <button class="btn btn-sm btn-outline-primary active" onclick="loadEquityCurve(30)">30D</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadEquityCurve(90)">90D</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="equity-chart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Metrics -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Additional Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Sortino Ratio</span>
+                            <strong id="sortino-ratio">0.00</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Profit Factor</span>
+                            <strong id="profit-factor">0.00</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Avg Trade Duration</span>
+                            <strong id="avg-duration">0h</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Daily Return</span>
+                            <strong id="daily-return" class="text-success">0%</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Monthly Return</span>
+                            <strong id="monthly-return" class="text-success">0%</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Performance -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Monthly Performance</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthly-chart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let equityChart = null;
+let monthlyChart = null;
+
+async function loadPerformanceOverview() {
+    try {
+        showLoading('Loading performance data...');
+        
+        const res = await fetch('/api/performance/overview');
+        const data = await res.json();
+        
+        if (data.success) {
+            const p = data.overview;
+            
+            // Update metrics
+            const totalReturnEl = document.getElementById('total-return');
+            totalReturnEl.textContent = (p.total_return_pct >= 0 ? '+' : '') + p.total_return_pct + '%';
+            totalReturnEl.className = p.total_return_pct >= 0 ? 'mb-1 text-success' : 'mb-1 text-danger';
+            
+            document.getElementById('total-return-usd').textContent = '$' + p.total_return_usd.toLocaleString();
+            document.getElementById('sharpe-ratio').textContent = p.sharpe_ratio.toFixed(2);
+            document.getElementById('max-drawdown').textContent = p.max_drawdown_pct.toFixed(2) + '%';
+            document.getElementById('win-rate').textContent = (p.win_rate * 100).toFixed(1) + '%';
+            document.getElementById('sortino-ratio').textContent = p.sortino_ratio.toFixed(2);
+            document.getElementById('profit-factor').textContent = p.profit_factor.toFixed(2);
+            document.getElementById('avg-duration').textContent = p.avg_trade_duration_hours.toFixed(1) + 'h';
+            
+            const dailyEl = document.getElementById('daily-return');
+            dailyEl.textContent = (p.daily_return_pct >= 0 ? '+' : '') + p.daily_return_pct.toFixed(2) + '%';
+            dailyEl.className = p.daily_return_pct >= 0 ? 'text-success' : 'text-danger';
+            
+            const monthlyEl = document.getElementById('monthly-return');
+            monthlyEl.textContent = (p.monthly_return_pct >= 0 ? '+' : '') + p.monthly_return_pct.toFixed(2) + '%';
+            monthlyEl.className = p.monthly_return_pct >= 0 ? 'text-success' : 'text-danger';
+        }
+        
+        hideLoading();
+    } catch (error) {
+        console.error('Error loading performance:', error);
+        hideLoading();
+        showToast('Failed to load performance data', 'error');
+    }
+}
+
+async function loadEquityCurve(days = 30) {
+    try {
+        const res = await fetch(`/api/performance/equity-curve?days=${days}`);
+        const data = await res.json();
+        
+        if (data.success) {
+            renderEquityChart(data.equity_curve);
+        }
+    } catch (error) {
+        console.error('Error loading equity curve:', error);
+    }
+}
+
+function renderEquityChart(data) {
+    const ctx = document.getElementById('equity-chart');
+    
+    if (equityChart) {
+        equityChart.destroy();
+    }
+    
+    equityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => d.date),
+            datasets: [{
+                label: 'Equity',
+                data: data.map(d => d.equity),
+                borderColor: '#5865f2',
+                backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `Equity: $${context.parsed.y.toLocaleString()}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: { color: '#8e9297' },
+                    grid: { color: 'rgba(142, 146, 151, 0.1)' }
+                },
+                x: {
+                    ticks: { color: '#8e9297' },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+async function loadMonthlyPerformance() {
+    try {
+        const res = await fetch('/api/performance/monthly');
+        const data = await res.json();
+        
+        if (data.success) {
+            renderMonthlyChart(data.monthly_performance);
+        }
+    } catch (error) {
+        console.error('Error loading monthly performance:', error);
+    }
+}
+
+function renderMonthlyChart(data) {
+    const ctx = document.getElementById('monthly-chart');
+    
+    if (monthlyChart) {
+        monthlyChart.destroy();
+    }
+    
+    monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.month),
+            datasets: [{
+                label: 'Monthly Return (%)',
+                data: data.map(d => d.return_pct),
+                backgroundColor: data.map(d => d.return_pct >= 0 ? 'rgba(87, 242, 135, 0.8)' : 'rgba(237, 66, 69, 0.8)'),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `Return: ${context.parsed.y.toFixed(2)}%`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: { color: '#8e9297' },
+                    grid: { color: 'rgba(142, 146, 151, 0.1)' }
+                },
+                x: {
+                    ticks: { color: '#8e9297' },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+// Load data on page load
+loadPerformanceOverview();
+loadEquityCurve(30);
+loadMonthlyPerformance();
+
+// Auto-refresh every 60 seconds
+setInterval(() => {
+    loadPerformanceOverview();
+    loadEquityCurve(30);
+    loadMonthlyPerformance();
+}, 60000);
+</script>
+{% endblock %}
