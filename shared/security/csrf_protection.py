@@ -7,19 +7,33 @@ import secrets
 import logging
 from functools import wraps
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from flask import Flask, request, session, g, abort
 
 logger = logging.getLogger(__name__)
+
+# Routes excluded from CSRF validation (login needs to work without prior session)
+DEFAULT_EXEMPT_ROUTES = [
+    '/login',
+    '/health',
+    '/api/health',
+]
 
 
 class CSRFProtection:
     """CSRF Protection implementation with token management."""
     
-    def __init__(self, app: Optional[Flask] = None, token_length: int = 32, token_ttl: int = 3600):
+    def __init__(
+        self, 
+        app: Optional[Flask] = None, 
+        token_length: int = 32, 
+        token_ttl: int = 3600,
+        exempt_routes: Optional[List[str]] = None
+    ):
         self.token_length = token_length
         self.token_ttl = token_ttl
         self._tokens: Dict[str, datetime] = {}
+        self.exempt_routes = exempt_routes or DEFAULT_EXEMPT_ROUTES.copy()
         
         if app is not None:
             self.init_app(app)
@@ -30,9 +44,20 @@ class CSRFProtection:
         app.context_processor(self._context_processor)
         logger.info("CSRF Protection initialized")
     
+    def _is_exempt(self, path: str) -> bool:
+        """Check if path is exempt from CSRF validation."""
+        for exempt in self.exempt_routes:
+            if path == exempt or path.startswith(exempt + '/'):
+                return True
+        return False
+    
     def _before_request(self):
         """Validate CSRF token on state-changing requests."""
         if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
+            # Skip for exempt routes (login, health checks)
+            if self._is_exempt(request.path):
+                return
+            
             # Skip for API endpoints with proper auth
             if request.headers.get('X-API-Key'):
                 return
@@ -78,16 +103,26 @@ class CSRFProtection:
     def get_token(self) -> str:
         """Get current CSRF token."""
         return self.generate_token()
+    
+    def exempt(self, route: str):
+        """Add a route to exempt list."""
+        if route not in self.exempt_routes:
+            self.exempt_routes.append(route)
 
 
 # Global CSRF instance
 _csrf: Optional[CSRFProtection] = None
 
 
-def init_csrf_protection(app: Flask, token_length: int = 32, token_ttl: int = 3600) -> CSRFProtection:
+def init_csrf_protection(
+    app: Flask, 
+    token_length: int = 32, 
+    token_ttl: int = 3600,
+    exempt_routes: Optional[List[str]] = None
+) -> CSRFProtection:
     """Initialize CSRF protection."""
     global _csrf
-    _csrf = CSRFProtection(app, token_length, token_ttl)
+    _csrf = CSRFProtection(app, token_length, token_ttl, exempt_routes)
     return _csrf
 
 
