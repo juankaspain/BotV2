@@ -183,16 +183,23 @@
         <div class="loading-overlay__text">Loading...</div>
     </div>
 
-    <!-- DOMPurify for XSS Protection -->
+    <!-- ============================================================
+         JAVASCRIPT LIBRARIES - Load Order Matters
+         ============================================================ -->
+    
+    <!-- 1. DOMPurify for XSS Protection -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js" crossorigin="anonymous"></script>
 
-    <!-- Bootstrap 5.3 JS Bundle -->
+    <!-- 2. Bootstrap 5.3 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 
-    <!-- Chart.js 4 -->
+    <!-- 3. Chart.js 4 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
 
-    <!-- Socket.IO Client -->
+    <!-- 4. Theme Manager (NEW: Must load AFTER Chart.js, BEFORE page scripts) -->
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+
+    <!-- 5. Socket.IO Client -->
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" crossorigin="anonymous"></script>
 
     <script>
@@ -349,6 +356,7 @@
         // Log dashboard version
         console.log('%c🤖 BotV2 Dashboard v7.8 - 100% Complete ', 'background: #5865f2; color: white; padding: 5px 10px; border-radius: 3px; font-weight: bold;');
         console.log('%c✓ All 10 features active', 'color: #57f287; font-weight: bold;');
+        console.log('%c✓ ThemeManager with CSS vars available', 'color: #4fc3f7; font-weight: bold;');
     </script>
 
     {% block scripts %}{% endblock %}
