@@ -142,6 +142,19 @@ __version__ = '7.5'
 
 logger = logging.getLogger(__name__)
 
+# ASCII Banner (raw string to avoid escape sequence warnings)
+ASCII_BANNER = r"""
+================================================================================
+    ____        __ _    _____    ____            __    __                       
+   / __ )____  / /| |  / /__ \  / __ \____ ___  / /_  / /_  ____  ____ _________
+  / __  / __ \/ __/ | / /__/ / / / / / __ `__ \/ __ \/ __ \/ __ \/ __ `/ ___/ _ \
+ / /_/ / /_/ / /_ | |/ / __/  / /_/ / / / / / / /_/ / /_/ / /_/ / /_/ / /  /  __/
+/_____/\____/\__/ |___/____/ /_____/_/ /_/ /_/_.___/_.___/\____/\__,_/_/   \___/ 
+                                                                                 
+    Version {version}  |  Security Phase 1 Complete  |  {env}
+================================================================================
+"""
+
 
 def generate_csp_nonce() -> str:
     """Generate cryptographically secure nonce for CSP.
@@ -460,9 +473,9 @@ class ProfessionalDashboard:
             Base.metadata.create_all(engine)
             
             self.db_session = Session
-            logger.info(f"[+] Database connected: {DATABASE_URL}")
+            logger.info("[+] Database connected: %s", DATABASE_URL)
         except Exception as e:
-            logger.warning(f"[-] Database failed: {e}")
+            logger.warning("[-] Database failed: %s", e)
             self.db_session = None
     
     def _setup_metrics(self):
@@ -490,26 +503,15 @@ class ProfessionalDashboard:
                 environment=self.env
             )
         
-        # Professional ASCII banner
-        banner = f"""
-================================================================================
-    ____        __ _    _____    ____            __    __                       
-   / __ )____  / /| |  / /__ \  / __ \____ ___  / /_  / /_  ____  ____ _________
-  / __  / __ \/ __/ | / /__/ / / / / / __ `__ \/ __ \/ __ \/ __ \/ __ `/ ___/ _ \\
- / /_/ / /_/ / /_ | |/ / __/  / /_/ / / / / / / /_/ / /_/ / /_/ / /_/ / /  /  __/
-/_____/\____/\__/ |___/____/ /_____/_/ /_/ /_/_.___/_.___/\____/\__,_/_/   \___/ 
-                                                                                 
-    Version {__version__}  |  Security Phase 1 Complete  |  {self.env.upper()}
-================================================================================
-"""
-        print(banner)
+        # Print ASCII banner
+        print(ASCII_BANNER.format(version=__version__, env=self.env.upper()))
         
         # Status table
         status_lines = [
             "",
             "  COMPONENT               STATUS",
             "  -----------------------------------------",
-            f"  Security                {'ENABLED' if HAS_SECURITY else 'DISABLED'}",
+            "  Security                {}".format('ENABLED' if HAS_SECURITY else 'DISABLED'),
         ]
         
         if HAS_SECURITY:
@@ -520,16 +522,16 @@ class ProfessionalDashboard:
                 "    - Rate Limiting       OK",
                 "    - Session Mgmt        OK",
                 "    - Audit Logging       OK",
-                f"    - Security Headers    OK ({self.env})",
+                "    - Security Headers    OK ({})".format(self.env),
             ])
         
         status_lines.extend([
-            f"  Metrics                 {'ENABLED' if HAS_METRICS else 'DISABLED'}",
-            f"  GZIP Compression        {'ENABLED' if HAS_COMPRESS else 'DISABLED'}",
-            f"  Database                {'CONNECTED' if self.db_session else 'MOCK MODE'}",
-            f"  Auth User               {self.auth.username}",
+            "  Metrics                 {}".format('ENABLED' if HAS_METRICS else 'DISABLED'),
+            "  GZIP Compression        {}".format('ENABLED' if HAS_COMPRESS else 'DISABLED'),
+            "  Database                {}".format('CONNECTED' if self.db_session else 'MOCK MODE'),
+            "  Auth User               {}".format(self.auth.username),
             "  -----------------------------------------",
-            f"  URL: http://{self.host}:{self.port}",
+            "  URL: http://{}:{}".format(self.host, self.port),
             "",
         ])
         
@@ -598,7 +600,7 @@ class ProfessionalDashboard:
                     remaining = (lockout_info['locked_until'] - datetime.now()).seconds
                     return jsonify({
                         'error': 'Account locked',
-                        'message': f'Too many failed attempts. Try again in {remaining}s'
+                        'message': 'Too many failed attempts. Try again in {}s'.format(remaining)
                     }), 429
                 
                 # Verify credentials
@@ -634,7 +636,7 @@ class ProfessionalDashboard:
                     return jsonify({'error': 'Invalid credentials'}), 401
             
             except Exception as e:
-                logger.error(f"Login error: {e}")
+                logger.error("Login error: %s", e)
                 return jsonify({'error': 'Login failed'}), 500
         
         @self.app.route('/logout')
@@ -695,7 +697,7 @@ class ProfessionalDashboard:
                     return jsonify(self._get_fallback_data(section))
             
             except Exception as e:
-                logger.error(f"Section error: {e}")
+                logger.error("Section error: %s", e)
                 return jsonify({'error': 'Internal server error'}), 500
         
         # ==================== API - ANNOTATIONS ====================
@@ -757,7 +759,7 @@ class ProfessionalDashboard:
                 }), 201
             
             except Exception as e:
-                logger.error(f"Annotation error: {e}")
+                logger.error("Annotation error: %s", e)
                 return jsonify({'success': False, 'error': 'Internal server error'}), 500
         
         @self.app.route('/api/annotations/<int:annotation_id>', methods=['DELETE'])
@@ -829,7 +831,7 @@ class ProfessionalDashboard:
                 self.metrics_monitor.increment_websocket_connections()
             
             emit('connected', {
-                'message': f'Connected to BotV2 v{__version__}',
+                'message': 'Connected to BotV2 v{}'.format(__version__),
                 'version': __version__,
                 'security': HAS_SECURITY
             })
