@@ -4,6 +4,7 @@ Security Middleware Module
 Provides security middleware for Flask applications
 
 FIX: Now respects FLASK_ENV to disable CSP/HSTS in development mode
+FIX: Avoids CSP duplication with Talisman in production
 """
 
 import os
@@ -12,6 +13,64 @@ from functools import wraps
 from flask import request, g, abort
 
 logger = logging.getLogger(__name__)
+
+
+# Full list of allowed CDN domains for production CSP
+PRODUCTION_CDN_DOMAINS = {
+    'script': [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        "cdn.jsdelivr.net",
+        "cdn.socket.io",
+        "cdn.plot.ly",
+        "unpkg.com",
+        "cdn.sheetjs.com",
+        "cdnjs.cloudflare.com",
+    ],
+    'style': [
+        "'self'",
+        "'unsafe-inline'",
+        "fonts.googleapis.com",
+        "cdn.jsdelivr.net",
+        "cdnjs.cloudflare.com",
+    ],
+    'font': [
+        "'self'",
+        "fonts.gstatic.com",
+        "fonts.googleapis.com",
+        "cdnjs.cloudflare.com",
+        "data:",
+    ],
+    'img': [
+        "'self'",
+        "data:",
+        "https:",
+        "blob:",
+    ],
+    'connect': [
+        "'self'",
+        "wss:",
+        "ws:",
+        "localhost:*",
+        "127.0.0.1:*",
+    ],
+}
+
+
+def build_csp_policy() -> str:
+    """Build the full CSP policy string for production."""
+    return (
+        f"default-src 'self'; "
+        f"script-src {' '.join(PRODUCTION_CDN_DOMAINS['script'])}; "
+        f"style-src {' '.join(PRODUCTION_CDN_DOMAINS['style'])}; "
+        f"font-src {' '.join(PRODUCTION_CDN_DOMAINS['font'])}; "
+        f"img-src {' '.join(PRODUCTION_CDN_DOMAINS['img'])}; "
+        f"connect-src {' '.join(PRODUCTION_CDN_DOMAINS['connect'])}; "
+        f"frame-ancestors 'none'; "
+        f"base-uri 'self'; "
+        f"form-action 'self'"
+    )
 
 
 class SecurityMiddleware:
@@ -25,6 +84,9 @@ class SecurityMiddleware:
     
     In production mode (FLASK_ENV=production), all security headers
     are enabled for maximum protection.
+    
+    NOTE: If Talisman is also enabled in production, this middleware
+    will NOT add CSP to avoid duplication (Talisman takes precedence).
     """
     
     def __init__(self, app=None):
@@ -50,7 +112,7 @@ class SecurityMiddleware:
         # Add security headers
         @app.after_request
         def add_security_headers(response):
-            # Always add these basic security headers (safe for development)
+            # Always add these basic security headers (safe for all environments)
             response.headers['X-Content-Type-Options'] = 'nosniff'
             response.headers['X-Frame-Options'] = 'SAMEORIGIN'
             response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -61,29 +123,29 @@ class SecurityMiddleware:
             
             if not is_dev:
                 # PRODUCTION ONLY: Add restrictive security headers
-                response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
                 
-                # Full CSP for production
-                csp_policy = (
-                    "default-src 'self'; "
-                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
-                    "cdn.jsdelivr.net cdn.socket.io cdn.plot.ly unpkg.com cdn.sheetjs.com cdnjs.cloudflare.com; "
-                    "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net cdnjs.cloudflare.com; "
-                    "font-src 'self' fonts.gstatic.com fonts.googleapis.com cdnjs.cloudflare.com data:; "
-                    "img-src 'self' data: https: blob:; "
-                    "connect-src 'self' wss: ws: localhost:*; "
-                    "frame-ancestors 'none'"
-                )
-                response.headers['Content-Security-Policy'] = csp_policy
+                # HSTS - Always add in production
+                if 'Strict-Transport-Security' not in response.headers:
+                    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+                
+                # CSP - Only add if Talisman hasn't already set it
+                # This avoids duplication when both Talisman and this middleware are active
+                if 'Content-Security-Policy' not in response.headers:
+                    response.headers['Content-Security-Policy'] = build_csp_policy()
+                    logger.debug("[SecurityMiddleware] CSP added by middleware")
+                else:
+                    logger.debug("[SecurityMiddleware] CSP already set (likely by Talisman), skipping")
             else:
                 # DEVELOPMENT: NO restrictive headers
-                # Remove CSP header if it was set by another middleware
+                # Actively remove CSP header if it was set by another middleware
                 if 'Content-Security-Policy' in response.headers:
                     del response.headers['Content-Security-Policy']
+                    logger.debug("[SecurityMiddleware] CSP removed for development")
                 
                 # Remove HSTS in development
                 if 'Strict-Transport-Security' in response.headers:
                     del response.headers['Strict-Transport-Security']
+                    logger.debug("[SecurityMiddleware] HSTS removed for development")
             
             return response
         
@@ -92,6 +154,7 @@ class SecurityMiddleware:
         def validate_request():
             # Check for suspicious patterns
             if self._is_suspicious_request(request):
+                logger.warning("[SecurityMiddleware] Suspicious request blocked: %s", request.path)
                 abort(403)
     
     @staticmethod
