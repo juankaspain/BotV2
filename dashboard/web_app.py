@@ -323,13 +323,18 @@ class ProfessionalDashboard:
         )
         logger.info("✅ XSS Protection middleware enabled")
         
-        # 3. Rate Limiting
-        self.limiter = init_rate_limiter(
-            self.app,
-            enabled=os.getenv('RATE_LIMITING_ENABLED', 'true').lower() == 'true'
-        )
-        if self.limiter:
-            logger.info("✅ Rate Limiting enabled (Redis backend)")
+        # 3. Rate Limiting (use correct signature: app, requests_per_minute, burst_size)
+        rate_limit_enabled = os.getenv('RATE_LIMITING_ENABLED', 'true').lower() == 'true'
+        if rate_limit_enabled:
+            self.limiter = init_rate_limiter(
+                self.app,
+                requests_per_minute=int(os.getenv('RATE_LIMIT_RPM', 60)),
+                burst_size=int(os.getenv('RATE_LIMIT_BURST', 10))
+            )
+            logger.info("✅ Rate Limiting enabled")
+        else:
+            self.limiter = None
+            logger.info("⚠️ Rate Limiting disabled by configuration")
         
         # 4. Session Manager
         session_config = {
