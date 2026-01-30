@@ -56,8 +56,8 @@
                 </div>
             </div>
             <div class="card-body">
+                <!-- Chart Container - CSS v4.0 ✅ -->
                 <div class="chart-container" id="chart-wrapper">
-                    <!-- Skeleton Loader -->
                     <div class="skeleton skeleton-chart" id="chart-skeleton"></div>
                     <canvas id="live-chart" style="display: none;"></canvas>
                 </div>
@@ -76,7 +76,6 @@
             <div class="card-body p-0">
                 <div class="orderbook">
                     <div class="orderbook__section orderbook__section--asks" id="asks-container">
-                        <!-- Skeleton Loader -->
                         <div class="skeleton skeleton-row" style="height: 24px;"></div>
                         <div class="skeleton skeleton-row" style="height: 24px;"></div>
                         <div class="skeleton skeleton-row" style="height: 24px;"></div>
@@ -88,7 +87,6 @@
                         <span class="orderbook__spread-value" id="spread-value">--</span>
                     </div>
                     <div class="orderbook__section orderbook__section--bids" id="bids-container">
-                        <!-- Skeleton Loader -->
                         <div class="skeleton skeleton-row" style="height: 24px;"></div>
                         <div class="skeleton skeleton-row" style="height: 24px;"></div>
                         <div class="skeleton skeleton-row" style="height: 24px;"></div>
@@ -123,7 +121,7 @@
                             </tr>
                         </thead>
                         <tbody id="trades-body">
-                            <!-- Empty State -->
+                            <!-- Empty State - CSS v4.0 ✅ -->
                             <tr id="trades-empty-state">
                                 <td colspan="4">
                                     <div class="empty-state empty-state--compact">
@@ -167,7 +165,7 @@
         </div>
     </div>
 
-    <!-- Real-time Metrics -->
+    <!-- Real-time Metrics - CSS v4.0 ✅ -->
     <div class="card mt-4">
         <div class="card-header">
             <div class="card-header__title">
@@ -258,9 +256,9 @@
 <script>
     // =====================================================
     // MONITORING PAGE - PROFESSIONAL IMPLEMENTATION
+    // ✅ CSS v4.0 + ThemeManager Integration
     // =====================================================
 
-    // State Management
     const state = {
         symbol: 'BTC/USDT',
         isConnected: false,
@@ -280,7 +278,6 @@
         }
     };
 
-    // DOM Elements
     const elements = {
         connectionStatus: document.getElementById('connection-status'),
         wsAlert: document.getElementById('ws-alert'),
@@ -334,104 +331,70 @@
     }
 
     // =====================================================
-    // CHART INITIALIZATION
+    // CHART INITIALIZATION - ✅ WITH THEMEMANAGER
     // =====================================================
     function initChart() {
         const ctx = elements.liveChart.getContext('2d');
+        const colors = ThemeManager.getChartColors();
+        const config = ThemeManager.getChartDefaults('line');
         
-        state.chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: state.symbol,
-                    data: [],
-                    borderColor: '#4e73df',
-                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(42, 47, 53, 0.95)',
-                        titleColor: '#fff',
-                        bodyColor: '#a0a0a0',
-                        borderColor: '#3a3f45',
-                        borderWidth: 1,
-                        padding: 12,
-                        displayColors: false,
-                        callbacks: {
-                            label: function(context) {
-                                return `Price: $${context.parsed.y.toLocaleString()}`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.05)'
-                        },
-                        ticks: {
-                            color: '#6c757d',
-                            maxTicksLimit: 8
-                        }
-                    },
-                    y: {
-                        display: true,
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.05)'
-                        },
-                        ticks: {
-                            color: '#6c757d',
-                            callback: function(value) {
-                                return '$' + value.toLocaleString();
-                            }
-                        }
-                    }
-                }
+        config.data = {
+            labels: [],
+            datasets: [{
+                label: state.symbol,
+                data: [],
+                borderColor: colors.primary,
+                backgroundColor: `${colors.primary}1A`,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4
+            }]
+        };
+        
+        config.options.plugins.tooltip.callbacks = {
+            label: function(context) {
+                return `Price: $${context.parsed.y.toLocaleString()}`;
             }
-        });
+        };
+        
+        state.chart = new Chart(ctx, config);
 
         // Show chart, hide skeleton
         elements.chartSkeleton.style.display = 'none';
         elements.liveChart.style.display = 'block';
     }
 
+    // ✅ Re-render chart on theme change
+    window.addEventListener('themechange', function() {
+        if (state.chart) {
+            const colors = ThemeManager.getChartColors();
+            state.chart.data.datasets[0].borderColor = colors.primary;
+            state.chart.data.datasets[0].backgroundColor = `${colors.primary}1A`;
+            state.chart.options.scales.x.grid.color = colors.gridColor;
+            state.chart.options.scales.y.grid.color = colors.gridColor;
+            state.chart.options.scales.x.ticks.color = colors.textColor;
+            state.chart.options.scales.y.ticks.color = colors.textColor;
+            state.chart.update();
+        }
+    });
+
     // =====================================================
     // TRADES HANDLING
     // =====================================================
     function addTrade(trade) {
-        // Remove empty state if present
         if (elements.tradesEmptyState) {
             elements.tradesEmptyState.remove();
         }
 
-        // Add trade to state
         state.trades.unshift(trade);
         if (state.trades.length > state.maxTrades) {
             state.trades.pop();
         }
 
-        // Update count badge
         elements.tradeCount.textContent = state.trades.length;
 
-        // Create trade row
         const row = document.createElement('tr');
         row.className = `trade-row trade-row--${trade.side.toLowerCase()} fade-in`;
         row.innerHTML = `
@@ -447,7 +410,6 @@
 
         elements.tradesBody.insertBefore(row, elements.tradesBody.firstChild);
 
-        // Remove old rows
         while (elements.tradesBody.children.length > state.maxTrades) {
             elements.tradesBody.removeChild(elements.tradesBody.lastChild);
         }
@@ -476,7 +438,6 @@
         elements.logsContainer.appendChild(logEntry);
         elements.logsContainer.scrollTop = elements.logsContainer.scrollHeight;
 
-        // Limit logs
         while (elements.logsContainer.children.length > state.maxLogs) {
             elements.logsContainer.removeChild(elements.logsContainer.firstChild);
         }
@@ -564,7 +525,6 @@
         
         value.textContent = `${latency}ms`;
         
-        // Update bars based on latency
         let activeBars = 4;
         if (latency > 500) activeBars = 1;
         else if (latency > 200) activeBars = 2;
@@ -599,7 +559,6 @@
         document.getElementById('selected-symbol').textContent = symbol;
         document.getElementById('symbol-dropdown').classList.remove('is-open');
         
-        // Clear chart data
         if (state.chart) {
             state.chart.data.labels = [];
             state.chart.data.datasets[0].data = [];
@@ -607,7 +566,6 @@
             state.chart.update('none');
         }
         
-        // Emit symbol change
         if (socket) {
             socket.emit('subscribe_symbol', { symbol: symbol });
         }
@@ -615,7 +573,6 @@
         addLog(`Switched to ${symbol}`, 'info');
     }
 
-    // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.dropdown')) {
             document.querySelectorAll('.dropdown.is-open').forEach(d => d.classList.remove('is-open'));
@@ -625,7 +582,7 @@
     // =====================================================
     // WEBSOCKET HANDLERS
     // =====================================================
-    if (socket) {
+    if (typeof socket !== 'undefined' && socket) {
         socket.on('connect', () => {
             updateConnectionStatus('connected');
             addLog('WebSocket connected successfully', 'success');
@@ -648,7 +605,6 @@
                 state.chart.data.labels.push(time);
                 state.chart.data.datasets[0].data.push(data.price);
                 
-                // Keep last 60 points
                 if (state.chart.data.labels.length > 60) {
                     state.chart.data.labels.shift();
                     state.chart.data.datasets[0].data.shift();
@@ -675,7 +631,6 @@
         });
     }
 
-    // Listen for custom WebSocket events from base.html
     document.addEventListener('ws:connected', () => updateConnectionStatus('connected'));
     document.addEventListener('ws:disconnected', () => updateConnectionStatus('disconnected'));
     document.addEventListener('ws:error', () => updateConnectionStatus('disconnected'));
@@ -687,10 +642,8 @@
         initChart();
         addLog('Monitoring page initialized', 'info');
         
-        // Simulate initial data for demo (remove in production)
         setTimeout(() => {
             if (!state.isConnected) {
-                // Demo mode - show skeleton removal
                 document.querySelectorAll('.skeleton').forEach(el => {
                     el.style.display = 'none';
                 });
