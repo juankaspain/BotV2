@@ -182,49 +182,32 @@ function renderAllocationChart(data) {
     if (allocationChart) {
         allocationChart.destroy();
     }
+
+    // ✅ NEW: Use ThemeManager for theme-aware colors
+    const colors = ThemeManager.getChartColors();
+    const chartConfig = ThemeManager.getChartDefaults('doughnut');
     
-    allocationChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: data.map(d => d.asset),
-            datasets: [{
-                data: data.map(d => d.percentage),
-                backgroundColor: [
-                    '#5865f2',
-                    '#57f287',
-                    '#fee75c',
-                    '#ed4245',
-                    '#eb459e',
-                    '#00d9ff'
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: '#e4e6eb',
-                        padding: 15,
-                        font: { size: 12 }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const asset = context.label;
-                            const percentage = context.parsed;
-                            const value = data[context.dataIndex].value_usd;
-                            return `${asset}: ${percentage}% ($${value.toLocaleString()})`;
-                        }
-                    }
-                }
-            }
+    // Override with our data
+    chartConfig.data = {
+        labels: data.map(d => d.asset),
+        datasets: [{
+            data: data.map(d => d.percentage),
+            backgroundColor: colors.palette, // ✅ Theme-aware colors
+            borderWidth: 0
+        }]
+    };
+
+    // Customize tooltip for allocation data
+    chartConfig.options.plugins.tooltip.callbacks = {
+        label: function(context) {
+            const asset = context.label;
+            const percentage = context.parsed;
+            const value = data[context.dataIndex].value_usd;
+            return `${asset}: ${percentage}% ($${value.toLocaleString()})`;
         }
-    });
+    };
+    
+    allocationChart = new Chart(ctx, chartConfig);
 }
 
 function refreshPortfolio() {
@@ -236,5 +219,19 @@ loadPortfolioData();
 
 // Auto-refresh every 30 seconds
 setInterval(loadPortfolioData, 30000);
+
+// ✅ NEW: Re-render chart when theme changes
+window.addEventListener('themechange', function() {
+    if (allocationChart) {
+        // Reload chart with new theme colors
+        fetch('/portfolio/api/allocation')
+            .then(res => res.json())
+            .then(allocation => {
+                if (allocation.success) {
+                    renderAllocationChart(allocation.allocation);
+                }
+            });
+    }
+});
 </script>
 {% endblock %}
