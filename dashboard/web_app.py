@@ -1,26 +1,18 @@
-"""BotV2 Professional Dashboard v7.6 - System Health Enhanced
+"""BotV2 Professional Dashboard v7.7 - Enhanced Trading Features
 Ultra-professional real-time trading dashboard with enterprise-grade security
 
-VERSION 7.6 - SYSTEM HEALTH ENHANCED:
-- NEW: Professional System Health UI with real-time metrics
-- NEW: Enhanced /api/system-health endpoint with comprehensive data
-- NEW: CPU, Memory, Disk, Network monitoring via psutil
-- NEW: Python environment details
-- NEW: Component status tracking
-- NEW: Security status reporting
-- NEW: Recent activity log
+VERSION 7.7 - ENHANCED TRADING FEATURES:
+- NEW: Portfolio management UI with real-time positions
+- NEW: Trade history UI with advanced filtering
+- NEW: Performance analytics UI with comprehensive metrics
+- NEW: Risk management dashboard
+- NEW: Settings & configuration UI
 
-All v7.5 features maintained:
-- CSRF Protection: Token-based validation (all forms + AJAX)
-- XSS Prevention: bleach backend + DOMPurify frontend
-- Input Validation: Pydantic models for type-safe validation
-- Session Management: Secure cookies + automatic timeout
-- Rate Limiting: Redis backend + per-endpoint limits
-- Security Audit Logging: Comprehensive JSON event logs
-- Security Headers: CSP with nonces, HSTS, X-Frame-Options
-- HTTPS Enforcement: Production-grade TLS (Talisman)
-- Nonce-Based CSP: Eliminates unsafe-inline vulnerability
-- SRI Protection: All CDN libraries with integrity checks
+All v7.6 features maintained:
+- System Health UI with real-time monitoring
+- Security Phase 1 complete (CSRF, XSS, Rate Limiting)
+- Metrics monitoring & audit logging
+- Professional UI/UX
 """
 
 import logging
@@ -176,7 +168,7 @@ try:
 except ImportError:
     pass
 
-# BLUEPRINTS
+# BLUEPRINTS - v7.6 (legacy)
 try:
     from dashboard.routes.control_routes import control_bp
     from dashboard.routes.monitoring_routes import monitoring_bp
@@ -188,8 +180,28 @@ except ImportError:
     from routes.strategy_routes import strategy_bp
     from routes.metrics_routes import metrics_bp as metrics_routes_bp
 
+# BLUEPRINTS - v7.7 (NEW)
+try:
+    from dashboard.routes.portfolio_routes import portfolio_bp
+    from dashboard.routes.trade_history_routes import trade_history_bp
+    from dashboard.routes.performance_routes import performance_bp
+    from dashboard.routes.risk_routes import risk_bp
+    from dashboard.routes.settings_routes import settings_bp
+    HAS_V77_ROUTES = True
+except ImportError as e:
+    logger_temp = logging.getLogger(__name__)
+    logger_temp.warning(f"v7.7 routes not fully available: {e}")
+    HAS_V77_ROUTES = False
+    # Create dummy blueprints to prevent errors
+    from flask import Blueprint
+    portfolio_bp = None
+    trade_history_bp = None
+    performance_bp = None
+    risk_bp = None
+    settings_bp = None
+
 # Dashboard version
-__version__ = '7.6'
+__version__ = '7.7'
 
 logger = logging.getLogger(__name__)
 
@@ -398,7 +410,7 @@ class DashboardAuth:
 
 
 class ProfessionalDashboard:
-    """Ultra-professional trading dashboard v7.6 with System Health."""
+    """Ultra-professional trading dashboard v7.7 with Enhanced Features."""
     
     def __init__(self, config):
         self.config = config
@@ -607,11 +619,28 @@ class ProfessionalDashboard:
             self.metrics_monitor = None
     
     def _register_blueprints(self):
+        """Register all blueprints (v7.6 + v7.7)."""
+        # v7.6 blueprints (legacy)
         self.app.register_blueprint(control_bp)
         self.app.register_blueprint(monitoring_bp)
         self.app.register_blueprint(strategy_bp)
         self.app.register_blueprint(metrics_routes_bp)
-        logger.info("[+] All blueprints registered")
+        
+        # v7.7 blueprints (NEW)
+        if HAS_V77_ROUTES:
+            if portfolio_bp:
+                self.app.register_blueprint(portfolio_bp)
+            if trade_history_bp:
+                self.app.register_blueprint(trade_history_bp)
+            if performance_bp:
+                self.app.register_blueprint(performance_bp)
+            if risk_bp:
+                self.app.register_blueprint(risk_bp)
+            if settings_bp:
+                self.app.register_blueprint(settings_bp)
+            logger.info("[+] All blueprints registered (v7.6 + v7.7)")
+        else:
+            logger.info("[+] v7.6 blueprints registered (v7.7 routes unavailable)")
     
     def _setup_log_filters(self):
         werkzeug_logger = logging.getLogger('werkzeug')
@@ -641,6 +670,7 @@ class ProfessionalDashboard:
         print("  GZIP Compression        {}".format('ENABLED' if HAS_COMPRESS else 'DISABLED'), flush=True)
         print("  Database                {}".format('CONNECTED' if self.db_session else 'MOCK MODE'), flush=True)
         print("  System Metrics          {}".format('ENABLED' if HAS_PSUTIL else 'DISABLED'), flush=True)
+        print("  v7.7 Routes             {}".format('ENABLED' if HAS_V77_ROUTES else 'DISABLED'), flush=True)
         print("  -----------------------------------------", flush=True)
         print("  URL: http://{}:{}".format(self.host, self.port), flush=True)
         print("", flush=True)
