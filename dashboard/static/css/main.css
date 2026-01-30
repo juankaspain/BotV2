@@ -2338,3 +2338,843 @@ table[role="grid"] tbody tr[aria-selected="true"] {
 .loading-overlay__text { color: var(--text-muted); font-size: var(--font-sm); }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+
+/* ==========================================================================
+   FASE 3: MEDIA PRIORIDAD - Sistema Visual Profesional
+   ========================================================================== */
+
+/* ==========================================================================
+   3.1 SISTEMA DE ICONOGRAFIA SVG - Eliminar Font Awesome CDN
+   ========================================================================== */
+
+/* SVG Icon Base System */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* Icon Sizes */
+.icon--xs { width: 12px; height: 12px; }
+.icon--sm { width: 16px; height: 16px; }
+.icon--md { width: 20px; height: 20px; }
+.icon--lg { width: 24px; height: 24px; }
+.icon--xl { width: 32px; height: 32px; }
+.icon--2xl { width: 48px; height: 48px; }
+.icon--3xl { width: 64px; height: 64px; }
+
+/* Icon Colors */
+.icon--primary { color: var(--color-primary); }
+.icon--success { color: var(--color-success); }
+.icon--warning { color: var(--color-warning); }
+.icon--danger { color: var(--color-danger); }
+.icon--info { color: var(--color-info); }
+.icon--muted { color: var(--text-muted); }
+
+/* Icon with Background */
+.icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+}
+
+.icon-box--primary { background: rgba(78, 115, 223, 0.15); color: var(--color-primary); }
+.icon-box--success { background: rgba(28, 200, 138, 0.15); color: var(--color-success); }
+.icon-box--warning { background: rgba(246, 194, 62, 0.15); color: var(--color-warning); }
+.icon-box--danger { background: rgba(231, 74, 59, 0.15); color: var(--color-danger); }
+.icon-box--info { background: rgba(54, 185, 204, 0.15); color: var(--color-info); }
+
+.icon-box--circle { border-radius: var(--radius-full); }
+
+/* Trading Specific Icons */
+.icon-buy { color: var(--color-success); }
+.icon-sell { color: var(--color-danger); }
+.icon-long { color: var(--color-success); }
+.icon-short { color: var(--color-danger); }
+
+/* Crypto Logo Icons */
+.crypto-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card-hover);
+  overflow: hidden;
+}
+
+.crypto-icon--sm { width: 20px; height: 20px; }
+.crypto-icon--lg { width: 32px; height: 32px; }
+.crypto-icon--xl { width: 48px; height: 48px; }
+
+/* Icon Animation */
+.icon--spin { animation: spin 1s linear infinite; }
+.icon--pulse { animation: pulse 2s ease-in-out infinite; }
+.icon--bounce { animation: iconBounce 0.5s ease infinite; }
+
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Icon Button */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.btn-icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn-icon--sm { width: 28px; height: 28px; }
+.btn-icon--lg { width: 44px; height: 44px; }
+
+/* ==========================================================================
+   3.2 TIPOGRAFIA AVANZADA - Escala Fluida con clamp()
+   ========================================================================== */
+
+/* Fluid Typography Scale */
+:root {
+  /* Fluid font sizes using clamp() */
+  --font-fluid-xs: clamp(0.625rem, 0.6rem + 0.15vw, 0.75rem);
+  --font-fluid-sm: clamp(0.75rem, 0.7rem + 0.2vw, 0.875rem);
+  --font-fluid-base: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
+  --font-fluid-lg: clamp(1rem, 0.9rem + 0.35vw, 1.125rem);
+  --font-fluid-xl: clamp(1.125rem, 1rem + 0.5vw, 1.25rem);
+  --font-fluid-2xl: clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem);
+  --font-fluid-3xl: clamp(1.5rem, 1.25rem + 1vw, 2rem);
+  --font-fluid-4xl: clamp(1.875rem, 1.5rem + 1.5vw, 2.5rem);
+  --font-fluid-5xl: clamp(2.25rem, 1.75rem + 2vw, 3rem);
+  
+  /* Optimized line-heights for different contexts */
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+  
+  /* Letter spacing */
+  --tracking-tighter: -0.05em;
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+}
+
+/* Heading Styles with Fluid Typography */
+.heading-1 {
+  font-size: var(--font-fluid-5xl);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.heading-2 {
+  font-size: var(--font-fluid-4xl);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.heading-3 {
+  font-size: var(--font-fluid-3xl);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+}
+
+.heading-4 {
+  font-size: var(--font-fluid-2xl);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+}
+
+.heading-5 {
+  font-size: var(--font-fluid-xl);
+  font-weight: 600;
+  line-height: var(--leading-normal);
+}
+
+.heading-6 {
+  font-size: var(--font-fluid-lg);
+  font-weight: 600;
+  line-height: var(--leading-normal);
+}
+
+/* Text Block Styles */
+.text-body {
+  font-size: var(--font-fluid-base);
+  line-height: var(--leading-relaxed);
+}
+
+.text-body-sm {
+  font-size: var(--font-fluid-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.text-caption {
+  font-size: var(--font-fluid-xs);
+  line-height: var(--leading-normal);
+  color: var(--text-muted);
+}
+
+/* Prose for Long-Form Content */
+.prose {
+  font-size: var(--font-fluid-base);
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+}
+
+.prose p { margin-bottom: 1.5em; }
+.prose h2 { font-size: var(--font-fluid-2xl); margin-top: 2em; margin-bottom: 0.75em; }
+.prose h3 { font-size: var(--font-fluid-xl); margin-top: 1.75em; margin-bottom: 0.5em; }
+.prose ul, .prose ol { padding-left: 1.5em; margin-bottom: 1.5em; }
+.prose li { margin-bottom: 0.5em; }
+.prose code { font-family: var(--font-mono); background: var(--bg-card-hover); padding: 0.2em 0.4em; border-radius: var(--radius-sm); font-size: 0.875em; }
+
+/* Monospace Numbers for Data */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+.oldstyle-nums { font-variant-numeric: oldstyle-nums; }
+
+/* Number Display */
+.number-display {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
+.number-display--lg {
+  font-size: var(--font-fluid-3xl);
+}
+
+.number-display--xl {
+  font-size: var(--font-fluid-4xl);
+}
+
+/* Price Display */
+.price {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.price--positive { color: var(--color-success); }
+.price--positive::before { content: '+'; }
+.price--negative { color: var(--color-danger); }
+.price--neutral { color: var(--text-secondary); }
+
+/* Percentage Change */
+.percent-change {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+}
+
+.percent-change--up { color: var(--color-success); }
+.percent-change--down { color: var(--color-danger); }
+.percent-change--neutral { color: var(--text-muted); }
+
+/* ==========================================================================
+   3.3 PALETA DE COLORES EXTENDIDA (50-950)
+   ========================================================================== */
+
+:root {
+  /* Primary Color Scale (Blue) */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #4e73df;
+  --color-primary-600: #3a5bc7;
+  --color-primary-700: #2d4a9e;
+  --color-primary-800: #1e3a8a;
+  --color-primary-900: #1e3a5f;
+  --color-primary-950: #172554;
+  
+  /* Success Color Scale (Green) */
+  --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-200: #bbf7d0;
+  --color-success-300: #86efac;
+  --color-success-400: #4ade80;
+  --color-success-500: #1cc88a;
+  --color-success-600: #17a673;
+  --color-success-700: #15803d;
+  --color-success-800: #166534;
+  --color-success-900: #14532d;
+  --color-success-950: #052e16;
+  
+  /* Warning Color Scale (Yellow/Orange) */
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f6c23e;
+  --color-warning-600: #dda20a;
+  --color-warning-700: #b45309;
+  --color-warning-800: #92400e;
+  --color-warning-900: #78350f;
+  --color-warning-950: #451a03;
+  
+  /* Danger Color Scale (Red) */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-200: #fecaca;
+  --color-danger-300: #fca5a5;
+  --color-danger-400: #f87171;
+  --color-danger-500: #e74a3b;
+  --color-danger-600: #c0392b;
+  --color-danger-700: #b91c1c;
+  --color-danger-800: #991b1b;
+  --color-danger-900: #7f1d1d;
+  --color-danger-950: #450a0a;
+  
+  /* Info Color Scale (Cyan) */
+  --color-info-50: #ecfeff;
+  --color-info-100: #cffafe;
+  --color-info-200: #a5f3fc;
+  --color-info-300: #67e8f9;
+  --color-info-400: #22d3ee;
+  --color-info-500: #36b9cc;
+  --color-info-600: #0891b2;
+  --color-info-700: #0e7490;
+  --color-info-800: #155e75;
+  --color-info-900: #164e63;
+  --color-info-950: #083344;
+  
+  /* Neutral/Gray Scale */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+}
+
+/* Hover/Active/Focus State Colors */
+/* Primary States */
+.bg-primary-hover:hover { background-color: var(--color-primary-600); }
+.bg-primary-active:active { background-color: var(--color-primary-700); }
+.bg-primary-focus:focus { box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.3); }
+
+/* Success States */
+.bg-success-hover:hover { background-color: var(--color-success-600); }
+.bg-success-active:active { background-color: var(--color-success-700); }
+.bg-success-focus:focus { box-shadow: 0 0 0 3px rgba(28, 200, 138, 0.3); }
+
+/* Warning States */
+.bg-warning-hover:hover { background-color: var(--color-warning-600); }
+.bg-warning-active:active { background-color: var(--color-warning-700); }
+.bg-warning-focus:focus { box-shadow: 0 0 0 3px rgba(246, 194, 62, 0.3); }
+
+/* Danger States */
+.bg-danger-hover:hover { background-color: var(--color-danger-600); }
+.bg-danger-active:active { background-color: var(--color-danger-700); }
+.bg-danger-focus:focus { box-shadow: 0 0 0 3px rgba(231, 74, 59, 0.3); }
+
+/* Subtle Background Variants */
+.bg-primary-subtle { background-color: var(--color-primary-50); color: var(--color-primary-700); }
+.bg-success-subtle { background-color: var(--color-success-50); color: var(--color-success-700); }
+.bg-warning-subtle { background-color: var(--color-warning-50); color: var(--color-warning-700); }
+.bg-danger-subtle { background-color: var(--color-danger-50); color: var(--color-danger-700); }
+.bg-info-subtle { background-color: var(--color-info-50); color: var(--color-info-700); }
+
+/* Dark Mode Subtle Backgrounds */
+[data-theme="dark"] .bg-primary-subtle { background-color: rgba(78, 115, 223, 0.15); color: var(--color-primary-400); }
+[data-theme="dark"] .bg-success-subtle { background-color: rgba(28, 200, 138, 0.15); color: var(--color-success-400); }
+[data-theme="dark"] .bg-warning-subtle { background-color: rgba(246, 194, 62, 0.15); color: var(--color-warning-400); }
+[data-theme="dark"] .bg-danger-subtle { background-color: rgba(231, 74, 59, 0.15); color: var(--color-danger-400); }
+[data-theme="dark"] .bg-info-subtle { background-color: rgba(54, 185, 204, 0.15); color: var(--color-info-400); }
+
+/* Border Color Scale */
+.border-primary { border-color: var(--color-primary-500); }
+.border-primary-light { border-color: var(--color-primary-200); }
+.border-primary-dark { border-color: var(--color-primary-700); }
+
+.border-success { border-color: var(--color-success-500); }
+.border-success-light { border-color: var(--color-success-200); }
+.border-success-dark { border-color: var(--color-success-700); }
+
+.border-warning { border-color: var(--color-warning-500); }
+.border-warning-light { border-color: var(--color-warning-200); }
+.border-warning-dark { border-color: var(--color-warning-700); }
+
+.border-danger { border-color: var(--color-danger-500); }
+.border-danger-light { border-color: var(--color-danger-200); }
+.border-danger-dark { border-color: var(--color-danger-700); }
+
+/* Gradient Utilities */
+.gradient-primary { background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%); }
+.gradient-success { background: linear-gradient(135deg, var(--color-success-500) 0%, var(--color-success-700) 100%); }
+.gradient-warning { background: linear-gradient(135deg, var(--color-warning-400) 0%, var(--color-warning-600) 100%); }
+.gradient-danger { background: linear-gradient(135deg, var(--color-danger-500) 0%, var(--color-danger-700) 100%); }
+.gradient-info { background: linear-gradient(135deg, var(--color-info-500) 0%, var(--color-info-700) 100%); }
+
+/* ==========================================================================
+   3.4 FORMULARIOS MEJORADOS - Custom Controls & Estados
+   ========================================================================== */
+
+/* Custom Checkbox */
+.checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-input);
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.checkbox:hover {
+  border-color: var(--color-primary);
+}
+
+.checkbox:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Custom Radio Button */
+.radio-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+}
+
+.radio {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-input);
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.radio:hover {
+  border-color: var(--color-primary);
+}
+
+.radio:checked {
+  border-color: var(--color-primary);
+}
+
+.radio:checked::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+}
+
+.radio:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.radio:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Custom Toggle Switch */
+.toggle-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.toggle {
+  appearance: none;
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background-color: var(--bg-card-hover);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  border: 2px solid var(--border-color);
+}
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background-color: white;
+  border-radius: var(--radius-full);
+  transition: transform var(--transition-fast);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.toggle:checked::after {
+  transform: translateX(20px);
+}
+
+.toggle:hover:not(:disabled) {
+  box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form Validation States */
+.form-group {
+  margin-bottom: var(--space-md);
+}
+
+.form-group--valid .form-control {
+  border-color: var(--color-success);
+  padding-right: 2.5rem;
+}
+
+.form-group--valid .form-control:focus {
+  box-shadow: 0 0 0 3px rgba(28, 200, 138, 0.2);
+}
+
+.form-group--invalid .form-control {
+  border-color: var(--color-danger);
+  padding-right: 2.5rem;
+  animation: shake 0.4s ease;
+}
+
+.form-group--invalid .form-control:focus {
+  box-shadow: 0 0 0 3px rgba(231, 74, 59, 0.2);
+}
+
+.form-group--pending .form-control {
+  border-color: var(--color-warning);
+  padding-right: 2.5rem;
+}
+
+/* Validation Icons */
+.form-group--valid::after,
+.form-group--invalid::after,
+.form-group--pending::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  background-size: contain;
+  pointer-events: none;
+}
+
+.form-group {
+  position: relative;
+}
+
+.form-group--valid .form-control-wrapper::after {
+  content: '✓';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-success);
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.form-group--invalid .form-control-wrapper::after {
+  content: '✕';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-danger);
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.form-group--pending .form-control-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-warning);
+  border-top-color: transparent;
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+.form-control-wrapper {
+  position: relative;
+}
+
+/* Validation Messages */
+.form-feedback {
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.form-feedback--valid {
+  color: var(--color-success);
+}
+
+.form-feedback--invalid {
+  color: var(--color-danger);
+}
+
+.form-feedback--pending {
+  color: var(--color-warning);
+}
+
+/* Input with Icon */
+.input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-group--icon-left .form-control {
+  padding-left: 2.5rem;
+}
+
+.input-group--icon-right .form-control {
+  padding-right: 2.5rem;
+}
+
+.input-group__icon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 100%;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.input-group__icon--left {
+  left: 0;
+}
+
+.input-group__icon--right {
+  right: 0;
+}
+
+/* Select with Custom Arrow */
+.select-wrapper {
+  position: relative;
+}
+
+.select-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  pointer-events: none;
+}
+
+.select-wrapper .form-select {
+  appearance: none;
+  padding-right: 2.5rem;
+}
+
+/* Floating Labels */
+.floating-label {
+  position: relative;
+}
+
+.floating-label__input {
+  padding-top: 1.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.floating-label__label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: all var(--transition-fast);
+  font-size: var(--font-size-base);
+}
+
+.floating-label__input:focus ~ .floating-label__label,
+.floating-label__input:not(:placeholder-shown) ~ .floating-label__label {
+  top: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  transform: translateY(0);
+}
+
+/* Range Slider */
+.range-slider {
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card-hover);
+  outline: none;
+}
+
+.range-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.range-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  cursor: pointer;
+  border: none;
+  transition: transform var(--transition-fast);
+}
+
+.range-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* File Upload */
+.file-upload {
+  position: relative;
+  display: inline-block;
+}
+
+.file-upload__input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-upload__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.file-upload:hover .file-upload__label {
+  border-color: var(--color-primary);
+  background: var(--bg-card-hover);
+}
+
+.file-upload--active .file-upload__label {
+  border-color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.05);
+}
