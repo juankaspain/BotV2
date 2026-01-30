@@ -1,7 +1,12 @@
 /**
- * BotV2 Dashboard - Theme System
- * Manages light/dark theme switching with localStorage persistence
- * and system preference detection.
+ * BotV2 Dashboard - Theme System v2.0
+ * Manages light/dark theme switching with localStorage persistence,
+ * system preference detection, and CSS variable utilities for charts.
+ * 
+ * NEW in v2.0:
+ * - getChartColors(): Theme-aware colors for Chart.js
+ * - getChartDefaults(): Reusable Chart.js configuration
+ * - getCSSVariable(): Read CSS custom properties dynamically
  */
 
 const ThemeManager = {
@@ -85,6 +90,176 @@ const ThemeManager = {
         this.applyTheme(e.matches ? this.THEMES.LIGHT : this.THEMES.DARK);
       }
     });
+  },
+
+  // ============================================================================
+  // NEW v2.0: CSS VARIABLE UTILITIES
+  // ============================================================================
+
+  /**
+   * Get a CSS variable value from :root
+   * @param {string} varName - CSS variable name (with or without --)
+   * @returns {string} The computed CSS variable value
+   * 
+   * @example
+   * getCSSVariable('--color-primary') // Returns '#5b8def'
+   * getCSSVariable('color-primary')   // Also works without '--'
+   */
+  getCSSVariable(varName) {
+    const name = varName.startsWith('--') ? varName : `--${varName}`;
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
+  },
+
+  /**
+   * Get theme-aware colors for Chart.js
+   * Reads current theme CSS variables dynamically
+   * 
+   * @returns {Object} Color palette object with semantic colors
+   * 
+   * @example
+   * const colors = ThemeManager.getChartColors();
+   * backgroundColor: [colors.primary, colors.success, colors.warning]
+   */
+  getChartColors() {
+    return {
+      // Semantic colors
+      primary: this.getCSSVariable('color-primary'),
+      primaryDark: this.getCSSVariable('color-primary-dark'),
+      primaryLight: this.getCSSVariable('color-primary-light'),
+      
+      success: this.getCSSVariable('color-success'),
+      successDark: this.getCSSVariable('color-success-dark'),
+      successLight: this.getCSSVariable('color-success-light'),
+      
+      warning: this.getCSSVariable('color-warning'),
+      warningDark: this.getCSSVariable('color-warning-dark'),
+      warningLight: this.getCSSVariable('color-warning-light'),
+      
+      danger: this.getCSSVariable('color-danger'),
+      dangerDark: this.getCSSVariable('color-danger-dark'),
+      dangerLight: this.getCSSVariable('color-danger-light'),
+      
+      info: this.getCSSVariable('color-info'),
+      infoDark: this.getCSSVariable('color-info-dark'),
+      infoLight: this.getCSSVariable('color-info-light'),
+      
+      // Text colors
+      textPrimary: this.getCSSVariable('text-primary'),
+      textSecondary: this.getCSSVariable('text-secondary'),
+      textMuted: this.getCSSVariable('text-muted'),
+      
+      // Background colors
+      bgCard: this.getCSSVariable('bg-card'),
+      bgCardHover: this.getCSSVariable('bg-card-hover'),
+      
+      // Border colors
+      borderColor: this.getCSSVariable('border-color'),
+      borderColorLight: this.getCSSVariable('border-color-light'),
+
+      // Utility: Get array of main colors (for pie/doughnut charts)
+      palette: [
+        this.getCSSVariable('color-primary'),
+        this.getCSSVariable('color-success'),
+        this.getCSSVariable('color-warning'),
+        this.getCSSVariable('color-danger'),
+        this.getCSSVariable('color-info'),
+        '#eb459e', // Pink (not in CSS vars, optional)
+        '#00d9ff'  // Cyan (not in CSS vars, optional)
+      ]
+    };
+  },
+
+  /**
+   * Get Chart.js default configuration (theme-aware)
+   * Use as base for all charts to maintain consistency
+   * 
+   * @param {string} type - Chart type: 'line', 'bar', 'doughnut', etc.
+   * @returns {Object} Chart.js configuration object
+   * 
+   * @example
+   * const config = ThemeManager.getChartDefaults('line');
+   * config.data = { labels: [...], datasets: [...] };
+   * new Chart(ctx, config);
+   */
+  getChartDefaults(type = 'line') {
+    const colors = this.getChartColors();
+    
+    const baseConfig = {
+      type: type,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              color: colors.textPrimary,
+              padding: 15,
+              font: {
+                size: 12,
+                family: "'Inter', sans-serif"
+              },
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: colors.bgCard,
+            titleColor: colors.textPrimary,
+            bodyColor: colors.textSecondary,
+            borderColor: colors.borderColor,
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: {
+              size: 13,
+              weight: '600',
+              family: "'Inter', sans-serif"
+            },
+            bodyFont: {
+              size: 12,
+              family: "'Inter', sans-serif"
+            }
+          }
+        }
+      }
+    };
+
+    // Type-specific configurations
+    if (type === 'line' || type === 'bar') {
+      baseConfig.options.scales = {
+        x: {
+          grid: {
+            color: colors.borderColor,
+            borderColor: colors.borderColorLight,
+          },
+          ticks: {
+            color: colors.textSecondary,
+            font: { size: 11 }
+          }
+        },
+        y: {
+          grid: {
+            color: colors.borderColor,
+            borderColor: colors.borderColorLight,
+          },
+          ticks: {
+            color: colors.textSecondary,
+            font: { size: 11 }
+          }
+        }
+      };
+    }
+
+    return baseConfig;
   }
 };
 
@@ -99,3 +274,6 @@ if (document.readyState === 'loading') {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = ThemeManager;
 }
+
+// Also expose as window global for inline scripts
+window.ThemeManager = ThemeManager;
