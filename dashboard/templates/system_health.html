@@ -519,8 +519,8 @@ let healthData = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     refreshHealthData();
-    // Auto-refresh every 10 seconds
-    refreshInterval = setInterval(refreshHealthData, 10000);
+    // Auto-refresh every 5 seconds for more responsive network metrics
+    refreshInterval = setInterval(refreshHealthData, 5000);
 });
 
 async function refreshHealthData() {
@@ -563,10 +563,14 @@ function updateUI(data) {
         updateResourceBar('cpu', data.system.cpu_percent);
         updateResourceBar('memory', data.system.memory_percent);
         updateResourceBar('disk', data.system.disk_percent);
-        updateResourceBar('network', Math.min(data.system.network_io_mbps * 10, 100)); // Scale for display
         
-        document.getElementById('network-value').textContent = 
-            (data.system.network_io_mbps?.toFixed(2) || '0') + ' MB/s';
+        // Network I/O - now in KB/s, scale bar based on typical bandwidth (10 MB/s = 10240 KB/s max)
+        const networkKbps = data.system.network_io_kbps || 0;
+        const networkBarPercent = Math.min((networkKbps / 10240) * 100, 100);
+        updateResourceBar('network', networkBarPercent);
+        
+        // Display with appropriate unit (KB/s or MB/s)
+        document.getElementById('network-value').textContent = formatNetworkRate(networkKbps);
     }
     
     // Component status
@@ -633,6 +637,13 @@ function updateResourceBar(resource, percent) {
     if (value && resource !== 'network') {
         value.textContent = (percent?.toFixed(1) || '0') + '%';
     }
+}
+
+function formatNetworkRate(kbps) {
+    if (kbps >= 1024) {
+        return (kbps / 1024).toFixed(2) + ' MB/s';
+    }
+    return kbps.toFixed(2) + ' KB/s';
 }
 
 function updateComponentList(components) {
