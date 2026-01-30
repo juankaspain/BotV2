@@ -21,8 +21,8 @@ import random
 
 logger = logging.getLogger(__name__)
 
-# Create blueprint
-trade_history_bp = Blueprint('trade_history', __name__)
+# Create blueprint with url_prefix
+trade_history_bp = Blueprint('trade_history', __name__, url_prefix='/trade-history')
 
 
 # ==================== DECORATORS ====================
@@ -39,7 +39,7 @@ def login_required(f):
 
 # ==================== UI ROUTES ====================
 
-@trade_history_bp.route('/trade-history', methods=['GET'])
+@trade_history_bp.route('/', methods=['GET'])
 @login_required
 def trade_history_ui():
     """Trade History UI page"""
@@ -48,7 +48,7 @@ def trade_history_ui():
 
 # ==================== API ROUTES ====================
 
-@trade_history_bp.route('/api/trades/history', methods=['GET'])
+@trade_history_bp.route('/api/history', methods=['GET'])
 @login_required
 def get_trade_history():
     """Get trade history"""
@@ -87,7 +87,7 @@ def get_trade_history():
         return jsonify({'error': str(e)}), 500
 
 
-@trade_history_bp.route('/api/trades/statistics', methods=['GET'])
+@trade_history_bp.route('/api/statistics', methods=['GET'])
 @login_required
 def get_trade_statistics():
     """Get trade statistics"""
@@ -116,3 +116,6 @@ def get_trade_statistics():
     except Exception as e:
         logger.error(f"Error getting trade statistics: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+
+logger.info("Trade History routes initialized (v1.0)")
