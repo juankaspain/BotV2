@@ -76,11 +76,13 @@
                     <i class="fas fa-brain"></i>
                     <span class="sidebar__text">Strategies</span>
                 </a>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- NEW v7.7: Portfolio -->
+                <a href="{{ url_for('portfolio.portfolio_ui') }}" class="nav-link {% if request.endpoint == 'portfolio.portfolio_ui' %}active{% endif %}">
                     <i class="fas fa-chart-line"></i>
                     <span class="sidebar__text">Portfolio</span>
                 </a>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- NEW v7.7: Trade History -->
+                <a href="{{ url_for('trade_history.trade_history_ui') }}" class="nav-link {% if request.endpoint == 'trade_history.trade_history_ui' %}active{% endif %}">
                     <i class="fas fa-history"></i>
                     <span class="sidebar__text">Trade History</span>
                 </a>
@@ -89,7 +91,8 @@
             <!-- Analysis Section -->
             <div class="nav-section">
                 <div class="nav-section__title">Analysis</div>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- NEW v7.7: Performance -->
+                <a href="{{ url_for('performance.performance_ui') }}" class="nav-link {% if request.endpoint == 'performance.performance_ui' %}active{% endif %}">
                     <i class="fas fa-chart-bar"></i>
                     <span class="sidebar__text">Performance</span>
                 </a>
@@ -181,10 +184,6 @@
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" crossorigin="anonymous"></script>
 
     <script>
-        // =====================================================
-        // GLOBAL UTILITIES
-        // =====================================================
-        
         // Theme Management
         function toggleTheme() {
             const html = document.documentElement;
@@ -202,7 +201,6 @@
             }
         }
 
-        // Initialize theme from localStorage
         (function initTheme() {
             const savedTheme = localStorage.getItem('theme') || 'dark';
             document.documentElement.setAttribute('data-theme', savedTheme);
@@ -214,7 +212,6 @@
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
             const hamburger = document.getElementById('hamburger');
-            
             sidebar.classList.toggle('is-open');
             overlay.classList.toggle('is-active');
             hamburger.classList.toggle('is-active');
@@ -224,7 +221,6 @@
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
             const hamburger = document.getElementById('hamburger');
-            
             sidebar.classList.remove('is-open');
             overlay.classList.remove('is-active');
             hamburger.classList.remove('is-active');
@@ -272,15 +268,13 @@
             `;
 
             container.appendChild(toast);
-
-            // Auto remove
             setTimeout(() => {
                 toast.classList.add('toast--exiting');
                 setTimeout(() => toast.remove(), 300);
             }, duration);
         }
 
-        // CSRF Token for AJAX requests
+        // CSRF Token
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         
         // Fetch wrapper with CSRF
@@ -304,7 +298,7 @@
             }
         }
 
-        // WebSocket connection with error handling
+        // WebSocket connection
         let socket = null;
         try {
             socket = io({
@@ -315,25 +309,13 @@
                 reconnectionAttempts: 5
             });
 
-            socket.on('connect', function() {
-                console.log('WebSocket connected');
-                document.dispatchEvent(new CustomEvent('ws:connected'));
-            });
-
-            socket.on('disconnect', function() {
-                console.log('WebSocket disconnected');
-                document.dispatchEvent(new CustomEvent('ws:disconnected'));
-            });
-
-            socket.on('connect_error', function(error) {
-                console.warn('WebSocket connection error:', error.message);
-                document.dispatchEvent(new CustomEvent('ws:error', { detail: error }));
-            });
+            socket.on('connect', () => console.log('WebSocket connected'));
+            socket.on('disconnect', () => console.log('WebSocket disconnected'));
+            socket.on('connect_error', (error) => console.warn('WebSocket error:', error.message));
         } catch (e) {
             console.warn('WebSocket initialization failed:', e);
         }
 
-        // Hide loading on page load
         window.addEventListener('load', hideLoading);
     </script>
 

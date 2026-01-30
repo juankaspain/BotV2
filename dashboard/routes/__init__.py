@@ -76,6 +76,30 @@ except ImportError as e:
     logger.warning(f"Could not import strategy_routes: {e}")
     strategy_bp = None
 
+# Portfolio routes (NEW v7.7)
+try:
+    from .portfolio_routes import portfolio_bp
+    __all__.append('portfolio_bp')
+except ImportError as e:
+    logger.warning(f"Could not import portfolio_routes: {e}")
+    portfolio_bp = None
+
+# Trade History routes (NEW v7.7)
+try:
+    from .trade_history_routes import trade_history_bp
+    __all__.append('trade_history_bp')
+except ImportError as e:
+    logger.warning(f"Could not import trade_history_routes: {e}")
+    trade_history_bp = None
+
+# Performance routes (NEW v7.7)
+try:
+    from .performance_routes import performance_bp
+    __all__.append('performance_bp')
+except ImportError as e:
+    logger.warning(f"Could not import performance_routes: {e}")
+    performance_bp = None
+
 
 def get_available_blueprints():
     """Get list of successfully loaded blueprints"""
@@ -97,6 +121,12 @@ def get_available_blueprints():
         blueprints.append(('monitoring', monitoring_bp))
     if strategy_bp is not None:
         blueprints.append(('strategy', strategy_bp))
+    if portfolio_bp is not None:
+        blueprints.append(('portfolio', portfolio_bp))
+    if trade_history_bp is not None:
+        blueprints.append(('trade_history', trade_history_bp))
+    if performance_bp is not None:
+        blueprints.append(('performance', performance_bp))
     
     return blueprints
 
