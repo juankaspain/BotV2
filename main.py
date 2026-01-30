@@ -82,6 +82,19 @@ from bot.utils.sensitive_formatter import setup_sanitized_logger
 # Setup sanitized logging
 logger = setup_sanitized_logger(__name__)
 
+# ASCII symbols for Windows-compatible logging
+OK = "[OK]"
+FAIL = "[FAIL]"
+WARN = "[!]"
+START = "[>>]"
+TARGET = "[*]"
+STATS = "[#]"
+ALERT = "[!!!]"
+DONE = "[DONE]"
+SHIELD = "[+]"
+BYE = "[END]"
+ERROR = "[X]"
+
 
 class BotV2:
     """
@@ -99,25 +112,25 @@ class BotV2:
         """Initialize BotV2 trading system"""
         
         logger.info("=" * 70)
-        logger.info("🚀 Initializing BotV2 Trading System...")
+        logger.info(f"{START} Initializing BotV2 Trading System...")
         logger.info(f"Environment: {CURRENT_ENVIRONMENT}")
         logger.info("=" * 70)
         
         # Get secrets manager for verification (no duplicate validation)
         secrets_manager = get_secrets_manager()
         validation_summary = secrets_manager.get_validation_summary()
-        logger.info(f"✓ Secrets validated: {validation_summary.get('total_validated', 0)} variables")
+        logger.info(f"{OK} Secrets validated: {validation_summary.get('total_validated', 0)} variables")
         
         # Load configuration
         self.config = ConfigManager(config_path)
-        logger.info(f"✓ Config loaded: {self.config.system['name']} v{self.config.system['version']}")
+        logger.info(f"{OK} Config loaded: {self.config.system['name']} v{self.config.system['version']}")
         
         # Log trading mode
         trading_mode = os.getenv('TRADING_MODE', 'paper')
         if trading_mode == 'live':
-            logger.warning("⚠️ LIVE TRADING MODE - Real funds at risk!")
+            logger.warning(f"{WARN} LIVE TRADING MODE - Real funds at risk!")
         else:
-            logger.info(f"✓ Trading mode: {trading_mode.upper()}")
+            logger.info(f"{OK} Trading mode: {trading_mode.upper()}")
         
         # Initialize components
         self._init_components()
@@ -140,8 +153,8 @@ class BotV2:
         # Setup signal handlers for graceful shutdown
         self._setup_signal_handlers()
         
-        logger.info("✅ BotV2 initialization complete")
-        logger.info(f"Initial capital: €{self.config.trading.initial_capital:,.2f}")
+        logger.info(f"{DONE} BotV2 initialization complete")
+        logger.info(f"Initial capital: ${self.config.trading.initial_capital:,.2f}")
         logger.info("=" * 70)
     
     def _init_components(self):
@@ -194,7 +207,7 @@ class BotV2:
         # Load strategies
         logger.info("Loading strategies...")
         self.strategies = load_all_strategies(self.config)
-        logger.info(f"✓ Loaded {len(self.strategies)} strategies")
+        logger.info(f"{OK} Loaded {len(self.strategies)} strategies")
         
         # Market data cache
         self.market_data = {}
@@ -204,7 +217,7 @@ class BotV2:
         """Setup signal handlers for graceful shutdown"""
         def signal_handler(signum, frame):
             signal_name = signal.Signals(signum).name
-            logger.info(f"\n⚠️ Received {signal_name}, initiating graceful shutdown...")
+            logger.info(f"\n{WARN} Received {signal_name}, initiating graceful shutdown...")
             self.shutdown_requested = True
         
         signal.signal(signal.SIGINT, signal_handler)
@@ -268,7 +281,7 @@ class BotV2:
         self.is_running = True
         self.start_time = datetime.now()
         
-        logger.info("🎯 Starting main trading loop...")
+        logger.info(f"{TARGET} Starting main trading loop...")
         logger.info("=" * 70)
         
         while self.is_running and not self.shutdown_requested:
@@ -310,7 +323,7 @@ class BotV2:
                 
                 if cascade_risk['probability'] > self.config.get('liquidation_detection.cascade_threshold', 0.6):
                     logger.warning(
-                        f"🚨 HIGH CASCADE RISK: {cascade_risk['probability']:.2%} "
+                        f"{ALERT} HIGH CASCADE RISK: {cascade_risk['probability']:.2%} "
                         f"(threshold: {self.config.get('liquidation_detection.cascade_threshold', 0.6):.2%})"
                     )
                     
@@ -359,7 +372,7 @@ class BotV2:
                     await asyncio.sleep(self.config.trading.trading_interval)
                     continue
                 
-                logger.info(f"✓ Generated {len(all_signals)} signals")
+                logger.info(f"{OK} Generated {len(all_signals)} signals")
                 
                 # ===== PHASE 7: ADAPTIVE ALLOCATION =====
                 logger.debug(f"[{self.iteration}] Phase 7: Computing adaptive weights")
@@ -400,7 +413,7 @@ class BotV2:
                     continue
                 
                 logger.info(
-                    f"🎯 Ensemble Signal: {final_signal.action} "
+                    f"{TARGET} Ensemble Signal: {final_signal.action} "
                     f"@ {final_signal.confidence:.2%} confidence"
                 )
                 
@@ -425,8 +438,8 @@ class BotV2:
                 final_size = self.risk_manager.apply_limits(final_size)
                 
                 logger.info(
-                    f"Position sizing: Kelly={base_size:.4f} → "
-                    f"Corr-adj={adjusted_size:.4f} → "
+                    f"Position sizing: Kelly={base_size:.4f} -> "
+                    f"Corr-adj={adjusted_size:.4f} -> "
                     f"CB-adj={final_size:.4f}"
                 )
                 
@@ -449,11 +462,11 @@ class BotV2:
                         self.trade_history.append(trade_result)
                         
                         logger.info(
-                            f"✅ Trade executed: {final_signal.action} {final_size:.4f} "
+                            f"{DONE} Trade executed: {final_signal.action} {final_size:.4f} "
                             f"{final_signal.symbol} @ {trade_result.get('price', 0):.2f}"
                         )
                     else:
-                        logger.warning(f"⚠️ Trade execution failed: {trade_result.get('error')}")
+                        logger.warning(f"{WARN} Trade execution failed: {trade_result.get('error')}")
                 else:
                     logger.info("Position size too small, skipping trade")
                 
@@ -536,7 +549,7 @@ class BotV2:
                     # Increase cash
                     self.portfolio['cash'] += current_size * price
                     
-                    logger.info(f"Position closed. Realized P&L: €{realized_pnl:.2f}")
+                    logger.info(f"Position closed. Realized P&L: ${realized_pnl:.2f}")
                 else:
                     # Reduce position
                     self.portfolio['positions'][symbol]['size'] -= size
@@ -578,11 +591,11 @@ class BotV2:
     def _log_performance_summary(self):
         """Log performance summary"""
         logger.info("\n" + "=" * 70)
-        logger.info("📊 PERFORMANCE SUMMARY")
+        logger.info(f"{STATS} PERFORMANCE SUMMARY")
         logger.info("=" * 70)
         logger.info(f"Iteration: {self.iteration}")
-        logger.info(f"Equity: €{self.portfolio['equity']:.2f}")
-        logger.info(f"Cash: €{self.portfolio['cash']:.2f}")
+        logger.info(f"Equity: ${self.portfolio['equity']:.2f}")
+        logger.info(f"Cash: ${self.portfolio['cash']:.2f}")
         logger.info(f"Open Positions: {len(self.portfolio['positions'])}")
         logger.info(f"Total Trades: {self.performance_metrics.get('total_trades', 0)}")
         logger.info(f"Win Rate: {self.performance_metrics.get('win_rate', 0):.2%}")
@@ -592,12 +605,12 @@ class BotV2:
     
     async def _cleanup(self):
         """Cleanup resources before shutdown"""
-        logger.info("\n🛡️ Performing cleanup...")
+        logger.info(f"\n{SHIELD} Performing cleanup...")
         
         try:
             # Close exchange connections
             await self.exchange_connector.close()
-            logger.info("✓ Exchange connections closed")
+            logger.info(f"{OK} Exchange connections closed")
             
             # Final state save
             await self.state_manager.save_checkpoint({
@@ -608,13 +621,13 @@ class BotV2:
                 'performance_metrics': self.performance_metrics,
                 'shutdown': True
             })
-            logger.info("✓ Final state saved")
+            logger.info(f"{OK} Final state saved")
             
             # Clear secrets cache
             get_secrets_manager().clear_cache()
-            logger.info("✓ Secrets cache cleared")
+            logger.info(f"{OK} Secrets cache cleared")
             
-            logger.info("✅ Cleanup complete")
+            logger.info(f"{DONE} Cleanup complete")
         
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
@@ -632,10 +645,10 @@ def main():
     """
     try:
         logger.info("")
-        logger.info("╔═══════════════════════════════════════════════════════════════════╗")
-        logger.info("║                      BotV2 Trading System                         ║")
-        logger.info("║                    Production Ready v4.1                          ║")
-        logger.info("╚═══════════════════════════════════════════════════════════════════╝")
+        logger.info("+=====================================================================+")
+        logger.info("|                      BotV2 Trading System                           |")
+        logger.info("|                    Production Ready v4.1                            |")
+        logger.info("+=====================================================================+")
         logger.info("")
         
         # Create bot instance
@@ -645,12 +658,12 @@ def main():
         asyncio.run(bot.main_loop())
     
     except KeyboardInterrupt:
-        logger.info("\n⚠️ Keyboard interrupt received")
+        logger.info(f"\n{WARN} Keyboard interrupt received")
     except Exception as e:
-        logger.critical(f"❌ Fatal error: {e}", exc_info=True)
+        logger.critical(f"{ERROR} Fatal error: {e}", exc_info=True)
         sys.exit(1)
     
-    logger.info("👋 BotV2 shutdown complete")
+    logger.info(f"{BYE} BotV2 shutdown complete")
     logger.info("")
 
 
