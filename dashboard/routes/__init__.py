@@ -3,6 +3,8 @@ Routes Module for Dashboard
 
 Provides all route blueprints for the dashboard web application.
 Uses safe imports with fallback to avoid startup failures.
+
+Version: 7.8 - Complete Dashboard (10/10 features)
 """
 
 import logging
@@ -76,7 +78,7 @@ except ImportError as e:
     logger.warning(f"Could not import strategy_routes: {e}")
     strategy_bp = None
 
-# Portfolio routes (NEW v7.7)
+# Portfolio routes (v7.7)
 try:
     from .portfolio_routes import portfolio_bp
     __all__.append('portfolio_bp')
@@ -84,7 +86,7 @@ except ImportError as e:
     logger.warning(f"Could not import portfolio_routes: {e}")
     portfolio_bp = None
 
-# Trade History routes (NEW v7.7)
+# Trade History routes (v7.7)
 try:
     from .trade_history_routes import trade_history_bp
     __all__.append('trade_history_bp')
@@ -92,13 +94,29 @@ except ImportError as e:
     logger.warning(f"Could not import trade_history_routes: {e}")
     trade_history_bp = None
 
-# Performance routes (NEW v7.7)
+# Performance routes (v7.7)
 try:
     from .performance_routes import performance_bp
     __all__.append('performance_bp')
 except ImportError as e:
     logger.warning(f"Could not import performance_routes: {e}")
     performance_bp = None
+
+# Risk Management routes (v7.8 - NEW)
+try:
+    from .risk_routes import risk_bp
+    __all__.append('risk_bp')
+except ImportError as e:
+    logger.warning(f"Could not import risk_routes: {e}")
+    risk_bp = None
+
+# Settings routes (v7.8 - NEW)
+try:
+    from .settings_routes import settings_bp
+    __all__.append('settings_bp')
+except ImportError as e:
+    logger.warning(f"Could not import settings_routes: {e}")
+    settings_bp = None
 
 
 def get_available_blueprints():
@@ -127,6 +145,10 @@ def get_available_blueprints():
         blueprints.append(('trade_history', trade_history_bp))
     if performance_bp is not None:
         blueprints.append(('performance', performance_bp))
+    if risk_bp is not None:
+        blueprints.append(('risk', risk_bp))
+    if settings_bp is not None:
+        blueprints.append(('settings', settings_bp))
     
     return blueprints
 
@@ -143,4 +165,5 @@ def register_all_blueprints(app):
             logger.error(f"✗ Failed to register {name}: {e}")
     
     logger.info(f"Registered {len(blueprints)} route blueprints")
+    logger.info("✅ Dashboard v7.8 - ALL FEATURES ACTIVE (10/10)")
     return len(blueprints)

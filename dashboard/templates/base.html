@@ -76,12 +76,11 @@
                     <i class="fas fa-brain"></i>
                     <span class="sidebar__text">Strategies</span>
                 </a>
-                <!-- Coming soon -->
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <a href="{{ url_for('portfolio.portfolio_ui') }}" class="nav-link {% if request.endpoint == 'portfolio.portfolio_ui' %}active{% endif %}">
                     <i class="fas fa-chart-line"></i>
                     <span class="sidebar__text">Portfolio</span>
                 </a>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <a href="{{ url_for('trade_history.trade_history_ui') }}" class="nav-link {% if request.endpoint == 'trade_history.trade_history_ui' %}active{% endif %}">
                     <i class="fas fa-history"></i>
                     <span class="sidebar__text">Trade History</span>
                 </a>
@@ -90,11 +89,12 @@
             <!-- Analysis Section -->
             <div class="nav-section">
                 <div class="nav-section__title">Analysis</div>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <a href="{{ url_for('performance.performance_ui') }}" class="nav-link {% if request.endpoint == 'performance.performance_ui' %}active{% endif %}">
                     <i class="fas fa-chart-bar"></i>
                     <span class="sidebar__text">Performance</span>
                 </a>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- NEW v7.8: Risk Management -->
+                <a href="{{ url_for('risk.risk_management_ui') }}" class="nav-link {% if request.endpoint == 'risk.risk_management_ui' %}active{% endif %}">
                     <i class="fas fa-shield-alt"></i>
                     <span class="sidebar__text">Risk Management</span>
                 </a>
@@ -107,7 +107,8 @@
                     <i class="fas fa-heartbeat"></i>
                     <span class="sidebar__text">System Health</span>
                 </a>
-                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
+                <!-- NEW v7.8: Settings -->
+                <a href="{{ url_for('settings.settings_ui') }}" class="nav-link {% if request.endpoint == 'settings.settings_ui' %}active{% endif %}">
                     <i class="fas fa-cog"></i>
                     <span class="sidebar__text">Settings</span>
                 </a>
