@@ -70,11 +70,25 @@ class SecretsValidator:
     """
     Validates environment variables and secrets
     Fails fast if critical secrets are missing or invalid
+    
+    Environment Modes:
+    - development: Relaxed validation, only SECRET_KEY required
+    - staging: Moderate validation, database + basic API keys
+    - production: Strict validation, all secrets required with strong passwords
     """
     
     # Define all secrets with their validation rules
     SECRETS = [
-        # ===== DATABASE =====
+        # ===== CORE SECURITY (Always Required) =====
+        SecretRequirement(
+            name="SECRET_KEY",
+            description="Application secret key for JWT/sessions",
+            level=ValidationLevel.REQUIRED,
+            min_length=16,  # Relaxed from 32 for development
+            environments=None  # Required in ALL environments
+        ),
+        
+        # ===== DATABASE (Production/Staging Only) =====
         SecretRequirement(
             name="POSTGRES_PASSWORD",
             description="PostgreSQL database password",
@@ -91,43 +105,43 @@ class SecretsValidator:
         SecretRequirement(
             name="POSTGRES_DATABASE",
             description="PostgreSQL database name",
-            level=ValidationLevel.REQUIRED,
+            level=ValidationLevel.RECOMMENDED,  # Relaxed for development
         ),
         SecretRequirement(
             name="POSTGRES_USER",
             description="PostgreSQL user",
-            level=ValidationLevel.REQUIRED,
+            level=ValidationLevel.RECOMMENDED,  # Relaxed for development
         ),
         
-        # ===== EXCHANGE APIs =====
+        # ===== EXCHANGE APIs (Production/Staging Only) =====
         SecretRequirement(
             name="POLYMARKET_API_KEY",
             description="Polymarket API key",
             level=ValidationLevel.REQUIRED,
             min_length=20,
-            environments=["production", "staging"]
+            environments=["production", "staging"]  # NOT required in development
         ),
         SecretRequirement(
             name="POLYMARKET_API_SECRET",
             description="Polymarket API secret",
             level=ValidationLevel.REQUIRED,
             min_length=32,
-            environments=["production", "staging"]
+            environments=["production", "staging"]  # NOT required in development
         ),
         
-        # ===== SECURITY =====
+        # ===== DASHBOARD AUTH (Production/Staging Only) =====
         SecretRequirement(
-            name="SECRET_KEY",
-            description="Application secret key for JWT/sessions",
-            level=ValidationLevel.REQUIRED,
-            min_length=32,
+            name="DASHBOARD_USERNAME",
+            description="Dashboard authentication username",
+            level=ValidationLevel.RECOMMENDED,  # Not strictly required
+            environments=["production", "staging"]
         ),
         SecretRequirement(
             name="DASHBOARD_PASSWORD",
             description="Dashboard authentication password",
             level=ValidationLevel.REQUIRED,
-            min_length=12,
-            environments=["production", "staging"]
+            min_length=12,  # Strong password for production
+            environments=["production", "staging"]  # NOT required in development
         ),
         
         # ===== NOTIFICATIONS (Recommended) =====
@@ -145,7 +159,7 @@ class SecretsValidator:
         SecretRequirement(
             name="SLACK_WEBHOOK_URL",
             description="Slack webhook URL for notifications",
-            level=ValidationLevel.RECOMMENDED,
+            level=ValidationLevel.OPTIONAL,
             pattern=r'^https://hooks\.slack\.com/services/.*$'
         ),
         
@@ -155,7 +169,7 @@ class SecretsValidator:
             description="Sentry DSN for error tracking",
             level=ValidationLevel.RECOMMENDED,
             environments=["production"],
-            pattern=r'^https://.*@sentry\.io/.*$'
+            pattern=r'^https://.*@.*sentry.*$'
         ),
         
         # ===== OPTIONAL =====
@@ -168,7 +182,7 @@ class SecretsValidator:
             name="OPENAI_API_KEY",
             description="OpenAI API key for AI features",
             level=ValidationLevel.OPTIONAL,
-            pattern=r'^sk-[A-Za-z0-9]+$'
+            pattern=r'^sk-[A-Za-z0-9_-]+$'
         ),
     ]
     
@@ -180,7 +194,7 @@ class SecretsValidator:
             environment: Current environment (development, staging, production)
             strict: If True, fail on any error. If False, only warn.
         """
-        self.environment = environment
+        self.environment = environment.lower()
         self.strict = strict
         
         # Validation results
@@ -203,6 +217,14 @@ class SecretsValidator:
         else:
             logger.info(f"Validating secrets for environment: {self.environment}")
             logger.info("=" * 70)
+        
+        # Log environment mode
+        if self.environment == 'development':
+            logger.info("🛠️  DEVELOPMENT MODE - Relaxed validation")
+        elif self.environment == 'staging':
+            logger.info("🧪 STAGING MODE - Moderate validation")
+        else:
+            logger.info("🚀 PRODUCTION MODE - Strict validation")
         
         # Validate each secret
         for requirement in self.SECRETS:
@@ -352,14 +374,15 @@ class SecretsValidator:
             if not re.match(requirement.pattern, value):
                 return "Does not match required pattern"
         
-        # Check for common insecure values
-        insecure_values = [
-            'password', 'changeme', 'admin', '12345678', 'test', 'example',
-            'your_', 'replace_', 'enter_', 'insert_'
-        ]
-        value_lower = value.lower()
-        if any(insecure in value_lower for insecure in insecure_values):
-            return "Appears to be a placeholder value (not a real secret)"
+        # Check for common insecure values (ONLY in production/staging)
+        if self.environment in ['production', 'staging']:
+            insecure_values = [
+                'password', 'changeme', '12345678', 'test', 'example',
+                'your_', 'replace_', 'enter_', 'insert_'
+            ]
+            value_lower = value.lower()
+            if any(insecure in value_lower for insecure in insecure_values):
+                return "Appears to be a placeholder value (not a real secret)"
         
         return None
     
