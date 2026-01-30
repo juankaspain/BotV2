@@ -23,6 +23,23 @@ Ultra-professional real-time trading dashboard with enterprise-grade security
 
 import logging
 import os
+import sys
+from pathlib import Path
+
+# ============================================================================
+# FIX IMPORTS: Add project root to path for both module and direct execution
+# ============================================================================
+_DASHBOARD_DIR = Path(__file__).parent
+_PROJECT_ROOT = _DASHBOARD_DIR.parent
+
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+if str(_DASHBOARD_DIR) not in sys.path:
+    sys.path.insert(0, str(_DASHBOARD_DIR))
+
+# ============================================================================
+# STANDARD IMPORTS
+# ============================================================================
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for, g
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
@@ -34,9 +51,12 @@ import numpy as np
 from typing import Dict, Optional
 import hashlib
 import secrets
-from pathlib import Path
 from collections import defaultdict
 from pydantic import ValidationError
+
+# ============================================================================
+# OPTIONAL IMPORTS WITH FALLBACKS
+# ============================================================================
 
 # 🔒 SECURITY IMPORTS (New Modular Architecture)
 try:
@@ -70,40 +90,54 @@ except ImportError:
     HAS_COMPRESS = False
     logging.getLogger(__name__).warning("⚠️ Flask-Compress not installed")
 
-# 📊 METRICS MONITORING
+# 📊 METRICS MONITORING - Try both relative and absolute imports
+HAS_METRICS = False
 try:
-    from .metrics_monitor import get_metrics_monitor, MetricsMiddleware
+    from dashboard.metrics_monitor import get_metrics_monitor, MetricsMiddleware
     HAS_METRICS = True
 except ImportError:
-    HAS_METRICS = False
-    logging.getLogger(__name__).warning("⚠️ Metrics monitoring not available")
+    try:
+        from metrics_monitor import get_metrics_monitor, MetricsMiddleware
+        HAS_METRICS = True
+    except ImportError:
+        logging.getLogger(__name__).warning("⚠️ Metrics monitoring not available")
 
-# 💾 MOCK DATA
+# 💾 MOCK DATA - Try both relative and absolute imports
+HAS_MOCK_DATA = False
 try:
-    from .mock_data import get_section_data
+    from dashboard.mock_data import get_section_data
     HAS_MOCK_DATA = True
-    logger = logging.getLogger(__name__)
-    logger.info("✅ Mock data module imported")
 except ImportError:
-    HAS_MOCK_DATA = False
-    logger = logging.getLogger(__name__)
-    logger.warning("⚠️ Mock data not found")
+    try:
+        from mock_data import get_section_data
+        HAS_MOCK_DATA = True
+    except ImportError:
+        logging.getLogger(__name__).warning("⚠️ Mock data not found")
 
 # 💾 DATABASE (OPTIONAL)
+HAS_DATABASE = False
 try:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker, scoped_session
-    from .models import Base
+    try:
+        from dashboard.models import Base
+    except ImportError:
+        from models import Base
     HAS_DATABASE = True
 except ImportError:
-    HAS_DATABASE = False
-    logger.warning("⚠️ Database not available")
+    logging.getLogger(__name__).warning("⚠️ Database not available")
 
-# 🧮 BLUEPRINTS - FIXED: Import from routes subpackage
-from .routes.control_routes import control_bp
-from .routes.monitoring_routes import monitoring_bp
-from .routes.strategy_routes import strategy_bp
-from .routes.metrics_routes import metrics_bp as metrics_routes_bp
+# 🧮 BLUEPRINTS - Try both import methods
+try:
+    from dashboard.routes.control_routes import control_bp
+    from dashboard.routes.monitoring_routes import monitoring_bp
+    from dashboard.routes.strategy_routes import strategy_bp
+    from dashboard.routes.metrics_routes import metrics_bp as metrics_routes_bp
+except ImportError:
+    from routes.control_routes import control_bp
+    from routes.monitoring_routes import monitoring_bp
+    from routes.strategy_routes import strategy_bp
+    from routes.metrics_routes import metrics_bp as metrics_routes_bp
 
 # Dashboard version
 __version__ = '7.5'
@@ -132,9 +166,11 @@ class DashboardAuth:
         self.lockout_duration = timedelta(minutes=5)
         
         if not self.password_hash:
-            temp_password = secrets.token_urlsafe(16)
-            logger.warning(f"🔑 SECURITY: Temporary password: {temp_password}")
-            self.password_hash = self._hash_password(temp_password)
+            # Demo mode: use 'admin' as default password
+            demo_password = os.getenv('DASHBOARD_PASSWORD', 'admin')
+            self.password_hash = self._hash_password(demo_password)
+            if os.getenv('DEMO_MODE', 'false').lower() == 'true':
+                logger.info(f"🔑 Demo mode: Using default credentials (admin/admin)")
     
     def _get_password_hash(self) -> str:
         password = os.getenv('DASHBOARD_PASSWORD')
@@ -196,7 +232,7 @@ class ProfessionalDashboard:
         dash_config = config.get('dashboard', {}) if hasattr(config, 'get') else {}
         
         self.host = dash_config.get('host', '0.0.0.0')
-        self.port = dash_config.get('port', 8050)
+        self.port = int(os.getenv('DASHBOARD_PORT', dash_config.get('port', 8050)))
         self.debug = dash_config.get('debug', False)
         
         self.env = os.getenv('FLASK_ENV', 'development')
@@ -213,8 +249,8 @@ class ProfessionalDashboard:
         # 🏛️ Initialize Flask app
         self.app = Flask(
             __name__,
-            template_folder=str(Path(__file__).parent / 'templates'),
-            static_folder=str(Path(__file__).parent / 'static')
+            template_folder=str(_DASHBOARD_DIR / 'templates'),
+            static_folder=str(_DASHBOARD_DIR / 'static')
         )
         
         # ⚙️ Flask configuration
@@ -819,14 +855,39 @@ TradingDashboard = ProfessionalDashboard
 def create_app(config=None):
     """Factory function to create dashboard app"""
     if config is None:
-        # Create minimal config for standalone mode
-        config = {'dashboard': {'host': '0.0.0.0', 'port': 8050, 'debug': False}}
+        # Create minimal config for standalone/demo mode
+        config = {
+            'dashboard': {
+                'host': '0.0.0.0',
+                'port': int(os.getenv('DASHBOARD_PORT', 8050)),
+                'debug': os.getenv('FLASK_ENV', 'development') == 'development'
+            }
+        }
     dashboard = ProfessionalDashboard(config)
     return dashboard.app
 
 
 if __name__ == "__main__":
-    from bot.config.config_manager import ConfigManager
-    config = ConfigManager()
+    # Setup basic logging for direct execution
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    # Try to load config, fallback to demo mode
+    config = None
+    try:
+        from bot.config.config_manager import ConfigManager
+        config = ConfigManager()
+    except ImportError:
+        logger.info("📦 Running in standalone/demo mode")
+        config = {
+            'dashboard': {
+                'host': '0.0.0.0',
+                'port': int(os.getenv('DASHBOARD_PORT', 8050)),
+                'debug': True
+            }
+        }
+    
     dashboard = ProfessionalDashboard(config)
     dashboard.run()
