@@ -21,7 +21,14 @@ const BotV2 = {
     statusInterval: 5000,
     maxLogEntries: 100,
     maxTradesDisplay: 50,
-    chartMaxPoints: 100
+    chartMaxPoints: 100,
+    chartColors: {
+      primary: '#4e73df',
+      success: '#1cc88a',
+      warning: '#f6c23e',
+      danger: '#e74a3b',
+      info: '#36b9cc'
+    }
   },
 
   // State management
@@ -32,41 +39,11 @@ const BotV2 = {
     ws: null
   },
 
-  // Initialize application
-  init() {
-    console.log('[BotV2] Initializing application...');
-    this.setupCSRFToken();
-    this.initModules();
-    this.bindGlobalEvents();
-    console.log('[BotV2] Application initialized');
-  },
-
   // Setup CSRF token for API requests
   setupCSRFToken() {
     const token = document.querySelector('meta[name="csrf-token"]');
     if (token) {
       this.config.csrfToken = token.getAttribute('content');
-    }
-  },
-
-  // Initialize modules based on current page
-  initModules() {
-    const page = document.body.dataset.page || 'dashboard';
-    
-    // Common modules
-    this.UI.init();
-    
-    // Page-specific modules
-    switch(page) {
-      case 'dashboard':
-        this.Dashboard.init();
-        break;
-      case 'control':
-        this.Control.init();
-        break;
-      case 'monitoring':
-        this.Monitoring.init();
-        break;
     }
   },
 
@@ -78,6 +55,22 @@ const BotV2 = {
         this.WebSocket.connect();
       }
     });
+
+    // Dark mode toggle
+    document.getElementById('dark-mode-toggle')?.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    });
+    
+    // Restore dark mode preference
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark-mode');
+    }
+    
+    // Handle window unload
+    window.addEventListener('beforeunload', () => {
+      this.WebSocket.disconnect();
+    });
   }
 };
 
@@ -88,7 +81,7 @@ const BotV2 = {
 BotV2.API = {
   // Generic fetch wrapper with error handling
   async request(endpoint, options = {}) {
-    const url = `${BotV2.config.apiBaseUrl}${endpoint}`;
+    const url = endpoint.startsWith('/api') ? endpoint : `${BotV2.config.apiBaseUrl}${endpoint}`;
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
@@ -197,8 +190,21 @@ BotV2.UI = {
 
   // Set loading state
   setLoading(container, isLoading) {
+    if (typeof container === 'string') {
+      container = document.getElementById(container);
+    }
+    if (!container) return;
+    
     if (isLoading) {
+      container.dataset.originalContent = container.innerHTML;
       container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+      container.disabled = true;
+    } else {
+      if (container.dataset.originalContent) {
+        container.innerHTML = container.dataset.originalContent;
+        delete container.dataset.originalContent;
+      }
+      container.disabled = false;
     }
   }
 };
@@ -222,7 +228,7 @@ BotV2.Charts = {
 
   // Create line chart
   createLineChart(canvasId, label, color = '#4e73df') {
-    const ctx = document.getElementById(canvasId);
+    const ctx = typeof canvasId === 'string' ? document.getElementById(canvasId) : canvasId;
     if (!ctx) return null;
 
     return new Chart(ctx, {
@@ -237,6 +243,28 @@ BotV2.Charts = {
           fill: true,
           tension: 0.4,
           pointRadius: 0
+        }]
+      },
+      options: this.defaultOptions
+    });
+  },
+
+  // Alias for createLineChart
+  createLine(ctx, options = {}) {
+    if (!ctx) return null;
+    
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: options.label || 'Data',
+          data: [],
+          borderColor: options.borderColor || BotV2.config.chartColors.primary,
+          backgroundColor: options.backgroundColor || `${BotV2.config.chartColors.primary}20`,
+          fill: options.fill !== undefined ? options.fill : true,
+          tension: options.tension || 0.4,
+          pointRadius: options.pointRadius || 0
         }]
       },
       options: this.defaultOptions
@@ -404,536 +432,518 @@ BotV2.Dashboard = {
       });
     });
   }
+};
 
-  // ============================================
-  // CONTROL MODULE - Bot control operations
-  // ============================================
-  Control: {
-    // Toggle bot running state
-    async toggleBot() {
-      const btn = document.getElementById('toggle-bot');
-      if (!btn) return;
-      
-      const isRunning = btn.classList.contains('btn-danger');
-      const action = isRunning ? 'stop' : 'start';
-      
-      try {
-        BotV2.UI.setLoading(btn, true);
-        const response = await BotV2.API.request(`/api/bot/${action}`, 'POST');
-        
-        if (response.status === 'success') {
-          this.updateBotStatus(!isRunning);
-          BotV2.UI.notify(`Bot ${action}ed successfully`, 'success');
-        }
-      } catch (error) {
-        BotV2.UI.notify(`Failed to ${action} bot`, 'error');
-      } finally {
-        BotV2.UI.setLoading(btn, false);
-      }
-    },
+/* ==========================================================================
+   6. CONTROL MODULE - Bot Control Operations
+   ========================================================================== */
 
-    // Update bot status display
-    updateBotStatus(isRunning) {
-      const btn = document.getElementById('toggle-bot');
-      const statusBadge = document.getElementById('bot-status');
-      
-      if (btn) {
-        btn.innerHTML = isRunning ? 
-          '<i class="fas fa-stop me-2"></i>Stop Bot' : 
-          '<i class="fas fa-play me-2"></i>Start Bot';
-        btn.classList.toggle('btn-danger', isRunning);
-        btn.classList.toggle('btn-success', !isRunning);
-      }
-      
-      if (statusBadge) {
-        statusBadge.textContent = isRunning ? 'Running' : 'Stopped';
-        statusBadge.classList.toggle('bg-success', isRunning);
-        statusBadge.classList.toggle('bg-secondary', !isRunning);
-      }
-    },
-
-    // Update trading parameters
-    async updateSettings(formData) {
-      try {
-        const response = await BotV2.API.request('/api/settings', 'POST', formData);
-        if (response.status === 'success') {
-          BotV2.UI.notify('Settings updated successfully', 'success');
-          return true;
-        }
-      } catch (error) {
-        BotV2.UI.notify('Failed to update settings', 'error');
-      }
-      return false;
-    },
-
-    // Emergency stop
-    async emergencyStop() {
-      if (!confirm('Are you sure you want to emergency stop and close all positions?')) return;
-      
-      try {
-        await BotV2.API.request('/api/bot/emergency-stop', 'POST');
-        this.updateBotStatus(false);
-        BotV2.UI.notify('Emergency stop executed', 'warning');
-        BotV2.Dashboard.loadData();
-      } catch (error) {
-        BotV2.UI.notify('Emergency stop failed', 'error');
-      }
-    },
-
-    // Bind control events
-    bindEvents() {
-      // Toggle bot button
-      document.getElementById('toggle-bot')?.addEventListener('click', () => this.toggleBot());
-      
-      // Emergency stop button
-      document.getElementById('emergency-stop')?.addEventListener('click', () => this.emergencyStop());
-      
-      // Settings form
-      document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = Object.fromEntries(new FormData(e.target));
-        await this.updateSettings(formData);
-      });
-    }
-  },
-
-  // ============================================
-  // MONITORING MODULE - System monitoring
-  // ============================================
-  Monitoring: {
-    charts: {},
-    
-    // Initialize monitoring charts
-    init() {
-      this.initPnLChart();
-      this.initEquityChart();
-      this.loadData();
-      this.startAutoRefresh();
-      this.bindEvents();
-    },
-
-    // Initialize P&L chart
-    initPnLChart() {
-      const ctx = document.getElementById('pnl-chart');
-      if (!ctx) return;
-      
-      this.charts.pnl = BotV2.Charts.createLine(ctx, {
-        label: 'Daily P&L',
-        borderColor: BotV2.config.chartColors.primary,
-        fill: true,
-        backgroundColor: BotV2.config.chartColors.primary + '20'
-      });
-    },
-
-    // Initialize equity chart
-    initEquityChart() {
-      const ctx = document.getElementById('equity-chart');
-      if (!ctx) return;
-      
-      this.charts.equity = BotV2.Charts.createLine(ctx, {
-        label: 'Equity',
-        borderColor: BotV2.config.chartColors.success,
-        fill: true,
-        backgroundColor: BotV2.config.chartColors.success + '20'
-      });
-    },
-
-    // Load monitoring data
-    async loadData() {
-      try {
-        const [performance, metrics] = await Promise.all([
-          BotV2.API.get('/api/performance'),
-          BotV2.API.get('/api/metrics')
-        ]);
-        
-        this.updateCharts(performance);
-        this.updateMetrics(metrics);
-      } catch (error) {
-        console.error('Failed to load monitoring data:', error);
-      }
-    },
-
-    // Update charts with new data
-    updateCharts(data) {
-      if (data.pnl && this.charts.pnl) {
-        BotV2.Charts.updateChart(
-          this.charts.pnl,
-          data.pnl.labels,
-          data.pnl.values
-        );
-      }
-      
-      if (data.equity && this.charts.equity) {
-        BotV2.Charts.updateChart(
-          this.charts.equity,
-          data.equity.labels,
-          data.equity.values
-        );
-      }
-    },
-
-    // Update system metrics display
-    updateMetrics(metrics) {
-      if (!metrics) return;
-      
-      BotV2.UI.updateText('cpu-usage', `${metrics.cpu || 0}%`);
-      BotV2.UI.updateText('memory-usage', `${metrics.memory || 0}%`);
-      BotV2.UI.updateText('api-latency', `${metrics.latency || 0}ms`);
-      BotV2.UI.updateText('uptime', metrics.uptime || '0h');
-    },
-
-    // Auto refresh
-    startAutoRefresh() {
-      this.refreshTimer = setInterval(() => this.loadData(), BotV2.config.refreshInterval);
-    },
-
-    // Bind events
-    bindEvents() {
-      // Refresh button
-      document.getElementById('refresh-monitoring')?.addEventListener('click', () => {
-        this.loadData();
-        BotV2.UI.notify('Monitoring data refreshed', 'info');
-      });
-    }
-  },
-
-  // ============================================
-  // WEBSOCKET MODULE - Real-time updates
-  // ============================================
-  WebSocket: {
-    socket: null,
-    reconnectAttempts: 0,
-    maxReconnectAttempts: 5,
-    
-    // Initialize WebSocket connection
-    init() {
-      this.connect();
-    },
-
-    // Connect to WebSocket server
-    connect() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
-      
-      try {
-        this.socket = new window.WebSocket(wsUrl);
-        this.bindSocketEvents();
-      } catch (error) {
-        console.error('WebSocket connection failed:', error);
-        this.scheduleReconnect();
-      }
-    },
-
-    // Bind WebSocket events
-    bindSocketEvents() {
-      if (!this.socket) return;
-      
-      this.socket.onopen = () => {
-        console.log('WebSocket connected');
-        this.reconnectAttempts = 0;
-        BotV2.UI.updateText('connection-status', 'Connected');
-      };
-      
-      this.socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.handleMessage(data);
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
-        }
-      };
-      
-      this.socket.onclose = () => {
-        console.log('WebSocket disconnected');
-        BotV2.UI.updateText('connection-status', 'Disconnected');
-        this.scheduleReconnect();
-      };
-      
-      this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-    },
-
-    // Handle incoming messages
-    handleMessage(data) {
-      switch (data.type) {
-        case 'price_update':
-          this.handlePriceUpdate(data.payload);
-          break;
-        case 'trade_executed':
-          this.handleTradeExecuted(data.payload);
-          break;
-        case 'position_update':
-          this.handlePositionUpdate(data.payload);
-          break;
-        case 'alert':
-          BotV2.UI.notify(data.payload.message, data.payload.level);
-          break;
-        default:
-          console.log('Unknown message type:', data.type);
-      }
-    },
-
-    // Handle price updates
-    handlePriceUpdate(payload) {
-      BotV2.UI.updateText('current-price', BotV2.UI.formatCurrency(payload.price));
-      
-      if (BotV2.Dashboard.charts.price) {
-        BotV2.Charts.addPoint(
-          BotV2.Dashboard.charts.price,
-          payload.time,
-          payload.price
-        );
-      }
-    },
-
-    // Handle trade executed
-    handleTradeExecuted(payload) {
-      BotV2.UI.notify(`Trade executed: ${payload.symbol} ${payload.side}`, 'success');
-      BotV2.Dashboard.loadData();
-    },
-
-    // Handle position update
-    handlePositionUpdate(payload) {
-      BotV2.UI.updateText('total-pnl', BotV2.UI.formatCurrency(payload.totalPnl));
-      BotV2.UI.updateText('open-positions', payload.count);
-    },
-
-    // Schedule reconnection
-    scheduleReconnect() {
-      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error('Max reconnection attempts reached');
-        BotV2.UI.notify('Connection lost. Please refresh the page.', 'error');
-        return;
-      }
-      
-      this.reconnectAttempts++;
-      const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-      
-      setTimeout(() => this.connect(), delay);
-    },
-
-    // Send message through WebSocket
-    send(type, payload) {
-      if (this.socket?.readyState === window.WebSocket.OPEN) {
-        this.socket.send(JSON.stringify({ type, payload }));
-      }
-    },
-
-    // Disconnect WebSocket
-    disconnect() {
-      if (this.socket) {
-        this.socket.close();
-        this.socket = null;
-      }
-    }
-  },
-
-  // ============================================
-  // INITIALIZATION - Application bootstrap
-  // ============================================
-  
-  // Initialize application based on current page
+BotV2.Control = {
   init() {
-    console.log('BotV2 Dashboard initializing...');
-    
-    // Detect current page and initialize appropriate modules
-    const path = window.location.pathname;
-    
-    // Always initialize UI utilities
-    this.UI.init?.();
-    
-    // Initialize page-specific modules
-    if (path.includes('/dashboard') || path === '/') {
-      this.Dashboard.init();
-      this.WebSocket.init();
-    } else if (path.includes('/control')) {
-      this.Control.bindEvents();
-      this.WebSocket.init();
-    } else if (path.includes('/monitoring')) {
-      this.Monitoring.init();
-      this.WebSocket.init();
-    }
-    
-    // Global event listeners
-    this.bindGlobalEvents();
-    
-    console.log('BotV2 Dashboard initialized successfully');
+    this.bindEvents();
   },
 
-  // Bind global event listeners
-  bindGlobalEvents() {
-    // Dark mode toggle
-    document.getElementById('dark-mode-toggle')?.addEventListener('click', () => {
-      document.body.classList.toggle('dark-mode');
-      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-    });
+  // Toggle bot running state
+  async toggleBot() {
+    const btn = document.getElementById('toggle-bot');
+    if (!btn) return;
     
-    // Restore dark mode preference
-    if (localStorage.getItem('darkMode') === 'true') {
-      document.body.classList.add('dark-mode');
+    const isRunning = btn.classList.contains('btn-danger');
+    const action = isRunning ? 'stop' : 'start';
+    
+    try {
+      BotV2.UI.setLoading(btn, true);
+      const response = await BotV2.API.controlBot(action);
+      
+      if (response.status === 'success') {
+        this.updateBotStatus(!isRunning);
+        BotV2.UI.notify(`Bot ${action}ed successfully`, 'success');
+      }
+    } catch (error) {
+      BotV2.UI.notify(`Failed to ${action} bot`, 'error');
+    } finally {
+      BotV2.UI.setLoading(btn, false);
+    }
+  },
+
+  // Update bot status display
+  updateBotStatus(isRunning) {
+    const btn = document.getElementById('toggle-bot');
+    const statusBadge = document.getElementById('bot-status');
+    
+    if (btn) {
+      btn.innerHTML = isRunning ? 
+        '<i class="fas fa-stop me-2"></i>Stop Bot' : 
+        '<i class="fas fa-play me-2"></i>Start Bot';
+      btn.classList.toggle('btn-danger', isRunning);
+      btn.classList.toggle('btn-success', !isRunning);
     }
     
-    // Handle page visibility changes (pause updates when tab is hidden)
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        console.log('Page hidden, pausing updates');
-      } else {
-        console.log('Page visible, resuming updates');
-        // Refresh data when page becomes visible
-        this.Dashboard.loadData?.();
+    if (statusBadge) {
+      statusBadge.textContent = isRunning ? 'Running' : 'Stopped';
+      statusBadge.classList.toggle('bg-success', isRunning);
+      statusBadge.classList.toggle('bg-secondary', !isRunning);
+    }
+  },
+
+  // Update trading parameters
+  async updateSettings(formData) {
+    try {
+      const response = await BotV2.API.post('/settings', formData);
+      if (response.status === 'success') {
+        BotV2.UI.notify('Settings updated successfully', 'success');
+        return true;
       }
-    });
+    } catch (error) {
+      BotV2.UI.notify('Failed to update settings', 'error');
+    }
+    return false;
+  },
+
+  // Emergency stop
+  async emergencyStop() {
+    if (!confirm('Are you sure you want to emergency stop and close all positions?')) return;
     
-    // Handle window unload
-    window.addEventListener('beforeunload', () => {
-      this.WebSocket.disconnect();
+    try {
+      await BotV2.API.emergencyStop();
+      this.updateBotStatus(false);
+      BotV2.UI.notify('Emergency stop executed', 'warning');
+      BotV2.Dashboard.loadData();
+    } catch (error) {
+      BotV2.UI.notify('Emergency stop failed', 'error');
+    }
+  },
+
+  // Bind control events
+  bindEvents() {
+    // Toggle bot button
+    document.getElementById('toggle-bot')?.addEventListener('click', () => this.toggleBot());
+    
+    // Emergency stop button
+    document.getElementById('emergency-stop')?.addEventListener('click', () => this.emergencyStop());
+    
+    // Settings form
+    document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = Object.fromEntries(new FormData(e.target));
+      await this.updateSettings(formData);
     });
   }
 };
 
-  // ============================================
-  // SPA MODULE - Single Page Application Navigation
-  // ============================================
-  SPA: {
-    currentSection: 'dashboard',
-    contentArea: null,
-    navLinks: null,
+/* ==========================================================================
+   7. MONITORING MODULE - System Monitoring
+   ========================================================================== */
+
+BotV2.Monitoring = {
+  charts: {},
+  refreshTimer: null,
+  
+  // Initialize monitoring
+  init() {
+    this.initPnLChart();
+    this.initEquityChart();
+    this.loadData();
+    this.startAutoRefresh();
+    this.bindEvents();
+  },
+
+  // Initialize P&L chart
+  initPnLChart() {
+    const ctx = document.getElementById('pnl-chart');
+    if (!ctx) return;
     
-    // Initialize SPA navigation
-    init() {
-      this.contentArea = document.getElementById('content-area');
-      this.navLinks = document.querySelectorAll('[data-section]');
+    this.charts.pnl = BotV2.Charts.createLine(ctx, {
+      label: 'Daily P&L',
+      borderColor: BotV2.config.chartColors.primary,
+      fill: true,
+      backgroundColor: BotV2.config.chartColors.primary + '20'
+    });
+  },
+
+  // Initialize equity chart
+  initEquityChart() {
+    const ctx = document.getElementById('equity-chart');
+    if (!ctx) return;
+    
+    this.charts.equity = BotV2.Charts.createLine(ctx, {
+      label: 'Equity',
+      borderColor: BotV2.config.chartColors.success,
+      fill: true,
+      backgroundColor: BotV2.config.chartColors.success + '20'
+    });
+  },
+
+  // Load monitoring data
+  async loadData() {
+    try {
+      const [performance, metrics] = await Promise.all([
+        BotV2.API.get('/performance'),
+        BotV2.API.get('/metrics')
+      ]);
       
-      if (!this.contentArea) return;
-      
-      this.bindNavigation();
-      this.loadSection('dashboard');
-      this.handleBrowserNavigation();
-    },
-    
-    // Bind navigation click events
-    bindNavigation() {
-      this.navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          const section = link.dataset.section;
-          this.navigateTo(section);
-        });
-      });
-    },
-    
-    // Navigate to a section
-    navigateTo(section) {
-      if (section === this.currentSection) return;
-      
-      // Update URL without reload
-      history.pushState({ section }, '', `#${section}`);
-      
-      // Load the section
-      this.loadSection(section);
-    },
-    
-    // Load section content
-    async loadSection(section) {
-      this.showLoader();
-      this.updateActiveNav(section);
-      this.updatePageTitle(section);
-      
-      try {
-        const response = await fetch(`/api/partial/${section}`);
-        if (!response.ok) throw new Error('Failed to load section');
-        
-        const html = await response.text();
-        this.contentArea.innerHTML = html;
-        this.currentSection = section;
-        
-        // Initialize section-specific functionality
-        this.initSectionModules(section);
-        
-      } catch (error) {
-        console.error('Error loading section:', error);
-        this.contentArea.innerHTML = `
-          <div class="alert alert-danger">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            Failed to load section. Please try again.
-          </div>
-        `;
-      }
-    },
-    
-    // Show loading state
-    showLoader() {
-      this.contentArea.innerHTML = `
-        <div class="loading-container">
-          <div class="spinner"></div>
-          <p>Loading...</p>
-        </div>
-      `;
-    },
-    
-    // Update active navigation link
-    updateActiveNav(section) {
-      this.navLinks.forEach(link => {
-        link.classList.toggle('active', link.dataset.section === section);
-      });
-    },
-    
-    // Update page title
-    updatePageTitle(section) {
-      const titles = {
-        dashboard: 'Dashboard',
-        control: 'Bot Control',
-        monitoring: 'Monitoring',
-        strategies: 'Strategies',
-        positions: 'Positions',
-        history: 'Trade History',
-        settings: 'Settings'
-      };
-      
-      const titleEl = document.getElementById('page-title');
-      if (titleEl) {
-        titleEl.textContent = titles[section] || 'Dashboard';
-      }
-      document.title = `${titles[section] || 'Dashboard'} - BotV2`;
-    },
-    
-    // Initialize section-specific modules
-    initSectionModules(section) {
-      switch(section) {
-        case 'dashboard':
-          BotV2.Dashboard.init?.();
-          break;
-        case 'control':
-          BotV2.Control.init?.();
-          break;
-        case 'monitoring':
-          BotV2.Monitoring.init?.();
-          break;
-        case 'strategies':
-          BotV2.Strategies?.init?.();
-          break;
-      }
-    },
-    
-    // Handle browser back/forward navigation
-    handleBrowserNavigation() {
-      window.addEventListener('popstate', (e) => {
-        const section = e.state?.section || 'dashboard';
-        this.loadSection(section);
-      });
-      
-      // Load section from URL hash on initial load
-      const hash = window.location.hash.slice(1);
-      if (hash) {
-        this.loadSection(hash);
-      }
+      this.updateCharts(performance);
+      this.updateMetrics(metrics);
+    } catch (error) {
+      console.error('Failed to load monitoring data:', error);
     }
   },
 
-// ============================================
-// AUTO-INITIALIZATION ON DOM READY
-// ============================================
+  // Update charts with new data
+  updateCharts(data) {
+    if (data?.pnl && this.charts.pnl) {
+      BotV2.Charts.updateChart(
+        this.charts.pnl,
+        data.pnl.labels,
+        data.pnl.values
+      );
+    }
+    
+    if (data?.equity && this.charts.equity) {
+      BotV2.Charts.updateChart(
+        this.charts.equity,
+        data.equity.labels,
+        data.equity.values
+      );
+    }
+  },
+
+  // Update system metrics display
+  updateMetrics(metrics) {
+    if (!metrics) return;
+    
+    BotV2.UI.updateText('cpu-usage', `${metrics.cpu || 0}%`);
+    BotV2.UI.updateText('memory-usage', `${metrics.memory || 0}%`);
+    BotV2.UI.updateText('api-latency', `${metrics.latency || 0}ms`);
+    BotV2.UI.updateText('uptime', metrics.uptime || '0h');
+  },
+
+  // Auto refresh
+  startAutoRefresh() {
+    this.refreshTimer = setInterval(() => this.loadData(), BotV2.config.refreshInterval);
+  },
+
+  // Bind events
+  bindEvents() {
+    // Refresh button
+    document.getElementById('refresh-monitoring')?.addEventListener('click', () => {
+      this.loadData();
+      BotV2.UI.notify('Monitoring data refreshed', 'info');
+    });
+  }
+};
+
+/* ==========================================================================
+   8. WEBSOCKET MODULE - Real-time Updates
+   ========================================================================== */
+
+BotV2.WebSocket = {
+  socket: null,
+  reconnectAttempts: 0,
+  maxReconnectAttempts: 5,
+  
+  // Initialize WebSocket connection
+  init() {
+    this.connect();
+  },
+
+  // Connect to WebSocket server
+  connect() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    try {
+      this.socket = new window.WebSocket(wsUrl);
+      this.bindSocketEvents();
+    } catch (error) {
+      console.error('WebSocket connection failed:', error);
+      this.scheduleReconnect();
+    }
+  },
+
+  // Bind WebSocket events
+  bindSocketEvents() {
+    if (!this.socket) return;
+    
+    this.socket.onopen = () => {
+      console.log('WebSocket connected');
+      this.reconnectAttempts = 0;
+      BotV2.UI.updateText('connection-status', 'Connected');
+    };
+    
+    this.socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        this.handleMessage(data);
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    };
+    
+    this.socket.onclose = () => {
+      console.log('WebSocket disconnected');
+      BotV2.UI.updateText('connection-status', 'Disconnected');
+      this.scheduleReconnect();
+    };
+    
+    this.socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+  },
+
+  // Handle incoming messages
+  handleMessage(data) {
+    switch (data.type) {
+      case 'price_update':
+        this.handlePriceUpdate(data.payload);
+        break;
+      case 'trade_executed':
+        this.handleTradeExecuted(data.payload);
+        break;
+      case 'position_update':
+        this.handlePositionUpdate(data.payload);
+        break;
+      case 'alert':
+        BotV2.UI.notify(data.payload.message, data.payload.level);
+        break;
+      default:
+        console.log('Unknown message type:', data.type);
+    }
+  },
+
+  // Handle price updates
+  handlePriceUpdate(payload) {
+    BotV2.UI.updateText('current-price', BotV2.UI.formatCurrency(payload.price));
+    
+    if (BotV2.Dashboard.charts.price) {
+      BotV2.Charts.addPoint(
+        BotV2.Dashboard.charts.price,
+        payload.time,
+        payload.price
+      );
+    }
+  },
+
+  // Handle trade executed
+  handleTradeExecuted(payload) {
+    BotV2.UI.notify(`Trade executed: ${payload.symbol} ${payload.side}`, 'success');
+    BotV2.Dashboard.loadData();
+  },
+
+  // Handle position update
+  handlePositionUpdate(payload) {
+    BotV2.UI.updateText('total-pnl', BotV2.UI.formatCurrency(payload.totalPnl));
+    BotV2.UI.updateText('open-positions', payload.count);
+  },
+
+  // Schedule reconnection
+  scheduleReconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('Max reconnection attempts reached');
+      BotV2.UI.notify('Connection lost. Please refresh the page.', 'error');
+      return;
+    }
+    
+    this.reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+    
+    setTimeout(() => this.connect(), delay);
+  },
+
+  // Send message through WebSocket
+  send(type, payload) {
+    if (this.socket?.readyState === window.WebSocket.OPEN) {
+      this.socket.send(JSON.stringify({ type, payload }));
+    }
+  },
+
+  // Disconnect WebSocket
+  disconnect() {
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+  }
+};
+
+/* ==========================================================================
+   9. SPA MODULE - Single Page Application Navigation
+   ========================================================================== */
+
+BotV2.SPA = {
+  currentSection: 'dashboard',
+  contentArea: null,
+  navLinks: null,
+  
+  // Initialize SPA navigation
+  init() {
+    this.contentArea = document.getElementById('content-area');
+    this.navLinks = document.querySelectorAll('[data-section]');
+    
+    if (!this.contentArea) return;
+    
+    this.bindNavigation();
+    this.loadSection('dashboard');
+    this.handleBrowserNavigation();
+  },
+  
+  // Bind navigation click events
+  bindNavigation() {
+    this.navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = link.dataset.section;
+        this.navigateTo(section);
+      });
+    });
+  },
+  
+  // Navigate to a section
+  navigateTo(section) {
+    if (section === this.currentSection) return;
+    
+    // Update URL without reload
+    history.pushState({ section }, '', `#${section}`);
+    
+    // Load the section
+    this.loadSection(section);
+  },
+  
+  // Load section content
+  async loadSection(section) {
+    this.showLoader();
+    this.updateActiveNav(section);
+    this.updatePageTitle(section);
+    
+    try {
+      const response = await fetch(`/api/partial/${section}`);
+      if (!response.ok) throw new Error('Failed to load section');
+      
+      const html = await response.text();
+      this.contentArea.innerHTML = html;
+      this.currentSection = section;
+      
+      // Initialize section-specific functionality
+      this.initSectionModules(section);
+      
+    } catch (error) {
+      console.error('Error loading section:', error);
+      this.contentArea.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Failed to load section. Please try again.
+        </div>
+      `;
+    }
+  },
+  
+  // Show loading state
+  showLoader() {
+    if (!this.contentArea) return;
+    this.contentArea.innerHTML = `
+      <div class="loading-container">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    `;
+  },
+  
+  // Update active navigation link
+  updateActiveNav(section) {
+    this.navLinks?.forEach(link => {
+      link.classList.toggle('active', link.dataset.section === section);
+    });
+  },
+  
+  // Update page title
+  updatePageTitle(section) {
+    const titles = {
+      dashboard: 'Dashboard',
+      control: 'Bot Control',
+      monitoring: 'Monitoring',
+      strategies: 'Strategies',
+      positions: 'Positions',
+      history: 'Trade History',
+      settings: 'Settings'
+    };
+    
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) {
+      titleEl.textContent = titles[section] || 'Dashboard';
+    }
+    document.title = `${titles[section] || 'Dashboard'} - BotV2`;
+  },
+  
+  // Initialize section-specific modules
+  initSectionModules(section) {
+    switch(section) {
+      case 'dashboard':
+        BotV2.Dashboard.init?.();
+        break;
+      case 'control':
+        BotV2.Control.init?.();
+        break;
+      case 'monitoring':
+        BotV2.Monitoring.init?.();
+        break;
+      case 'strategies':
+        BotV2.Strategies?.init?.();
+        break;
+    }
+  },
+  
+  // Handle browser back/forward navigation
+  handleBrowserNavigation() {
+    window.addEventListener('popstate', (e) => {
+      const section = e.state?.section || 'dashboard';
+      this.loadSection(section);
+    });
+    
+    // Load section from URL hash on initial load
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      this.loadSection(hash);
+    }
+  }
+};
+
+/* ==========================================================================
+   10. MAIN INITIALIZATION
+   ========================================================================== */
+
+BotV2.init = function() {
+  console.log('[BotV2] Initializing application...');
+  
+  // Setup CSRF token
+  this.setupCSRFToken();
+  
+  // Always initialize UI utilities
+  this.UI.init();
+  
+  // Detect current page and initialize appropriate modules
+  const path = window.location.pathname;
+  
+  if (path.includes('/dashboard') || path === '/') {
+    this.Dashboard.init();
+    this.WebSocket.init();
+  } else if (path.includes('/control')) {
+    this.Control.init();
+    this.WebSocket.init();
+  } else if (path.includes('/monitoring')) {
+    this.Monitoring.init();
+    this.WebSocket.init();
+  }
+  
+  // Bind global events
+  this.bindGlobalEvents();
+  
+  console.log('[BotV2] Application initialized successfully');
+};
+
+/* ==========================================================================
+   11. AUTO-INITIALIZATION ON DOM READY
+   ========================================================================== */
+
 document.addEventListener('DOMContentLoaded', () => {
   BotV2.init();
 });
@@ -943,48 +953,52 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = BotV2;
 }
 
-// ============================================
-// GLOBAL FUNCTION WRAPPERS
-// Expose functions for onclick handlers in templates
-// ============================================
+/* ==========================================================================
+   12. GLOBAL FUNCTION WRAPPERS
+   Expose functions for onclick handlers in templates
+   ========================================================================== */
 
 // Control functions - exposed globally for onclick handlers
 window.controlBot = (action) => BotV2.API.controlBot(action);
+
 window.closeAllPositions = async () => {
-    if (!confirm('Close all positions?')) return;
-    try {
-        await BotV2.API.closeAllPositions();
-        BotV2.UI.notify('All positions closed', 'success');
-        BotV2.Dashboard?.loadData?.();
-    } catch (error) {
-        BotV2.UI.notify('Failed to close positions', 'error');
-    }
+  if (!confirm('Close all positions?')) return;
+  try {
+    await BotV2.API.closeAllPositions();
+    BotV2.UI.notify('All positions closed', 'success');
+    BotV2.Dashboard?.loadData?.();
+  } catch (error) {
+    BotV2.UI.notify('Failed to close positions', 'error');
+  }
 };
+
 window.cancelAllOrders = async () => {
-    if (!confirm('Cancel all orders?')) return;
-    try {
-        await BotV2.API.cancelAllOrders();
-        BotV2.UI.notify('All orders cancelled', 'success');
-    } catch (error) {
-        BotV2.UI.notify('Failed to cancel orders', 'error');
-    }
+  if (!confirm('Cancel all orders?')) return;
+  try {
+    await BotV2.API.cancelAllOrders();
+    BotV2.UI.notify('All orders cancelled', 'success');
+  } catch (error) {
+    BotV2.UI.notify('Failed to cancel orders', 'error');
+  }
 };
+
 window.emergencyStop = async () => {
-    if (!confirm('Execute emergency stop? This will close all positions.')) return;
-    try {
-        await BotV2.API.emergencyStop();
-        BotV2.UI.notify('Emergency stop executed', 'warning');
-        BotV2.Dashboard?.loadData?.();
-    } catch (error) {
-        BotV2.UI.notify('Emergency stop failed', 'error');
-    }
+  if (!confirm('Execute emergency stop? This will close all positions.')) return;
+  try {
+    await BotV2.API.emergencyStop();
+    BotV2.UI.notify('Emergency stop executed', 'warning');
+    BotV2.Dashboard?.loadData?.();
+  } catch (error) {
+    BotV2.UI.notify('Emergency stop failed', 'error');
+  }
 };
+
 window.saveRiskParams = () => {
-    const form = document.getElementById('risk-form');
-    if (form) {
-        const data = Object.fromEntries(new FormData(form));
-        BotV2.API.saveRiskParams(data);
-    }
+  const form = document.getElementById('risk-form');
+  if (form) {
+    const data = Object.fromEntries(new FormData(form));
+    BotV2.API.saveRiskParams(data);
+  }
 };
 
 // Strategy functions - for strategy_editor.html
@@ -994,4 +1008,3 @@ window.testStrategy = () => BotV2.Strategies?.test?.() || console.log('Strategy 
 
 // Dashboard functions
 window.closePosition = (id) => BotV2.Dashboard?.closePosition?.(id);
-};
