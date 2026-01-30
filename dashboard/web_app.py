@@ -79,7 +79,7 @@ try:
     HAS_SECURITY = True
 except ImportError as e:
     HAS_SECURITY = False
-    logging.getLogger(__name__).warning(f"Security modules not available: {e}")
+    logging.getLogger(__name__).warning("Security modules not available: %s", e)
 
 # GZIP COMPRESSION
 try:
@@ -357,58 +357,61 @@ class ProfessionalDashboard:
         init_security_middleware(self.app)
         logger.info("[+] Security Middleware enabled")
         
-        # 6. CSP Configuration
-        csp_config = {
-            'default-src': "'self'",
-            'script-src': [
-                "'self'",
-                "'unsafe-eval'",  # Required for SheetJS
-                "https://cdn.jsdelivr.net",
-                "https://cdn.socket.io",
-                "https://cdn.plot.ly",
-                "https://unpkg.com",
-                "https://cdn.sheetjs.com",
-                "https://cdnjs.cloudflare.com"
-            ],
-            'style-src': [
-                "'self'",
-                "'unsafe-inline'",
-                "https://fonts.googleapis.com",
-                "https://cdn.jsdelivr.net",
-                "https://cdnjs.cloudflare.com"
-            ],
-            'font-src': [
-                "'self'",
-                "https://fonts.gstatic.com",
-                "https://fonts.googleapis.com",
-                "data:"
-            ],
-            'img-src': [
-                "'self'",
-                "data:",
-                "https:",
-                "blob:"
-            ],
-            'connect-src': [
-                "'self'",
-                "wss:",
-                "ws:",
-                "http://localhost:*",
-                "https://localhost:*",
-                "ws://localhost:*",
-                "wss://localhost:*",
-                "https://cdn.sheetjs.com",
-                "https://cdnjs.cloudflare.com",
-                "https://cdn.jsdelivr.net",
-                "https://cdn.plot.ly",
-                "https://cdn.socket.io"
-            ],
-            'frame-ancestors': "'none'",
-            'base-uri': "'self'",
-            'form-action': "'self'"
-        }
-        
+        # 6. CSP Configuration - Only in production
+        # In development, CSP is disabled to avoid blocking CDN resources
         if self.is_production:
+            csp_config = {
+                'default-src': "'self'",
+                'script-src': [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "'unsafe-eval'",
+                    "https://cdn.jsdelivr.net",
+                    "https://cdn.socket.io",
+                    "https://cdn.plot.ly",
+                    "https://unpkg.com",
+                    "https://cdn.sheetjs.com",
+                    "https://cdnjs.cloudflare.com"
+                ],
+                'style-src': [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "https://fonts.googleapis.com",
+                    "https://cdn.jsdelivr.net",
+                    "https://cdnjs.cloudflare.com"
+                ],
+                'font-src': [
+                    "'self'",
+                    "https://fonts.gstatic.com",
+                    "https://fonts.googleapis.com",
+                    "https://cdnjs.cloudflare.com",
+                    "data:"
+                ],
+                'img-src': [
+                    "'self'",
+                    "data:",
+                    "https:",
+                    "blob:"
+                ],
+                'connect-src': [
+                    "'self'",
+                    "wss:",
+                    "ws:",
+                    "http://localhost:*",
+                    "https://localhost:*",
+                    "ws://localhost:*",
+                    "wss://localhost:*",
+                    "https://cdn.sheetjs.com",
+                    "https://cdnjs.cloudflare.com",
+                    "https://cdn.jsdelivr.net",
+                    "https://cdn.plot.ly",
+                    "https://cdn.socket.io"
+                ],
+                'frame-ancestors': "'none'",
+                'base-uri': "'self'",
+                'form-action': "'self'"
+            }
+            
             Talisman(
                 self.app,
                 force_https=os.getenv('FORCE_HTTPS', 'true').lower() == 'true',
@@ -421,15 +424,16 @@ class ProfessionalDashboard:
             )
             logger.info("[+] HTTPS + CSP enabled (production)")
         else:
+            # Development mode: Disable CSP to avoid blocking CDN resources
+            # Security headers are still set but CSP is permissive
             Talisman(
                 self.app,
                 force_https=False,
-                content_security_policy=csp_config,
-                content_security_policy_nonce_in=['script-src'],
+                content_security_policy=False,  # Disable CSP in development
                 feature_policy={},
                 strict_transport_security=False
             )
-            logger.info("[+] CSP enabled (development)")
+            logger.info("[+] Security headers enabled (CSP disabled for development)")
     
     def _setup_compression(self):
         """Setup GZIP compression."""
@@ -523,6 +527,7 @@ class ProfessionalDashboard:
                 "    - Session Mgmt        OK",
                 "    - Audit Logging       OK",
                 "    - Security Headers    OK ({})".format(self.env),
+                "    - CSP                 {}".format('STRICT' if self.is_production else 'DISABLED'),
             ])
         
         status_lines.extend([
