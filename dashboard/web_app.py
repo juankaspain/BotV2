@@ -213,6 +213,74 @@ ASCII_BANNER = r"""
 """
 
 
+# ============================================================================
+# NETWORK I/O TRACKER - For accurate bandwidth calculation
+# ============================================================================
+class NetworkIOTracker:
+    """Tracks network I/O to calculate real-time transfer rates."""
+    
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._last_bytes_sent = 0
+        self._last_bytes_recv = 0
+        self._last_time = time.time()
+        self._current_rate_kbps = 0.0
+        
+        # Initialize with current values
+        if HAS_PSUTIL:
+            try:
+                net_io = psutil.net_io_counters()
+                self._last_bytes_sent = net_io.bytes_sent
+                self._last_bytes_recv = net_io.bytes_recv
+            except Exception:
+                pass
+    
+    def get_transfer_rate(self) -> float:
+        """Get current network transfer rate in KB/s."""
+        if not HAS_PSUTIL:
+            return 0.0
+        
+        with self._lock:
+            try:
+                current_time = time.time()
+                net_io = psutil.net_io_counters()
+                
+                # Calculate time delta
+                time_delta = current_time - self._last_time
+                
+                # Avoid division by zero and too frequent updates
+                if time_delta < 0.1:
+                    return self._current_rate_kbps
+                
+                # Calculate bytes transferred since last check
+                bytes_sent_delta = net_io.bytes_sent - self._last_bytes_sent
+                bytes_recv_delta = net_io.bytes_recv - self._last_bytes_recv
+                total_bytes_delta = bytes_sent_delta + bytes_recv_delta
+                
+                # Handle counter reset (can happen on some systems)
+                if total_bytes_delta < 0:
+                    total_bytes_delta = 0
+                
+                # Calculate rate in KB/s
+                rate_kbps = (total_bytes_delta / time_delta) / 1024
+                
+                # Update stored values
+                self._last_bytes_sent = net_io.bytes_sent
+                self._last_bytes_recv = net_io.bytes_recv
+                self._last_time = current_time
+                self._current_rate_kbps = round(rate_kbps, 2)
+                
+                return self._current_rate_kbps
+                
+            except Exception as e:
+                logger.warning("Failed to get network rate: %s", e)
+                return 0.0
+
+
+# Global network tracker instance
+_network_tracker = NetworkIOTracker()
+
+
 def log_activity(activity_type: str, message: str):
     """Log activity to recent activity buffer."""
     RECENT_ACTIVITY.appendleft({
@@ -237,6 +305,16 @@ class SSLErrorFilter(logging.Filter):
 def generate_csp_nonce() -> str:
     """Generate cryptographically secure nonce for CSP."""
     return secrets.token_urlsafe(18)
+
+
+def get_disk_path() -> str:
+    """Get the appropriate disk path based on the operating system."""
+    if platform.system() == 'Windows':
+        # On Windows, use the system drive (usually C:)
+        return os.environ.get('SystemDrive', 'C:') + '\\'
+    else:
+        # On Unix-like systems, use root
+        return '/'
 
 
 class DashboardAuth:
@@ -592,7 +670,7 @@ class ProfessionalDashboard:
             'disk_percent': 0,
             'disk_used_gb': 0,
             'disk_total_gb': 0,
-            'network_io_mbps': 0,
+            'network_io_kbps': 0,
             'uptime_seconds': time.time() - APP_START_TIME
         }
         
@@ -607,16 +685,18 @@ class ProfessionalDashboard:
                 metrics['memory_used_gb'] = round(mem.used / (1024**3), 2)
                 metrics['memory_total_gb'] = round(mem.total / (1024**3), 2)
                 
-                # Disk
-                disk = psutil.disk_usage('/')
-                metrics['disk_percent'] = disk.percent
-                metrics['disk_used_gb'] = round(disk.used / (1024**3), 2)
-                metrics['disk_total_gb'] = round(disk.total / (1024**3), 2)
+                # Disk - Use OS-appropriate path
+                try:
+                    disk_path = get_disk_path()
+                    disk = psutil.disk_usage(disk_path)
+                    metrics['disk_percent'] = disk.percent
+                    metrics['disk_used_gb'] = round(disk.used / (1024**3), 2)
+                    metrics['disk_total_gb'] = round(disk.total / (1024**3), 2)
+                except Exception as disk_err:
+                    logger.warning("Failed to get disk metrics: %s", disk_err)
                 
-                # Network I/O
-                net_io = psutil.net_io_counters()
-                # Simple approximation (bytes per second converted to MB/s)
-                metrics['network_io_mbps'] = round((net_io.bytes_sent + net_io.bytes_recv) / (1024**2 * 100), 2)
+                # Network I/O - Real-time transfer rate
+                metrics['network_io_kbps'] = _network_tracker.get_transfer_rate()
                 
             except Exception as e:
                 logger.warning("Failed to get system metrics: %s", e)
