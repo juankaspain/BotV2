@@ -14,10 +14,10 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # ------------------------- CONFIGURACIÓN DE COMANDOS ----------------------------------
 
 # Comando para el BOT en modo paper (ajusta flags si tu main lo requiere)
-BOT_CMD=("python" "bot/main.py" "--mode" "paper")
+BOT_CMD=("py" "bot/main.py" "--mode" "paper")
 
 # Comando para el Dashboard en modo demo (usa el __main__ de web_app.py)
-DASHBOARD_CMD=("python" "dashboard/web_app.py")
+DASHBOARD_CMD=("py" "dashboard/web_app.py")
 
 # Nombre legible para logs
 BOT_NAME="BotV2 - Bot modo paper"
