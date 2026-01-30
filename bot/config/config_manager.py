@@ -12,6 +12,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ASCII symbols for Windows compatibility
+OK = "[OK]"
+FAIL = "[FAIL]"
+DEMO = "[DEMO]"
+
 # Default configuration for demo mode
 DEFAULT_CONFIG = {
     'system': {
@@ -147,11 +152,11 @@ class ConfigManager:
         if config_path and config_path.exists():
             with open(config_path, 'r') as f:
                 self._config = yaml.safe_load(f)
-            logger.info(f"✓ Configuration loaded from {config_path}")
+            logger.info(f"{OK} Configuration loaded from {config_path}")
         elif demo_mode:
             # Use default config in demo mode
             self._config = DEFAULT_CONFIG.copy()
-            logger.info("🎮 Demo mode: Using default configuration")
+            logger.info(f"{DEMO} Demo mode: Using default configuration")
         else:
             # In non-demo mode, require config file
             raise FileNotFoundError(
@@ -251,7 +256,7 @@ class ConfigManager:
         ConfigManager._initialized = False
         self._load_config()
         ConfigManager._initialized = True
-        logger.info("✓ Configuration reloaded")
+        logger.info(f"{OK} Configuration reloaded")
 
 
 # DO NOT auto-instantiate - let modules create their own instance

@@ -1,142 +1,167 @@
-"""Centralized environment loader to avoid duplicate load messages.
+"""Centralized Environment Loader for BotV2.
 
-This module ensures .env is loaded only once and all imports use the same loaded environment.
-Uses thread-safe singleton pattern to prevent duplicate loads even in complex import scenarios.
+This module ensures .env file is loaded only ONCE across the entire application,
+preventing duplicate log messages and ensuring consistent environment state.
+
+Usage:
+    from shared.utils.env_loader import load_env_once
+    load_env_once()  # Call at application entry point
 """
 
 import os
 import sys
-import threading
 from pathlib import Path
 from typing import Optional
 
-# Thread-safe singleton implementation
-_lock = threading.Lock()
+# Global state to track if env has been loaded
 _ENV_LOADED = False
 _ENV_FILE_PATH: Optional[Path] = None
 _LOAD_MESSAGE_SHOWN = False
 
 
-def load_env_once(verbose: bool = False) -> bool:
-    """Load .env file only once across entire application.
+def find_env_file() -> Optional[Path]:
+    """Find the .env file by searching upward from current location.
     
-    Thread-safe implementation that guarantees:
-    1. The .env file is loaded exactly once
-    2. The load message is printed exactly once (if verbose=True)
-    3. Safe for use in multi-threaded or complex import scenarios
-    
-    Args:
-        verbose: If True, print load message to console (only first time)
-        
-    Returns:
-        bool: True if env was loaded this time, False if already loaded
-    """
-    global _ENV_LOADED, _ENV_FILE_PATH, _LOAD_MESSAGE_SHOWN
-    
-    # Quick check without lock (optimization for already-loaded case)
-    if _ENV_LOADED:
-        return False
-    
-    # Thread-safe double-checked locking pattern
-    with _lock:
-        # Check again inside lock (another thread might have loaded it)
-        if _ENV_LOADED:
-            return False
-        
-        try:
-            from dotenv import load_dotenv
-            
-            # Find .env file (works from any subdirectory)
-            # Try multiple strategies to find project root
-            env_file = _find_env_file()
-            
-            if env_file and env_file.exists():
-                load_dotenv(env_file)
-                _ENV_FILE_PATH = env_file
-                _ENV_LOADED = True
-                
-                # Only show message once, even if verbose=True is called multiple times
-                if verbose and not _LOAD_MESSAGE_SHOWN:
-                    _LOAD_MESSAGE_SHOWN = True
-                    print(f"[+] Environment loaded from {env_file}", flush=True)
-                
-                return True
-            else:
-                if verbose and not _LOAD_MESSAGE_SHOWN:
-                    _LOAD_MESSAGE_SHOWN = True
-                    print("[!] No .env file found", flush=True)
-                
-                _ENV_LOADED = True  # Mark as attempted to prevent retry
-                return False
-                
-        except ImportError:
-            if verbose and not _LOAD_MESSAGE_SHOWN:
-                _LOAD_MESSAGE_SHOWN = True
-                print("[!] python-dotenv not installed", flush=True)
-            _ENV_LOADED = True  # Mark as attempted
-            return False
-
-
-def _find_env_file() -> Optional[Path]:
-    """Find the .env file using multiple strategies.
-    
-    Searches in order:
-    1. From this file's location: shared/utils -> shared -> project root
-    2. Current working directory
-    3. Parent directories up to 3 levels
+    Search order:
+    1. Current working directory
+    2. Script directory
+    3. Parent directories (up to 3 levels)
     
     Returns:
-        Optional[Path]: Path to .env file or None if not found
+        Path to .env file if found, None otherwise
     """
-    candidates = []
+    search_paths = [
+        Path.cwd(),
+        Path(__file__).parent.parent.parent,  # Project root from shared/utils/
+        Path(sys.argv[0]).parent if sys.argv[0] else Path.cwd(),
+    ]
     
-    # Strategy 1: Relative to this file
-    try:
-        current_dir = Path(__file__).resolve().parent
-        project_root = current_dir.parent.parent  # shared/utils -> shared -> root
-        candidates.append(project_root / '.env')
-    except Exception:
-        pass
+    # Add parent directories
+    for base in search_paths[:2]:
+        for i in range(3):
+            parent = base.parents[i] if i < len(base.parents) else None
+            if parent:
+                search_paths.append(parent)
     
-    # Strategy 2: Current working directory
-    try:
-        cwd = Path.cwd()
-        candidates.append(cwd / '.env')
-        
-        # Strategy 3: Parent directories (up to 3 levels)
-        for i in range(1, 4):
-            parent = cwd
-            for _ in range(i):
-                parent = parent.parent
-            candidates.append(parent / '.env')
-    except Exception:
-        pass
-    
-    # Strategy 4: Check PYTHONPATH entries
-    for path_str in sys.path:
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_paths = []
+    for p in search_paths:
         try:
-            path = Path(path_str)
-            if path.is_dir():
-                candidates.append(path / '.env')
-        except Exception:
-            pass
+            resolved = p.resolve()
+            if resolved not in seen:
+                seen.add(resolved)
+                unique_paths.append(resolved)
+        except (OSError, ValueError):
+            continue
     
-    # Return first existing file
-    for candidate in candidates:
-        try:
-            if candidate.exists() and candidate.is_file():
-                return candidate.resolve()
-        except Exception:
-            pass
+    # Search for .env
+    for path in unique_paths:
+        env_file = path / '.env'
+        if env_file.exists() and env_file.is_file():
+            return env_file
     
     return None
 
 
-def get_env_file_path() -> Optional[Path]:
-    """Get the path of the loaded .env file.
+def load_env_once(env_path: Optional[str] = None, verbose: bool = False) -> bool:
+    """Load environment variables from .env file exactly once.
+    
+    This function is idempotent - calling it multiple times has no effect
+    after the first successful load.
+    
+    Args:
+        env_path: Optional explicit path to .env file
+        verbose: If True, print confirmation message (only on first load)
     
     Returns:
-        Optional[Path]: Path to .env file or None if not loaded
+        True if .env was loaded (this call or previously), False if not found
+    """
+    global _ENV_LOADED, _ENV_FILE_PATH, _LOAD_MESSAGE_SHOWN
+    
+    # Already loaded - return immediately
+    if _ENV_LOADED:
+        return True
+    
+    # Find .env file
+    if env_path:
+        env_file = Path(env_path)
+    else:
+        env_file = find_env_file()
+    
+    if not env_file or not env_file.exists():
+        return False
+    
+    # Try to load with python-dotenv
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(env_file, override=False)
+        _ENV_LOADED = True
+        _ENV_FILE_PATH = env_file
+        
+        # Show message only once, only if verbose requested
+        if verbose and not _LOAD_MESSAGE_SHOWN:
+            print(f"[+] Environment loaded from {env_file}", flush=True)
+            _LOAD_MESSAGE_SHOWN = True
+        
+        return True
+    
+    except ImportError:
+        # python-dotenv not installed - try manual parsing
+        try:
+            _load_env_manual(env_file)
+            _ENV_LOADED = True
+            _ENV_FILE_PATH = env_file
+            
+            if verbose and not _LOAD_MESSAGE_SHOWN:
+                print(f"[+] Environment loaded from {env_file} (manual)", flush=True)
+                _LOAD_MESSAGE_SHOWN = True
+            
+            return True
+        except Exception:
+            return False
+    
+    except Exception:
+        return False
+
+
+def _load_env_manual(env_file: Path) -> None:
+    """Manually parse .env file when python-dotenv is not available.
+    
+    Args:
+        env_file: Path to .env file
+    """
+    with open(env_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            
+            # Skip comments and empty lines
+            if not line or line.startswith('#'):
+                continue
+            
+            # Skip lines without =
+            if '=' not in line:
+                continue
+            
+            # Parse key=value
+            key, _, value = line.partition('=')
+            key = key.strip()
+            value = value.strip()
+            
+            # Remove quotes if present
+            if value and value[0] == value[-1] and value[0] in ('"', "'"):
+                value = value[1:-1]
+            
+            # Only set if not already in environment (don't override)
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+def get_env_file_path() -> Optional[Path]:
+    """Get the path to the loaded .env file.
+    
+    Returns:
+        Path to .env file if loaded, None otherwise
     """
     return _ENV_FILE_PATH
 
@@ -145,19 +170,18 @@ def is_env_loaded() -> bool:
     """Check if environment has been loaded.
     
     Returns:
-        bool: True if env was loaded/attempted
+        True if load_env_once() was called successfully
     """
     return _ENV_LOADED
 
 
-def reset_env_loader() -> None:
-    """Reset the env loader state (for testing purposes only).
+def reset_env_state() -> None:
+    """Reset the environment loading state.
     
-    WARNING: This should only be used in test scenarios.
-    Using this in production can cause duplicate loads.
+    This is primarily for testing purposes. In normal operation,
+    the environment should only be loaded once.
     """
     global _ENV_LOADED, _ENV_FILE_PATH, _LOAD_MESSAGE_SHOWN
-    with _lock:
-        _ENV_LOADED = False
-        _ENV_FILE_PATH = None
-        _LOAD_MESSAGE_SHOWN = False
+    _ENV_LOADED = False
+    _ENV_FILE_PATH = None
+    _LOAD_MESSAGE_SHOWN = False
