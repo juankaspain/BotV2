@@ -4,42 +4,61 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Summary Cards -->
-    <div class="row mb-4 g-3">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted mb-2"><i class="fas fa-wallet me-2"></i>Total Value</h6>
-                    <h3 class="mb-1" id="total-value">$0.00</h3>
-                    <small id="total-pnl" class="text-success"><i class="fas fa-arrow-up"></i> +0.00%</small>
-                </div>
+    <!-- Summary Metrics - CSS v4.0 Metric Cards -->
+    <div class="card-grid mb-4">
+        <!-- Total Value Metric -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-primary">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Total Value</span>
+                <span class="metric-card__value" id="total-value">$0.00</span>
+                <small id="total-pnl" class="text-success" style="font-size: 0.75rem; margin-top: 4px; display: block;">
+                    <i class="fas fa-arrow-up"></i> +0.00%
+                </small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted mb-2"><i class="fas fa-chart-line me-2"></i>Daily P&L</h6>
-                    <h3 class="mb-1" id="daily-pnl">$0.00</h3>
-                    <small id="daily-pnl-pct">+0.00%</small>
-                </div>
+
+        <!-- Daily P&L Metric -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-info">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Daily P&L</span>
+                <span class="metric-card__value" id="daily-pnl">$0.00</span>
+                <small id="daily-pnl-pct" style="font-size: 0.75rem; margin-top: 4px; display: block;">
+                    +0.00%
+                </small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted mb-2"><i class="fas fa-layer-group me-2"></i>Open Positions</h6>
-                    <h3 class="mb-1" id="open-positions">0</h3>
-                    <small class="text-muted">Active trades</small>
-                </div>
+
+        <!-- Open Positions Metric -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-success">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Open Positions</span>
+                <span class="metric-card__value" id="open-positions">0</span>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">
+                    Active trades
+                </small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted mb-2"><i class="fas fa-coins me-2"></i>Assets</h6>
-                    <h3 class="mb-1" id="assets-count">0</h3>
-                    <small class="text-muted">Unique assets</small>
-                </div>
+
+        <!-- Assets Count Metric -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-warning">
+                <i class="fas fa-coins"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Assets</span>
+                <span class="metric-card__value" id="assets-count">0</span>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">
+                    Unique assets
+                </small>
             </div>
         </div>
     </div>
@@ -49,13 +68,17 @@
         <!-- Positions Table -->
         <div class="col-lg-8">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Open Positions</h5>
-                    <button class="btn btn-sm btn-outline-primary" onclick="refreshPortfolio()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <h5><i class="fas fa-list"></i> Open Positions</h5>
+                    </div>
+                    <div class="card-header__actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshPortfolio()" aria-label="Refresh portfolio data">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0" id="positions-table">
                             <thead>
@@ -71,9 +94,14 @@
                             <tbody></tbody>
                         </table>
                     </div>
-                    <div id="no-positions" class="text-center py-4" style="display: none;">
-                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No open positions</p>
+                    
+                    <!-- Empty State - CSS v4.0 -->
+                    <div id="no-positions" class="empty-state" style="display: none;">
+                        <i class="empty-state__icon fas fa-inbox"></i>
+                        <div class="empty-state__title">No Open Positions</div>
+                        <div class="empty-state__description">
+                            Your active trades will appear here once you open positions
+                        </div>
                     </div>
                 </div>
             </div>
@@ -83,10 +111,15 @@
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-pie-chart me-2"></i>Asset Allocation</h5>
+                    <div class="card-header__title">
+                        <h5><i class="fas fa-pie-chart"></i> Asset Allocation</h5>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="allocation-chart" height="250"></canvas>
+                    <!-- Chart Container - CSS v4.0 -->
+                    <div class="chart-container">
+                        <canvas id="allocation-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -135,7 +168,7 @@ async function loadPortfolioData() {
             tbody.innerHTML = '';
             
             if (positions.positions.length === 0) {
-                noPositions.style.display = 'block';
+                noPositions.style.display = 'flex'; // empty-state usa flexbox
                 document.querySelector('#positions-table').style.display = 'none';
             } else {
                 noPositions.style.display = 'none';
@@ -183,7 +216,7 @@ function renderAllocationChart(data) {
         allocationChart.destroy();
     }
 
-    // ✅ NEW: Use ThemeManager for theme-aware colors
+    // ✅ Use ThemeManager for theme-aware colors
     const colors = ThemeManager.getChartColors();
     const chartConfig = ThemeManager.getChartDefaults('doughnut');
     
@@ -192,7 +225,7 @@ function renderAllocationChart(data) {
         labels: data.map(d => d.asset),
         datasets: [{
             data: data.map(d => d.percentage),
-            backgroundColor: colors.palette, // ✅ Theme-aware colors
+            backgroundColor: colors.palette,
             borderWidth: 0
         }]
     };
@@ -220,10 +253,9 @@ loadPortfolioData();
 // Auto-refresh every 30 seconds
 setInterval(loadPortfolioData, 30000);
 
-// ✅ NEW: Re-render chart when theme changes
+// ✅ Re-render chart when theme changes
 window.addEventListener('themechange', function() {
     if (allocationChart) {
-        // Reload chart with new theme colors
         fetch('/portfolio/api/allocation')
             .then(res => res.json())
             .then(allocation => {
