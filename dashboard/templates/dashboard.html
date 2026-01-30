@@ -78,11 +78,11 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Portfolio Performance</h5>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary active" data-period="1d">1D</button>
-                        <button class="btn btn-outline-primary" data-period="1w">1W</button>
-                        <button class="btn btn-outline-primary" data-period="1m">1M</button>
-                        <button class="btn btn-outline-primary" data-period="all">All</button>
+                    <div class="btn-group-period" id="period-buttons">
+                        <button class="btn btn-sm btn-period" data-period="1d" onclick="selectPeriod(this, '1d')">1D</button>
+                        <button class="btn btn-sm btn-period active" data-period="1w" onclick="selectPeriod(this, '1w')">1W</button>
+                        <button class="btn btn-sm btn-period" data-period="1m" onclick="selectPeriod(this, '1m')">1M</button>
+                        <button class="btn btn-sm btn-period" data-period="all" onclick="selectPeriod(this, 'all')">All</button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -157,13 +157,159 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Period Button Group - Professional Styling */
+.btn-group-period {
+    display: inline-flex;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.btn-period {
+    padding: 6px 14px;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: none;
+    border-right: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.btn-period:last-child {
+    border-right: none;
+}
+
+.btn-period:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.btn-period.active {
+    background: var(--color-primary);
+    color: white;
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .btn-group-period {
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-xs);
+}
+
+[data-theme="light"] .btn-period {
+    background: var(--bg-card);
+}
+
+[data-theme="light"] .btn-period:hover {
+    background: var(--bg-card-hover);
+}
+
+[data-theme="light"] .btn-period.active {
+    background: var(--color-primary);
+    color: white;
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Professional color palette for charts
+    const CHART_COLORS = {
+        primary: '#6366f1',
+        primaryLight: 'rgba(99, 102, 241, 0.15)',
+        success: '#10b981',
+        danger: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6',
+        text: '#64748b',
+        grid: 'rgba(100, 116, 139, 0.1)'
+    };
+
     // Initialize charts and load data
     let performanceChart = null;
     let allocationChart = null;
+    let currentPeriod = '1w';
+
+    // Period button selection handler
+    function selectPeriod(button, period) {
+        // Remove active class from all buttons
+        document.querySelectorAll('.btn-period').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Add active class to clicked button
+        button.classList.add('active');
+        
+        // Update current period and reload chart
+        currentPeriod = period;
+        loadPerformanceData(period);
+    }
+
+    // Load performance data for specific period
+    async function loadPerformanceData(period) {
+        try {
+            // Generate data based on period
+            const performanceData = generatePerformanceData(period);
+            updatePerformanceChart(performanceData);
+        } catch (error) {
+            console.error('Error loading performance data:', error);
+        }
+    }
+
+    // Generate performance data based on period
+    function generatePerformanceData(period) {
+        let labels = [];
+        let data = [];
+        let baseValue = 100000;
+        let points = 0;
+        
+        switch(period) {
+            case '1d':
+                points = 24;
+                for (let i = 0; i < points; i++) {
+                    labels.push(`${String(i).padStart(2, '0')}:00`);
+                    baseValue += (Math.random() - 0.48) * 500;
+                    data.push(Math.round(baseValue * 100) / 100);
+                }
+                break;
+            case '1w':
+                points = 7;
+                const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                for (let i = 0; i < points; i++) {
+                    labels.push(weekDays[i]);
+                    baseValue += (Math.random() - 0.45) * 2000;
+                    data.push(Math.round(baseValue * 100) / 100);
+                }
+                break;
+            case '1m':
+                points = 30;
+                const today = new Date();
+                for (let i = points - 1; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    baseValue += (Math.random() - 0.45) * 3000;
+                    data.push(Math.round(baseValue * 100) / 100);
+                }
+                break;
+            case 'all':
+                points = 12;
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const currentMonth = new Date().getMonth();
+                for (let i = 0; i < points; i++) {
+                    const monthIndex = (currentMonth - 11 + i + 12) % 12;
+                    labels.push(monthNames[monthIndex]);
+                    baseValue += (Math.random() - 0.4) * 8000;
+                    data.push(Math.round(baseValue * 100) / 100);
+                }
+                break;
+        }
+        
+        return { labels, data };
+    }
 
     // Load dashboard data
     async function loadDashboardData() {
@@ -187,35 +333,26 @@
     function loadDemoData() {
         const demoData = {
             overview: {
-                equity: '€3,000.00',
-                total_pnl: '+€150.00',
-                daily_pnl: '+€25.50',
-                win_rate: 65.5,
-                total_trades: 24,
-                daily_trades: 3,
-                bot_status: 'Paper',
-                uptime: '2h 15m'
-            },
-            performance: {
-                labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-                data: [3000, 3020, 3010, 3050, 3080, 3000]
+                equity: '€105,664.34',
+                total_pnl: '+€7,758.62',
+                daily_pnl: '€0.00',
+                win_rate: 68.5,
+                total_trades: 0,
+                daily_trades: 0,
+                bot_status: 'Offline',
+                uptime: '--'
             },
             allocation: {
-                labels: ['BTC', 'ETH', 'USDT', 'Other'],
+                labels: ['BTC', 'ETH', 'SOL', 'USDT'],
                 data: [45, 30, 15, 10]
             },
-            positions: [
-                { symbol: 'BTC/USDT', side: 'LONG', size: 0.05, entry: 50000, pnl: 125.50, pnl_pct: 2.5 },
-                { symbol: 'ETH/USDT', side: 'LONG', size: 0.5, entry: 3000, pnl: -25.00, pnl_pct: -0.8 }
-            ],
-            trades: [
-                { time: '14:23', symbol: 'BTC/USDT', type: 'SELL', pnl: 75.00 },
-                { time: '13:45', symbol: 'ETH/USDT', type: 'BUY', pnl: -15.00 },
-                { time: '12:10', symbol: 'BNB/USDT', type: 'SELL', pnl: 42.50 }
-            ]
+            positions: [],
+            trades: []
         };
         
         updateDashboardStats(demoData);
+        // Load performance data for current period
+        loadPerformanceData(currentPeriod);
     }
 
     // Update dashboard statistics
@@ -224,7 +361,11 @@
         
         // Update stats cards
         document.getElementById('total-balance').textContent = overview.equity || '€0.00';
-        document.getElementById('balance-change').textContent = overview.total_pnl || '+0.00%';
+        
+        const balanceChange = document.getElementById('balance-change');
+        balanceChange.textContent = overview.total_pnl || '+0.00%';
+        balanceChange.className = (overview.total_pnl && overview.total_pnl.includes('+')) ? 'text-success' : 'text-danger';
+        
         document.getElementById('daily-pnl').textContent = overview.daily_pnl || '€0.00';
         document.getElementById('daily-trades').textContent = `${overview.daily_trades || 0} trades`;
         document.getElementById('win-rate').textContent = `${overview.win_rate || 0}%`;
@@ -232,11 +373,10 @@
         document.getElementById('bot-status').textContent = overview.bot_status || 'Offline';
         document.getElementById('bot-uptime').textContent = overview.uptime || '--';
 
-        // Update charts
-        if (data.performance) {
-            updatePerformanceChart(data.performance);
-        }
+        // Update performance chart with current period
+        loadPerformanceData(currentPeriod);
         
+        // Update allocation chart
         if (data.allocation) {
             updateAllocationChart(data.allocation);
         }
@@ -268,38 +408,65 @@
                 datasets: [{
                     label: 'Portfolio Value',
                     data: data.data || [],
-                    borderColor: '#5865f2',
-                    backgroundColor: 'rgba(88, 101, 242, 0.1)',
+                    borderColor: CHART_COLORS.primary,
+                    backgroundColor: CHART_COLORS.primaryLight,
                     borderWidth: 2,
                     fill: true,
-                    tension: 0.4
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: CHART_COLORS.primary,
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 12,
+                        callbacks: {
+                            label: (context) => `Value: €${context.parsed.y.toLocaleString()}`
+                        }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: false,
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            color: CHART_COLORS.grid
                         },
                         ticks: {
-                            color: '#8e9297'
-                        }
+                            color: CHART_COLORS.text,
+                            font: { size: 11 },
+                            callback: (value) => '€' + value.toLocaleString()
+                        },
+                        border: { display: false }
                     },
                     x: {
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
+                            display: false
                         },
                         ticks: {
-                            color: '#8e9297'
-                        }
+                            color: CHART_COLORS.text,
+                            font: { size: 11 },
+                            maxRotation: 0
+                        },
+                        border: { display: false }
                     }
                 }
             }
@@ -315,29 +482,50 @@
             allocationChart.destroy();
         }
 
+        // Professional allocation colors
+        const allocationColors = [
+            '#6366f1', // Indigo (BTC)
+            '#10b981', // Emerald (ETH)
+            '#f59e0b', // Amber (SOL)
+            '#ef4444'  // Red (USDT/Other)
+        ];
+
         allocationChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: data.labels || [],
                 datasets: [{
                     data: data.data || [],
-                    backgroundColor: [
-                        '#f7931a',
-                        '#627eea',
-                        '#26a17b',
-                        '#5865f2'
-                    ]
+                    backgroundColor: allocationColors,
+                    borderWidth: 0,
+                    hoverOffset: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                cutout: '65%',
                 plugins: {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            color: '#e4e6eb',
-                            padding: 15
+                            color: 'var(--text-secondary)',
+                            padding: 15,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 12,
+                        callbacks: {
+                            label: (context) => `${context.label}: ${context.parsed}%`
                         }
                     }
                 }
@@ -359,7 +547,7 @@
 
         tbody.innerHTML = positions.map(pos => `
             <tr>
-                <td>${pos.symbol}</td>
+                <td><strong>${pos.symbol}</strong></td>
                 <td><span class="badge bg-${pos.side === 'LONG' ? 'success' : 'danger'}">${pos.side}</span></td>
                 <td>${pos.size}</td>
                 <td>€${pos.entry.toLocaleString()}</td>
@@ -388,7 +576,7 @@
         tbody.innerHTML = trades.map(trade => `
             <tr>
                 <td>${trade.time}</td>
-                <td>${trade.symbol}</td>
+                <td><strong>${trade.symbol}</strong></td>
                 <td><span class="badge bg-${trade.type === 'BUY' ? 'success' : 'info'}">${trade.type}</span></td>
                 <td class="${trade.pnl >= 0 ? 'text-success' : 'text-danger'}">
                     ${trade.pnl >= 0 ? '+' : ''}€${trade.pnl.toFixed(2)}
@@ -401,12 +589,13 @@
     function closePosition(symbol) {
         if (confirm(`Close position for ${symbol}?`)) {
             console.log(`Closing position: ${symbol}`);
+            showToast(`Position ${symbol} close request sent`, 'info');
             // TODO: Implement close position API call
         }
     }
 
     // WebSocket real-time updates
-    if (socket) {
+    if (typeof socket !== 'undefined' && socket) {
         socket.on('dashboard_update', function(data) {
             updateDashboardStats(data);
         });
