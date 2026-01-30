@@ -1,0 +1,761 @@
+{% extends "base.html" %}
+
+{% block title %}System Health - BotV2{% endblock %}
+{% block page_title %}System Health{% endblock %}
+
+{% block navbar_actions %}
+<div class="connection-status connection-status--connected" id="health-status">
+    <span class="connection-status__indicator"></span>
+    <span>System Online</span>
+</div>
+<button class="btn btn-sm btn-outline-secondary" onclick="refreshHealthData()" title="Refresh">
+    <i class="fas fa-sync-alt" id="refresh-icon"></i>
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="system-health">
+    <!-- Quick Stats Row -->
+    <div class="metrics-grid mb-4" id="quick-stats">
+        <div class="metric-card">
+            <div class="metric-card__icon bg-success">
+                <i class="fas fa-heartbeat"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">System Status</span>
+                <span class="metric-card__value" id="stat-status">--</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-card__icon bg-primary">
+                <i class="fas fa-code-branch"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Version</span>
+                <span class="metric-card__value" id="stat-version">--</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-card__icon bg-info">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Uptime</span>
+                <span class="metric-card__value" id="stat-uptime">--</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-card__icon bg-warning">
+                <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Requests/min</span>
+                <span class="metric-card__value" id="stat-rpm">--</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-card__icon bg-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Error Rate</span>
+                <span class="metric-card__value" id="stat-errors">--</span>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-card__icon bg-primary">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Active Users</span>
+                <span class="metric-card__value" id="stat-users">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- System Resources -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <i class="fas fa-microchip text-primary"></i>
+                        <h5>System Resources</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="resource-gauge mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-secondary"><i class="fas fa-memory me-2"></i>CPU Usage</span>
+                            <span class="fw-semibold" id="cpu-value">--</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress__bar" id="cpu-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="resource-gauge mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-secondary"><i class="fas fa-server me-2"></i>Memory</span>
+                            <span class="fw-semibold" id="memory-value">--</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress__bar bg-info" id="memory-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="resource-gauge mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-secondary"><i class="fas fa-hdd me-2"></i>Disk Usage</span>
+                            <span class="fw-semibold" id="disk-value">--</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress__bar bg-warning" id="disk-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="resource-gauge">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-secondary"><i class="fas fa-network-wired me-2"></i>Network I/O</span>
+                            <span class="fw-semibold" id="network-value">--</span>
+                        </div>
+                        <div class="progress progress--sm">
+                            <div class="progress__bar bg-success" id="network-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Component Status -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <i class="fas fa-cubes text-info"></i>
+                        <h5>Component Status</h5>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="component-list" id="component-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Status -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <i class="fas fa-shield-alt text-success"></i>
+                        <h5>Security Status</h5>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="security-list" id="security-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-2">
+        <!-- Active Connections -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <i class="fas fa-plug text-warning"></i>
+                        <h5>Active Connections</h5>
+                    </div>
+                    <span class="badge bg-primary" id="connections-count">0</span>
+                </div>
+                <div class="card-body">
+                    <div class="connections-grid" id="connections-grid">
+                        <div class="connection-item">
+                            <div class="connection-item__icon">
+                                <i class="fas fa-globe"></i>
+                            </div>
+                            <div class="connection-item__info">
+                                <span class="connection-item__label">HTTP Connections</span>
+                                <span class="connection-item__value" id="http-connections">--</span>
+                            </div>
+                        </div>
+                        <div class="connection-item">
+                            <div class="connection-item__icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="connection-item__info">
+                                <span class="connection-item__label">WebSocket</span>
+                                <span class="connection-item__value" id="ws-connections">--</span>
+                            </div>
+                        </div>
+                        <div class="connection-item">
+                            <div class="connection-item__icon">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="connection-item__info">
+                                <span class="connection-item__label">Database Pool</span>
+                                <span class="connection-item__value" id="db-connections">--</span>
+                            </div>
+                        </div>
+                        <div class="connection-item">
+                            <div class="connection-item__icon">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <div class="connection-item__info">
+                                <span class="connection-item__label">Exchange APIs</span>
+                                <span class="connection-item__value" id="api-connections">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Python Environment -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <i class="fab fa-python text-info"></i>
+                        <h5>Python Environment</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="env-grid" id="python-env">
+                        <div class="env-item">
+                            <span class="env-item__label">Python Version</span>
+                            <span class="env-item__value" id="python-version">--</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-item__label">Flask Version</span>
+                            <span class="env-item__value" id="flask-version">--</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-item__label">OS Platform</span>
+                            <span class="env-item__value" id="os-platform">--</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-item__label">Process ID</span>
+                            <span class="env-item__value" id="process-id">--</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-item__label">Thread Count</span>
+                            <span class="env-item__value" id="thread-count">--</span>
+                        </div>
+                        <div class="env-item">
+                            <span class="env-item__label">Open Files</span>
+                            <span class="env-item__value" id="open-files">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Log -->
+    <div class="row g-4 mt-2">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <i class="fas fa-list-alt text-secondary"></i>
+                        <h5>Recent Activity</h5>
+                    </div>
+                    <div class="card-header__actions">
+                        <span class="text-muted" id="last-refresh">Last refresh: --</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="activity-log" id="activity-log">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* System Health specific styles */
+.component-list,
+.security-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.component-item,
+.security-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    transition: background var(--transition-fast);
+}
+
+.component-item:last-child,
+.security-item:last-child {
+    border-bottom: none;
+}
+
+.component-item:hover,
+.security-item:hover {
+    background: var(--bg-card-hover);
+}
+
+.component-item__info,
+.security-item__info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.component-item__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card-hover);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.component-item__name,
+.security-item__name {
+    font-weight: 500;
+}
+
+.component-item__status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-full);
+}
+
+.component-item__status.status--ok {
+    background: rgba(28, 200, 138, 0.15);
+    color: var(--color-success);
+}
+
+.component-item__status.status--warning {
+    background: rgba(246, 194, 62, 0.15);
+    color: var(--color-warning);
+}
+
+.component-item__status.status--error {
+    background: rgba(231, 74, 59, 0.15);
+    color: var(--color-danger);
+}
+
+.component-item__status.status--disabled {
+    background: var(--bg-card-hover);
+    color: var(--text-muted);
+}
+
+/* Connections Grid */
+.connections-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+}
+
+.connection-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: var(--bg-sidebar);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.connection-item__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card-hover);
+    color: var(--color-primary);
+}
+
+.connection-item__info {
+    display: flex;
+    flex-direction: column;
+}
+
+.connection-item__label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.connection-item__value {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
+/* Environment Grid */
+.env-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+}
+
+.env-item {
+    padding: var(--space-md);
+    background: var(--bg-sidebar);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.env-item__label {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-bottom: var(--space-xs);
+}
+
+.env-item__value {
+    display: block;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}
+
+/* Activity Log */
+.activity-log {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-item__time {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    flex-shrink: 0;
+    min-width: 80px;
+}
+
+.activity-item__type {
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.activity-item__type.type--info {
+    background: rgba(78, 115, 223, 0.2);
+    color: var(--color-primary);
+}
+
+.activity-item__type.type--success {
+    background: rgba(28, 200, 138, 0.2);
+    color: var(--color-success);
+}
+
+.activity-item__type.type--warning {
+    background: rgba(246, 194, 62, 0.2);
+    color: var(--color-warning);
+}
+
+.activity-item__type.type--error {
+    background: rgba(231, 74, 59, 0.2);
+    color: var(--color-danger);
+}
+
+.activity-item__message {
+    flex: 1;
+    color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 767.98px) {
+    .connections-grid,
+    .env-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1023.98px) {
+    .env-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Refresh animation */
+.refreshing {
+    animation: spin 1s linear infinite;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let refreshInterval = null;
+let healthData = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    refreshHealthData();
+    // Auto-refresh every 10 seconds
+    refreshInterval = setInterval(refreshHealthData, 10000);
+});
+
+async function refreshHealthData() {
+    const refreshIcon = document.getElementById('refresh-icon');
+    refreshIcon.classList.add('refreshing');
+    
+    try {
+        const response = await fetch('/api/system-health');
+        if (!response.ok) throw new Error('Failed to fetch health data');
+        
+        healthData = await response.json();
+        updateUI(healthData);
+        
+        document.getElementById('last-refresh').textContent = 
+            'Last refresh: ' + new Date().toLocaleTimeString();
+        
+    } catch (error) {
+        console.error('Health check error:', error);
+        showToast('Failed to fetch system health data', 'error');
+        updateHealthStatus('error');
+    } finally {
+        refreshIcon.classList.remove('refreshing');
+    }
+}
+
+function updateUI(data) {
+    // Update health status indicator
+    updateHealthStatus(data.status);
+    
+    // Quick stats
+    document.getElementById('stat-status').textContent = data.status?.toUpperCase() || '--';
+    document.getElementById('stat-version').textContent = 'v' + (data.version || '--');
+    document.getElementById('stat-uptime').textContent = formatUptime(data.system?.uptime_seconds);
+    document.getElementById('stat-rpm').textContent = data.metrics?.request_rate_rpm?.toFixed(1) || '0';
+    document.getElementById('stat-errors').textContent = (data.metrics?.error_rate_pct?.toFixed(2) || '0') + '%';
+    document.getElementById('stat-users').textContent = data.metrics?.active_users || '0';
+    
+    // System resources
+    if (data.system) {
+        updateResourceBar('cpu', data.system.cpu_percent);
+        updateResourceBar('memory', data.system.memory_percent);
+        updateResourceBar('disk', data.system.disk_percent);
+        updateResourceBar('network', Math.min(data.system.network_io_mbps * 10, 100)); // Scale for display
+        
+        document.getElementById('network-value').textContent = 
+            (data.system.network_io_mbps?.toFixed(2) || '0') + ' MB/s';
+    }
+    
+    // Component status
+    updateComponentList(data.components || {});
+    
+    // Security status
+    updateSecurityList(data.security || {});
+    
+    // Connections
+    if (data.connections) {
+        document.getElementById('http-connections').textContent = data.connections.http || '0';
+        document.getElementById('ws-connections').textContent = data.connections.websocket || '0';
+        document.getElementById('db-connections').textContent = data.connections.database || 'N/A';
+        document.getElementById('api-connections').textContent = data.connections.exchange_apis || '0';
+        
+        const total = (data.connections.http || 0) + (data.connections.websocket || 0);
+        document.getElementById('connections-count').textContent = total;
+    }
+    
+    // Python environment
+    if (data.python) {
+        document.getElementById('python-version').textContent = data.python.version || '--';
+        document.getElementById('flask-version').textContent = data.python.flask_version || '--';
+        document.getElementById('os-platform').textContent = data.python.platform || '--';
+        document.getElementById('process-id').textContent = data.python.pid || '--';
+        document.getElementById('thread-count').textContent = data.python.threads || '--';
+        document.getElementById('open-files').textContent = data.python.open_files || '--';
+    }
+    
+    // Activity log
+    updateActivityLog(data.recent_activity || []);
+}
+
+function updateHealthStatus(status) {
+    const statusEl = document.getElementById('health-status');
+    statusEl.className = 'connection-status';
+    
+    if (status === 'healthy') {
+        statusEl.classList.add('connection-status--connected');
+        statusEl.querySelector('span:last-child').textContent = 'System Online';
+    } else if (status === 'degraded') {
+        statusEl.classList.add('connection-status--reconnecting');
+        statusEl.querySelector('span:last-child').textContent = 'Degraded';
+    } else {
+        statusEl.classList.add('connection-status--disconnected');
+        statusEl.querySelector('span:last-child').textContent = 'System Error';
+    }
+}
+
+function updateResourceBar(resource, percent) {
+    const bar = document.getElementById(`${resource}-bar`);
+    const value = document.getElementById(`${resource}-value`);
+    
+    if (bar) {
+        bar.style.width = `${percent || 0}%`;
+        
+        // Color based on usage
+        bar.classList.remove('bg-success', 'bg-warning', 'bg-danger');
+        if (percent > 90) bar.classList.add('bg-danger');
+        else if (percent > 70) bar.classList.add('bg-warning');
+        else bar.classList.add('bg-success');
+    }
+    
+    if (value && resource !== 'network') {
+        value.textContent = (percent?.toFixed(1) || '0') + '%';
+    }
+}
+
+function updateComponentList(components) {
+    const container = document.getElementById('component-list');
+    if (!container) return;
+    
+    const componentConfig = [
+        { key: 'flask', name: 'Flask Server', icon: 'fa-server' },
+        { key: 'socketio', name: 'WebSocket (Socket.IO)', icon: 'fa-plug' },
+        { key: 'database', name: 'Database', icon: 'fa-database' },
+        { key: 'mock_data', name: 'Mock Data Engine', icon: 'fa-vial' },
+        { key: 'metrics', name: 'Metrics Monitor', icon: 'fa-chart-line' },
+        { key: 'compression', name: 'GZIP Compression', icon: 'fa-compress' },
+        { key: 'rate_limiter', name: 'Rate Limiter', icon: 'fa-tachometer-alt' },
+        { key: 'session_manager', name: 'Session Manager', icon: 'fa-user-clock' }
+    ];
+    
+    container.innerHTML = componentConfig.map(comp => {
+        const status = components[comp.key];
+        const statusClass = status === true ? 'status--ok' : 
+                           status === false ? 'status--disabled' : 
+                           status === 'error' ? 'status--error' : 'status--warning';
+        const statusText = status === true ? 'OK' : 
+                          status === false ? 'Disabled' : 
+                          status === 'error' ? 'Error' : 'Unknown';
+        const statusIcon = status === true ? 'fa-check' : 
+                          status === false ? 'fa-minus' : 
+                          status === 'error' ? 'fa-times' : 'fa-question';
+        
+        return `
+            <div class="component-item">
+                <div class="component-item__info">
+                    <div class="component-item__icon">
+                        <i class="fas ${comp.icon}"></i>
+                    </div>
+                    <span class="component-item__name">${comp.name}</span>
+                </div>
+                <div class="component-item__status ${statusClass}">
+                    <i class="fas ${statusIcon}"></i>
+                    <span>${statusText}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateSecurityList(security) {
+    const container = document.getElementById('security-list');
+    if (!container) return;
+    
+    const securityConfig = [
+        { key: 'csrf_protection', name: 'CSRF Protection', icon: 'fa-shield-alt' },
+        { key: 'xss_prevention', name: 'XSS Prevention', icon: 'fa-bug' },
+        { key: 'input_validation', name: 'Input Validation', icon: 'fa-check-double' },
+        { key: 'session_security', name: 'Session Security', icon: 'fa-lock' },
+        { key: 'audit_logging', name: 'Audit Logging', icon: 'fa-file-alt' },
+        { key: 'https_enforced', name: 'HTTPS Enforcement', icon: 'fa-certificate' }
+    ];
+    
+    container.innerHTML = securityConfig.map(sec => {
+        const status = security[sec.key];
+        const statusClass = status === true ? 'status--ok' : 'status--disabled';
+        const statusText = status === true ? 'Enabled' : 'Disabled';
+        const statusIcon = status === true ? 'fa-check' : 'fa-minus';
+        
+        return `
+            <div class="component-item">
+                <div class="component-item__info">
+                    <div class="component-item__icon">
+                        <i class="fas ${sec.icon}"></i>
+                    </div>
+                    <span class="component-item__name">${sec.name}</span>
+                </div>
+                <div class="component-item__status ${statusClass}">
+                    <i class="fas ${statusIcon}"></i>
+                    <span>${statusText}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateActivityLog(activities) {
+    const container = document.getElementById('activity-log');
+    if (!container) return;
+    
+    if (activities.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state empty-state--compact">
+                <i class="empty-state__icon fas fa-inbox"></i>
+                <div class="empty-state__title">No recent activity</div>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = activities.map(activity => {
+        const typeClass = `type--${activity.type || 'info'}`;
+        return `
+            <div class="activity-item">
+                <span class="activity-item__time">${activity.time || '--'}</span>
+                <span class="activity-item__type ${typeClass}">${(activity.type || 'INFO').toUpperCase()}</span>
+                <span class="activity-item__message">${DOMPurify.sanitize(activity.message || '')}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function formatUptime(seconds) {
+    if (!seconds) return '--';
+    
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+}
+
+// Cleanup on page leave
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) clearInterval(refreshInterval);
+});
+</script>
+{% endblock %}
