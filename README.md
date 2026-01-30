@@ -17,9 +17,27 @@
 
 ---
 
+## 🆕 Recent Updates (Jan 2026)
+
+### ✅ Latest Fixes
+
+**Environment Loading & Logging Improvements**
+
+- ✅ **Centralized `.env` loader** - Eliminates duplicate environment loading
+- ✅ **SSL/TLS log filter** - Suppresses harmless HTTPS handshake errors in development
+- ✅ **Production mode detection** - Proper environment detection with `FORCE_HTTPS` flag
+- ✅ **Clean console output** - Professional logs without binary garbage
+
+📖 **Full details**: [FIXES_LOG_DUPLICATES_SSL.md](docs/FIXES_LOG_DUPLICATES_SSL.md)
+
+**Impact**: Cleaner logs, faster startup, more professional output
+
+---
+
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
+- [Recent Updates](#-recent-updates-jan-2026)
 - [Features](#-features)
 - [Quick Start](#-quick-start)
 - [Architecture](#-architecture)
@@ -76,6 +94,8 @@ BotV2 is a **professional-grade algorithmic trading system** designed for crypto
 - **Latency Simulation** for realistic backtesting
 - **Data Validation** with drift detection
 - **Docker Support** for easy deployment
+- **Centralized Environment Loading** (no duplicates)
+- **Production-Ready Logging** (filtered, clean output)
 
 ---
 
@@ -109,7 +129,24 @@ cp .env.example .env
 
 ### Configuration
 
-Edit `config.yaml` to customize:
+Edit `.env` for environment settings:
+
+```bash
+# Environment (CRITICAL for production)
+FLASK_ENV=development  # or 'production'
+ENVIRONMENT=development
+FORCE_HTTPS=false  # Set to 'true' ONLY in production with HTTPS
+
+# Trading
+TRADING_MODE=paper  # or 'live'
+
+# Dashboard
+DASHBOARD_PORT=8050
+DASHBOARD_USERNAME=admin
+DASHBOARD_PASSWORD=your_secure_password
+```
+
+Edit `config.yaml` to customize trading:
 
 ```yaml
 trading:
@@ -128,12 +165,14 @@ risk:
 
 ```bash
 # Start trading bot
-python -m bot.main
+python main.py
 
-# Start dashboard (separate terminal)
-python -m dashboard.web_app
+# Or use the launcher (recommended)
+python scripts/launcher.py
+# Then select option 1, 2, or 3
 
 # Access dashboard at http://localhost:8050
+# Default credentials: admin / admin (change in .env)
 ```
 
 ### Docker Deployment
@@ -174,11 +213,16 @@ BotV2/
 │   ├── components/         # UI components
 │   ├── pages/              # Dashboard pages
 │   └── templates/          # HTML templates
+├── shared/                 # Shared utilities
+│   ├── security/           # Security modules
+│   └── utils/              # Common utilities
+│       └── env_loader.py   # Centralized environment loader
 ├── docs/                   # Documentation
 ├── scripts/                # Utility scripts
 ├── tests/                  # Test suite (70+ tests)
 ├── config.yaml             # Main configuration
 ├── docker-compose.yml      # Docker setup
+├── main.py                 # Bot entry point
 └── requirements.txt        # Dependencies
 ```
 
@@ -271,9 +315,11 @@ Access the real-time dashboard at `http://localhost:8050`
 
 - JWT Authentication
 - Rate Limiting (60 req/min)
-- HTTPS Support
+- HTTPS Support (production)
 - IP Whitelisting (optional)
 - Access Logging
+- CSRF Protection
+- XSS Prevention
 
 ---
 
@@ -307,17 +353,31 @@ risk:
 ### Environment Variables (`.env`)
 
 ```bash
+# Environment Configuration
+FLASK_ENV=development  # 'development' or 'production'
+ENVIRONMENT=development
+FORCE_HTTPS=false  # CRITICAL: Only 'true' in production
+
 # Exchange API Keys
 BINANCE_API_KEY=your_key
 BINANCE_SECRET=your_secret
 
 # Dashboard Security
+DASHBOARD_PORT=8050
 DASHBOARD_USERNAME=admin
 DASHBOARD_PASSWORD=secure_password
 DASHBOARD_JWT_SECRET=your_jwt_secret
 
 # Database
-POSTGRES_PASSWORD=your_db_password
+DATABASE_URL=sqlite:///data/dashboard.db
+POSTGRES_PASSWORD=your_db_password  # if using PostgreSQL
+```
+
+**Important**: For production deployment, set:
+```bash
+FLASK_ENV=production
+ENVIRONMENT=production
+FORCE_HTTPS=true  # Enables Talisman HTTPS enforcement
 ```
 
 ---
@@ -336,12 +396,20 @@ POSTGRES_PASSWORD=your_db_password
 
 ## 📚 Documentation
 
+### Core Documentation
+
 | Document | Description |
 |----------|-------------|
 | [Architecture](docs/ARCHITECTURE.md) | System architecture details |
 | [Configuration Guide](docs/CONFIG_GUIDE.md) | Complete config reference |
 | [Order Optimization](docs/ORDER_OPTIMIZATION.md) | Order execution strategies |
 | [Control Panel](docs/CONTROL_PANEL_V4.2.md) | Dashboard user guide |
+
+### Technical Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Log Fixes](docs/FIXES_LOG_DUPLICATES_SSL.md) | Environment loader & SSL log fixes |
 | [Deployment](docs/deployment/) | Deployment guides |
 | [API Reference](docs/reference/) | API documentation |
 
