@@ -27,33 +27,8 @@ import sys
 from pathlib import Path
 
 # ============================================================================
-# CRITICAL: Load .env file FIRST before any other imports or os.getenv calls
-# This ensures DASHBOARD_USERNAME and DASHBOARD_PASSWORD are available
-# ============================================================================
-try:
-    from dotenv import load_dotenv
-    
-    # Find .env file in project root (parent of dashboard folder)
-    _DASHBOARD_DIR = Path(__file__).parent
-    _PROJECT_ROOT = _DASHBOARD_DIR.parent
-    _ENV_FILE = _PROJECT_ROOT / '.env'
-    
-    if _ENV_FILE.exists():
-        load_dotenv(_ENV_FILE)
-        print(f"[+] Loaded environment from {_ENV_FILE}", flush=True)
-    else:
-        # Try current working directory
-        _CWD_ENV = Path.cwd() / '.env'
-        if _CWD_ENV.exists():
-            load_dotenv(_CWD_ENV)
-            print(f"[+] Loaded environment from {_CWD_ENV}", flush=True)
-        else:
-            print(f"[!] No .env file found at {_ENV_FILE} or {_CWD_ENV}", flush=True)
-except ImportError:
-    print("[!] python-dotenv not installed, using system environment variables only", flush=True)
-
-# ============================================================================
-# FIX IMPORTS: Add project root to path for both module and direct execution
+# CRITICAL: Load .env file FIRST using centralized loader
+# This ensures environment is loaded only once across entire application
 # ============================================================================
 _DASHBOARD_DIR = Path(__file__).parent
 _PROJECT_ROOT = _DASHBOARD_DIR.parent
@@ -62,6 +37,20 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 if str(_DASHBOARD_DIR) not in sys.path:
     sys.path.insert(0, str(_DASHBOARD_DIR))
+
+try:
+    from shared.utils.env_loader import load_env_once
+    load_env_once(verbose=True)
+except ImportError:
+    # Fallback if shared module not available
+    try:
+        from dotenv import load_dotenv
+        env_file = _PROJECT_ROOT / '.env'
+        if env_file.exists():
+            load_dotenv(env_file)
+            print(f"[+] Environment loaded from {env_file}", flush=True)
+    except ImportError:
+        print("[!] python-dotenv not installed", flush=True)
 
 # ============================================================================
 # STANDARD IMPORTS
@@ -196,6 +185,26 @@ ASCII_BANNER = r"""
 """
 
 
+# ============================================================================
+# SSL/TLS ERROR LOG FILTER
+# ============================================================================
+class SSLErrorFilter(logging.Filter):
+    """Filter out SSL/TLS handshake errors from logs.
+    
+    These errors occur when browsers try HTTPS on an HTTP-only server.
+    They are harmless in development but clutter the logs.
+    """
+    
+    def filter(self, record):
+        # Filter out SSL handshake errors (bad request version)
+        if 'Bad request version' in record.getMessage():
+            return False
+        # Filter out binary SSL data
+        if 'code 400' in record.getMessage() and '\\x' in record.getMessage():
+            return False
+        return True
+
+
 def generate_csp_nonce() -> str:
     """Generate cryptographically secure nonce for CSP.
     
@@ -217,7 +226,7 @@ class DashboardAuth:
         self.max_attempts = 5
         self.lockout_duration = timedelta(minutes=5)
         
-        # Log credentials source for debugging
+        # Log credentials source for debugging (only once)
         env_username = os.getenv('DASHBOARD_USERNAME')
         env_password = os.getenv('DASHBOARD_PASSWORD')
         
@@ -294,17 +303,29 @@ class ProfessionalDashboard:
         self.port = int(os.getenv('DASHBOARD_PORT', dash_config.get('port', 8050)))
         self.debug = dash_config.get('debug', False)
         
-        # CRITICAL: Detect environment from FLASK_ENV (not ENVIRONMENT)
-        # This is what Flask uses internally
-        self.env = os.getenv('FLASK_ENV', 'development').lower()
-        self.is_production = self.env == 'production'
-        self.is_development = self.env == 'development'
+        # CRITICAL FIX: Proper environment detection
+        # Priority: FLASK_ENV > ENVIRONMENT > default to development
+        flask_env = os.getenv('FLASK_ENV', '').lower()
+        general_env = os.getenv('ENVIRONMENT', '').lower()
+        
+        if flask_env:
+            self.env = flask_env
+        elif general_env:
+            self.env = general_env
+        else:
+            self.env = 'development'
+        
+        # Production mode requires EXPLICIT setting AND FORCE_HTTPS=true
+        force_https = os.getenv('FORCE_HTTPS', 'false').lower() == 'true'
+        self.is_production = (self.env == 'production' and force_https)
+        self.is_development = not self.is_production
         
         # Log environment detection
         logger.info("="*70)
         logger.info("ENVIRONMENT DETECTION:")
         logger.info("  FLASK_ENV = %s", os.getenv('FLASK_ENV', 'NOT SET'))
         logger.info("  ENVIRONMENT = %s", os.getenv('ENVIRONMENT', 'NOT SET'))
+        logger.info("  FORCE_HTTPS = %s", os.getenv('FORCE_HTTPS', 'false'))
         logger.info("  Detected mode: %s", self.env.upper())
         logger.info("  Is Production: %s", self.is_production)
         logger.info("  Is Development: %s", self.is_development)
@@ -348,6 +369,9 @@ class ProfessionalDashboard:
         # Setup routes
         self._setup_routes()
         self._setup_websocket_handlers()
+        
+        # Setup log filters to suppress SSL errors
+        self._setup_log_filters()
         
         # Startup banner - MUST be called after all setup
         self._log_startup_banner()
@@ -420,11 +444,10 @@ class ProfessionalDashboard:
             logger.info("[+] Security Middleware enabled")
         
         # 6. CSP Configuration with Talisman
-        # CRITICAL: Only enable in PRODUCTION mode
-        # Check both FLASK_ENV and explicit FORCE_HTTPS setting
-        force_https = os.getenv('FORCE_HTTPS', 'false').lower() == 'true'
-        
-        if HAS_TALISMAN and self.is_production and force_https:
+        # CRITICAL: Only enable if BOTH conditions met:
+        # 1. is_production = True (FLASK_ENV=production AND FORCE_HTTPS=true)
+        # 2. HAS_TALISMAN available
+        if HAS_TALISMAN and self.is_production:
             logger.info("[*] Initializing Talisman for PRODUCTION mode...")
             csp_config = {
                 'default-src': "'self'",
@@ -487,13 +510,14 @@ class ProfessionalDashboard:
             )
             logger.info("[+] Talisman ENABLED - HTTPS + CSP (production)")
         else:
-            # Development mode or HTTPS disabled: COMPLETELY SKIP Talisman
-            logger.warning("="*70)
-            logger.warning("[!] Talisman DISABLED - Development Mode")
-            logger.warning("[!] CSP: OFF")
-            logger.warning("[!] HTTPS: OFF")
-            logger.warning("[!] Reason: FLASK_ENV=%s, FORCE_HTTPS=%s", self.env, force_https)
-            logger.warning("="*70)
+            # Development mode: COMPLETELY SKIP Talisman
+            logger.info("="*70)
+            logger.info("[*] Talisman DISABLED - Development Mode")
+            logger.info("[*] CSP: OFF")
+            logger.info("[*] HTTPS: OFF (HTTP only)")
+            logger.info("[*] Reason: is_production=%s, FORCE_HTTPS=%s", 
+                       self.is_production, os.getenv('FORCE_HTTPS', 'false'))
+            logger.info("="*70)
     
     def _setup_compression(self):
         """Setup GZIP compression."""
@@ -559,6 +583,14 @@ class ProfessionalDashboard:
         self.app.register_blueprint(metrics_routes_bp)
         logger.info("[+] All blueprints registered")
     
+    def _setup_log_filters(self):
+        """Setup log filters to suppress SSL/TLS errors."""
+        # Add filter to werkzeug logger (Flask's HTTP logger)
+        werkzeug_logger = logging.getLogger('werkzeug')
+        ssl_filter = SSLErrorFilter()
+        werkzeug_logger.addFilter(ssl_filter)
+        logger.info("[+] SSL error log filter enabled")
+    
     def _log_startup_banner(self):
         """Log startup banner with immediate flush to ensure visibility."""
         if self.audit_logger:
@@ -584,8 +616,8 @@ class ProfessionalDashboard:
             print("    - Session Mgmt        OK", flush=True)
             print("    - Audit Logging       OK", flush=True)
             print("    - Security Headers    OK ({})".format(self.env), flush=True)
-            print("    - CSP                 {}".format('STRICT' if self.is_production else 'DISABLED'), flush=True)
-            print("    - Talisman            {}".format('ENABLED' if self.is_production else 'DISABLED'), flush=True)
+            print("    - CSP                 {}".format('STRICT' if self.is_production else 'OFF'), flush=True)
+            print("    - Talisman            {}".format('ENABLED' if self.is_production else 'OFF'), flush=True)
         
         print("  Metrics                 {}".format('ENABLED' if HAS_METRICS else 'DISABLED'), flush=True)
         print("  GZIP Compression        {}".format('ENABLED' if HAS_COMPRESS else 'DISABLED'), flush=True)
