@@ -4,70 +4,53 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <!-- Header Stats Row -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="text-muted mb-1">Total Balance</h6>
-                            <h3 class="mb-0" id="total-balance">€0.00</h3>
-                        </div>
-                        <div class="stat-icon bg-primary">
-                            <i class="fas fa-wallet"></i>
-                        </div>
-                    </div>
-                    <small class="text-success" id="balance-change">+0.00%</small>
-                </div>
+    <!-- Header Stats - CSS v4.0 Metric Cards -->
+    <div class="card-grid mb-4">
+        <!-- Total Balance Metric -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-primary">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Total Balance</span>
+                <span class="metric-card__value" id="total-balance">€0.00</span>
+                <small id="balance-change" class="text-success" style="font-size: 0.75rem; margin-top: 4px; display: block;">+0.00%</small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="text-muted mb-1">Today's P&L</h6>
-                            <h3 class="mb-0" id="daily-pnl">€0.00</h3>
-                        </div>
-                        <div class="stat-icon bg-success">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                    </div>
-                    <small id="daily-trades">0 trades</small>
-                </div>
+
+        <!-- Today's P&L Metric -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-success">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Today's P&L</span>
+                <span class="metric-card__value" id="daily-pnl">€0.00</span>
+                <small id="daily-trades" style="font-size: 0.75rem; margin-top: 4px; display: block;">0 trades</small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="text-muted mb-1">Win Rate</h6>
-                            <h3 class="mb-0" id="win-rate">0%</h3>
-                        </div>
-                        <div class="stat-icon bg-info">
-                            <i class="fas fa-trophy"></i>
-                        </div>
-                    </div>
-                    <small id="total-trades">0 total trades</small>
-                </div>
+
+        <!-- Win Rate Metric -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-info">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Win Rate</span>
+                <span class="metric-card__value" id="win-rate">0%</span>
+                <small id="total-trades" class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">0 total trades</small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="text-muted mb-1">Bot Status</h6>
-                            <h3 class="mb-0" id="bot-status">Offline</h3>
-                        </div>
-                        <div class="stat-icon bg-warning" id="status-icon">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                    </div>
-                    <small id="bot-uptime">--</small>
-                </div>
+
+        <!-- Bot Status Metric -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-warning" id="status-icon">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Bot Status</span>
+                <span class="metric-card__value" id="bot-status">Offline</span>
+                <small id="bot-uptime" class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">--</small>
             </div>
         </div>
     </div>
@@ -76,27 +59,39 @@
     <div class="row mb-4">
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Portfolio Performance</h5>
-                    <div class="btn-group-period" id="period-buttons">
-                        <button class="btn btn-sm btn-period" data-period="1d" onclick="selectPeriod(this, '1d')">1D</button>
-                        <button class="btn btn-sm btn-period active" data-period="1w" onclick="selectPeriod(this, '1w')">1W</button>
-                        <button class="btn btn-sm btn-period" data-period="1m" onclick="selectPeriod(this, '1m')">1M</button>
-                        <button class="btn btn-sm btn-period" data-period="all" onclick="selectPeriod(this, 'all')">All</button>
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <h5>Portfolio Performance</h5>
+                    </div>
+                    <div class="card-header__actions">
+                        <div class="btn-group-period" id="period-buttons">
+                            <button class="btn btn-sm btn-period" data-period="1d" onclick="selectPeriod(this, '1d')">1D</button>
+                            <button class="btn btn-sm btn-period active" data-period="1w" onclick="selectPeriod(this, '1w')">1W</button>
+                            <button class="btn btn-sm btn-period" data-period="1m" onclick="selectPeriod(this, '1m')">1M</button>
+                            <button class="btn btn-sm btn-period" data-period="all" onclick="selectPeriod(this, 'all')">All</button>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="performance-chart" height="300"></canvas>
+                    <!-- Chart Container - CSS v4.0 -->
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="performance-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="mb-0">Asset Allocation</h5>
+                    <div class="card-header__title">
+                        <h5>Asset Allocation</h5>
+                    </div>
                 </div>
-                <div class="card-body d-flex align-items-center justify-content-center">
-                    <canvas id="allocation-chart"></canvas>
+                <div class="card-body">
+                    <!-- Chart Container - CSS v4.0 -->
+                    <div class="chart-container">
+                        <canvas id="allocation-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -106,11 +101,15 @@
     <div class="row">
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header d-flex justify-content-between">
-                    <h5 class="mb-0">Open Positions</h5>
-                    <span class="badge bg-primary" id="position-count">0</span>
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <h5>Open Positions</h5>
+                    </div>
+                    <div class="card-header__actions">
+                        <span class="badge bg-primary" id="position-count">0</span>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover" id="positions-table">
                             <thead>
@@ -123,20 +122,29 @@
                                     <th>Action</th>
                                 </tr>
                             </thead>
-                            <tbody id="positions-body">
-                                <tr><td colspan="6" class="text-center text-muted">No open positions</td></tr>
-                            </tbody>
+                            <tbody id="positions-body"></tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Empty State - CSS v4.0 -->
+                    <div id="no-positions" class="empty-state">
+                        <i class="empty-state__icon fas fa-layer-group"></i>
+                        <div class="empty-state__title">No Open Positions</div>
+                        <div class="empty-state__description">
+                            Your active trades will appear here
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header d-flex justify-content-between">
-                    <h5 class="mb-0">Recent Trades</h5>
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <h5>Recent Trades</h5>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover" id="trades-table">
                             <thead>
@@ -147,10 +155,17 @@
                                     <th>P&L</th>
                                 </tr>
                             </thead>
-                            <tbody id="trades-body">
-                                <tr><td colspan="4" class="text-center text-muted">No recent trades</td></tr>
-                            </tbody>
+                            <tbody id="trades-body"></tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Empty State - CSS v4.0 -->
+                    <div id="no-trades" class="empty-state">
+                        <i class="empty-state__icon fas fa-history"></i>
+                        <div class="empty-state__title">No Recent Trades</div>
+                        <div class="empty-state__description">
+                            Your trade history will appear here
+                        </div>
                     </div>
                 </div>
             </div>
@@ -193,70 +208,26 @@
     color: white;
 }
 
-/* Light theme adjustments */
 [data-theme="light"] .btn-group-period {
     border-color: var(--border-color);
     box-shadow: var(--shadow-xs);
-}
-
-[data-theme="light"] .btn-period {
-    background: var(--bg-card);
-}
-
-[data-theme="light"] .btn-period:hover {
-    background: var(--bg-card-hover);
-}
-
-[data-theme="light"] .btn-period.active {
-    background: var(--color-primary);
-    color: white;
 }
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Professional color palette for charts
-    const CHART_COLORS = {
-        primary: '#6366f1',
-        primaryLight: 'rgba(99, 102, 241, 0.15)',
-        success: '#10b981',
-        danger: '#ef4444',
-        warning: '#f59e0b',
-        info: '#3b82f6',
-        text: '#64748b',
-        grid: 'rgba(100, 116, 139, 0.1)'
-    };
-
-    // Initialize charts and load data
+    // ✅ Use ThemeManager for all charts
     let performanceChart = null;
     let allocationChart = null;
     let currentPeriod = '1w';
 
     // Period button selection handler
     function selectPeriod(button, period) {
-        // Remove active class from all buttons
-        document.querySelectorAll('.btn-period').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        // Add active class to clicked button
+        document.querySelectorAll('.btn-period').forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
-        
-        // Update current period and reload chart
         currentPeriod = period;
         loadPerformanceData(period);
-    }
-
-    // Load performance data for specific period
-    async function loadPerformanceData(period) {
-        try {
-            // Generate data based on period
-            const performanceData = generatePerformanceData(period);
-            updatePerformanceChart(performanceData);
-        } catch (error) {
-            console.error('Error loading performance data:', error);
-        }
     }
 
     // Generate performance data based on period
@@ -311,6 +282,16 @@
         return { labels, data };
     }
 
+    // Load performance data
+    async function loadPerformanceData(period) {
+        try {
+            const performanceData = generatePerformanceData(period);
+            updatePerformanceChart(performanceData);
+        } catch (error) {
+            console.error('Error loading performance data:', error);
+        }
+    }
+
     // Load dashboard data
     async function loadDashboardData() {
         try {
@@ -351,7 +332,6 @@
         };
         
         updateDashboardStats(demoData);
-        // Load performance data for current period
         loadPerformanceData(currentPeriod);
     }
 
@@ -359,7 +339,6 @@
     function updateDashboardStats(data) {
         const overview = data.overview || {};
         
-        // Update stats cards
         document.getElementById('total-balance').textContent = overview.equity || '€0.00';
         
         const balanceChange = document.getElementById('balance-change');
@@ -373,26 +352,22 @@
         document.getElementById('bot-status').textContent = overview.bot_status || 'Offline';
         document.getElementById('bot-uptime').textContent = overview.uptime || '--';
 
-        // Update performance chart with current period
         loadPerformanceData(currentPeriod);
         
-        // Update allocation chart
         if (data.allocation) {
             updateAllocationChart(data.allocation);
         }
 
-        // Update positions table
         if (data.positions) {
             updatePositionsTable(data.positions);
         }
 
-        // Update trades table
         if (data.trades) {
             updateTradesTable(data.trades);
         }
     }
 
-    // Update performance chart
+    // ✅ Update performance chart with ThemeManager
     function updatePerformanceChart(data) {
         const ctx = document.getElementById('performance-chart');
         if (!ctx) return;
@@ -401,79 +376,34 @@
             performanceChart.destroy();
         }
 
-        performanceChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.labels || [],
-                datasets: [{
-                    label: 'Portfolio Value',
-                    data: data.data || [],
-                    borderColor: CHART_COLORS.primary,
-                    backgroundColor: CHART_COLORS.primaryLight,
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 5,
-                    pointHoverBackgroundColor: CHART_COLORS.primary,
-                    pointHoverBorderColor: '#fff',
-                    pointHoverBorderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                        titleColor: '#fff',
-                        bodyColor: '#cbd5e1',
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                        borderWidth: 1,
-                        cornerRadius: 8,
-                        padding: 12,
-                        callbacks: {
-                            label: (context) => `Value: €${context.parsed.y.toLocaleString()}`
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        grid: {
-                            color: CHART_COLORS.grid
-                        },
-                        ticks: {
-                            color: CHART_COLORS.text,
-                            font: { size: 11 },
-                            callback: (value) => '€' + value.toLocaleString()
-                        },
-                        border: { display: false }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: CHART_COLORS.text,
-                            font: { size: 11 },
-                            maxRotation: 0
-                        },
-                        border: { display: false }
-                    }
-                }
-            }
-        });
+        const colors = ThemeManager.getChartColors();
+        const config = ThemeManager.getChartDefaults('line');
+        
+        config.data = {
+            labels: data.labels || [],
+            datasets: [{
+                label: 'Portfolio Value',
+                data: data.data || [],
+                borderColor: colors.primary,
+                backgroundColor: `${colors.primary}20`,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 5
+            }]
+        };
+
+        config.options.plugins.tooltip.callbacks = {
+            label: (context) => `Value: €${context.parsed.y.toLocaleString()}`
+        };
+
+        config.options.scales.y.ticks.callback = (value) => '€' + value.toLocaleString();
+        
+        performanceChart = new Chart(ctx, config);
     }
 
-    // Update allocation chart
+    // ✅ Update allocation chart with ThemeManager
     function updateAllocationChart(data) {
         const ctx = document.getElementById('allocation-chart');
         if (!ctx) return;
@@ -482,68 +412,43 @@
             allocationChart.destroy();
         }
 
-        // Professional allocation colors
-        const allocationColors = [
-            '#6366f1', // Indigo (BTC)
-            '#10b981', // Emerald (ETH)
-            '#f59e0b', // Amber (SOL)
-            '#ef4444'  // Red (USDT/Other)
-        ];
+        const colors = ThemeManager.getChartColors();
+        const config = ThemeManager.getChartDefaults('doughnut');
 
-        allocationChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: data.labels || [],
-                datasets: [{
-                    data: data.data || [],
-                    backgroundColor: allocationColors,
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                cutout: '65%',
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: 'var(--text-secondary)',
-                            padding: 15,
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            font: { size: 12 }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                        titleColor: '#fff',
-                        bodyColor: '#cbd5e1',
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                        borderWidth: 1,
-                        cornerRadius: 8,
-                        padding: 12,
-                        callbacks: {
-                            label: (context) => `${context.label}: ${context.parsed}%`
-                        }
-                    }
-                }
-            }
-        });
+        config.data = {
+            labels: data.labels || [],
+            datasets: [{
+                data: data.data || [],
+                backgroundColor: colors.palette,
+                borderWidth: 0
+            }]
+        };
+
+        config.options.plugins.tooltip.callbacks = {
+            label: (context) => `${context.label}: ${context.parsed}%`
+        };
+        
+        allocationChart = new Chart(ctx, config);
     }
 
-    // Update positions table
+    // Update positions table with empty state
     function updatePositionsTable(positions) {
         const tbody = document.getElementById('positions-body');
+        const noPositions = document.getElementById('no-positions');
+        const table = document.getElementById('positions-table');
+        
         if (!tbody) return;
 
         document.getElementById('position-count').textContent = positions.length;
 
         if (positions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No open positions</td></tr>';
+            table.style.display = 'none';
+            noPositions.style.display = 'flex';
             return;
         }
+
+        table.style.display = 'table';
+        noPositions.style.display = 'none';
 
         tbody.innerHTML = positions.map(pos => `
             <tr>
@@ -563,15 +468,22 @@
         `).join('');
     }
 
-    // Update trades table
+    // Update trades table with empty state
     function updateTradesTable(trades) {
         const tbody = document.getElementById('trades-body');
+        const noTrades = document.getElementById('no-trades');
+        const table = document.getElementById('trades-table');
+        
         if (!tbody) return;
 
         if (trades.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No recent trades</td></tr>';
+            table.style.display = 'none';
+            noTrades.style.display = 'flex';
             return;
         }
+
+        table.style.display = 'table';
+        noTrades.style.display = 'none';
 
         tbody.innerHTML = trades.map(trade => `
             <tr>
@@ -585,14 +497,26 @@
         `).join('');
     }
 
-    // Close position action
     function closePosition(symbol) {
         if (confirm(`Close position for ${symbol}?`)) {
             console.log(`Closing position: ${symbol}`);
             showToast(`Position ${symbol} close request sent`, 'info');
-            // TODO: Implement close position API call
         }
     }
+
+    // ✅ Re-render charts on theme change
+    window.addEventListener('themechange', function() {
+        if (performanceChart) {
+            loadPerformanceData(currentPeriod);
+        }
+        if (allocationChart) {
+            const data = {
+                labels: ['BTC', 'ETH', 'SOL', 'USDT'],
+                data: [45, 30, 15, 10]
+            };
+            updateAllocationChart(data);
+        }
+    });
 
     // WebSocket real-time updates
     if (typeof socket !== 'undefined' && socket) {
