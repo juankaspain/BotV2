@@ -38,7 +38,7 @@ backtrader==1.9.78.123
 Flask==3.0.0
 Flask-CORS==4.0.0
 Flask-SocketIO==5.3.5
-Flask-Limiter==3.5.0
+Flask-Limiter==4.1.1
 Flask-Talisman==1.1.0
 Flask-WTF==1.2.1
 Flask-Compress==1.14
