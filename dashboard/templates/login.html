@@ -1,175 +1,468 @@
-{% extends "base.html" %}
-
-{% block title %}Login - BotV2 Dashboard{% endblock %}
-
-{% block head %}
-<style>
-    body {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: 'Inter', sans-serif;
-    }
-    .login-container {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 40px;
-        width: 100%;
-        max-width: 400px;
-        box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .login-header {
-        text-align: center;
-        margin-bottom: 30px;
-    }
-    .login-header h1 {
-        color: #fff;
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    .login-header p {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 0.9rem;
-    }
-    .form-group {
-        margin-bottom: 20px;
-    }
-    .form-group label {
-        color: rgba(255, 255, 255, 0.8);
-        font-size: 0.85rem;
-        margin-bottom: 8px;
-        display: block;
-    }
-    .form-control {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: #fff;
-        padding: 12px 16px;
-        border-radius: 10px;
-        width: 100%;
-        transition: all 0.3s ease;
-    }
-    .form-control:focus {
-        background: rgba(255, 255, 255, 0.15);
-        border-color: #00d9ff;
-        box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.2);
-        outline: none;
-    }
-    .btn-login {
-        background: linear-gradient(135deg, #00d9ff, #0066ff);
-        border: none;
-        color: #fff;
-        padding: 14px;
-        border-radius: 10px;
-        width: 100%;
-        font-weight: 600;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    .btn-login:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0, 102, 255, 0.3);
-    }
-    .alert {
-        padding: 12px 16px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        font-size: 0.85rem;
-    }
-    .alert-danger {
-        background: rgba(220, 53, 69, 0.2);
-        border: 1px solid rgba(220, 53, 69, 0.5);
-        color: #ff6b6b;
-    }
-    .alert-success {
-        background: rgba(40, 167, 69, 0.2);
-        border: 1px solid rgba(40, 167, 69, 0.5);
-        color: #51cf66;
-    }
-    .version-badge {
-        text-align: center;
-        margin-top: 20px;
-        color: rgba(255, 255, 255, 0.4);
-        font-size: 0.75rem;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="login-container">
-    <div class="login-header">
-        <h1><i class="fas fa-robot"></i> BotV2</h1>
-        <p>Professional Trading Dashboard</p>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BotV2 Professional Trading Dashboard - Login">
+    <meta name="theme-color" content="#0a0a1a">
+    <title>Login - BotV2 Dashboard</title>
     
-    <div id="alert-container"></div>
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     
-    <form id="login-form" method="POST" action="/login">
-        {% if csrf_token %}
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        {% endif %}
-        
-        <div class="form-group">
-            <label for="username"><i class="fas fa-user"></i> Username</label>
-            <input type="text" class="form-control" id="username" name="username" required autocomplete="username">
-        </div>
-        
-        <div class="form-group">
-            <label for="password"><i class="fas fa-lock"></i> Password</label>
-            <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
-        </div>
-        
-        <button type="submit" class="btn-login" id="login-btn">
-            <i class="fas fa-sign-in-alt"></i> Sign In
-        </button>
-    </form>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <div class="version-badge">
-        v7.5 - Enterprise Security
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script nonce="{{ csp_nonce }}">
-document.getElementById('login-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
     
-    const btn = document.getElementById('login-btn');
-    const alertContainer = document.getElementById('alert-container');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
-    
-    try {
-        const formData = new FormData(this);
-        const response = await fetch('/login', {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            alertContainer.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Login successful! Redirecting...</div>';
-            setTimeout(() => window.location.href = data.redirect || '/', 1000);
-        } else {
-            alertContainer.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error || 'Invalid credentials'}</div>`;
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-    } catch (error) {
-        alertContainer.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Connection error. Please try again.</div>';
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
-    }
-});
-</script>
-{% endblock %}
+        
+        :root {
+            --primary: #00d4ff;
+            --primary-dark: #0099cc;
+            --secondary: #7c3aed;
+            --bg-dark: #0a0a1a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Animated Background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(0, 212, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
+            animation: pulse 8s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+        
+        /* Grid Pattern */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 1;
+        }
+        
+        /* Login Container */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 420px;
+        }
+        
+        .login-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        }
+        
+        /* Logo Section */
+        .login-logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+        }
+        
+        .logo-icon i {
+            font-size: 36px;
+            color: white;
+        }
+        
+        .login-logo h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .login-logo p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 400;
+        }
+        
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-label i {
+            font-size: 12px;
+            color: var(--primary);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(0, 212, 255, 0.05);
+            box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.1);
+        }
+        
+        /* Submit Button */
+        .btn-submit {
+            width: 100%;
+            padding: 18px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn-submit:hover::before {
+            left: 100%;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+        }
+        
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+        
+        .btn-submit:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-submit i {
+            font-size: 16px;
+        }
+        
+        /* Alert Messages */
+        .alert {
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+        
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+        }
+        
+        .alert i {
+            font-size: 18px;
+        }
+        
+        /* Footer */
+        .login-footer {
+            text-align: center;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .version-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .version-badge i {
+            color: var(--success);
+        }
+        
+        /* Spinner Animation */
+        .fa-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 32px 24px;
+                border-radius: 20px;
+            }
+            
+            .logo-icon {
+                width: 64px;
+                height: 64px;
+            }
+            
+            .logo-icon i {
+                font-size: 28px;
+            }
+            
+            .login-logo h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-gradient"></div>
+    <div class="bg-grid"></div>
+    
+    <!-- Login Card -->
+    <div class="login-wrapper">
+        <div class="login-card">
+            <!-- Logo -->
+            <div class="login-logo">
+                <div class="logo-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h1>BotV2</h1>
+                <p>Professional Trading Dashboard</p>
+            </div>
+            
+            <!-- Alert Container -->
+            <div id="alert-container"></div>
+            
+            <!-- Login Form -->
+            <form id="login-form" method="POST" action="/login">
+                <div class="form-group">
+                    <label class="form-label" for="username">
+                        <i class="fas fa-user"></i>
+                        Username
+                    </label>
+                    <input 
+                        type="text" 
+                        class="form-input" 
+                        id="username" 
+                        name="username" 
+                        placeholder="Enter your username"
+                        required 
+                        autocomplete="username"
+                        autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">
+                        <i class="fas fa-lock"></i>
+                        Password
+                    </label>
+                    <input 
+                        type="password" 
+                        class="form-input" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Enter your password"
+                        required 
+                        autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="btn-submit" id="login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Sign In</span>
+                </button>
+            </form>
+            
+            <!-- Footer -->
+            <div class="login-footer">
+                <div class="version-badge">
+                    <i class="fas fa-shield-halved"></i>
+                    v7.5 - Enterprise Security
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('login-btn');
+        const alertContainer = document.getElementById('alert-container');
+        const btnText = btn.querySelector('span');
+        const btnIcon = btn.querySelector('i');
+        
+        // Disable button and show loading
+        btn.disabled = true;
+        btnIcon.className = 'fas fa-circle-notch fa-spin';
+        btnText.textContent = 'Signing in...';
+        
+        try {
+            const formData = new FormData(this);
+            const response = await fetch('/login', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                alertContainer.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Login successful! Redirecting...</span>
+                    </div>
+                `;
+                btnIcon.className = 'fas fa-check';
+                btnText.textContent = 'Success!';
+                
+                setTimeout(() => {
+                    window.location.href = data.redirect || '/';
+                }, 1000);
+            } else {
+                alertContainer.innerHTML = `
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>${data.error || 'Invalid credentials'}</span>
+                    </div>
+                `;
+                btn.disabled = false;
+                btnIcon.className = 'fas fa-sign-in-alt';
+                btnText.textContent = 'Sign In';
+            }
+        } catch (error) {
+            alertContainer.innerHTML = `
+                <div class="alert alert-error">
+                    <i class="fas fa-wifi"></i>
+                    <span>Connection error. Please try again.</span>
+                </div>
+            `;
+            btn.disabled = false;
+            btnIcon.className = 'fas fa-sign-in-alt';
+            btnText.textContent = 'Sign In';
+        }
+    });
+    </script>
+</body>
+</html>
