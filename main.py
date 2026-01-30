@@ -14,19 +14,20 @@ from pathlib import Path
 # ============================================================================
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Centralized env loading - ONLY env_loader.py prints messages
 try:
     from shared.utils.env_loader import load_env_once
     load_env_once(verbose=True)
 except ImportError:
-    # Fallback if shared module not available
+    # Silent fallback - no duplicate print
     try:
         from dotenv import load_dotenv
         _ENV_FILE = Path(__file__).parent / '.env'
         if _ENV_FILE.exists():
             load_dotenv(_ENV_FILE)
-            print(f"[+] Loaded environment from {_ENV_FILE}", flush=True)
+            # NO PRINT HERE - env_loader.py handles all output
     except ImportError:
-        print("[!] python-dotenv not installed", flush=True)
+        pass  # Continue without .env
 
 # ============================================================================
 # NOW SAFE TO IMPORT OTHER MODULES

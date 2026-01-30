@@ -38,19 +38,20 @@ if str(_PROJECT_ROOT) not in sys.path:
 if str(_DASHBOARD_DIR) not in sys.path:
     sys.path.insert(0, str(_DASHBOARD_DIR))
 
+# Centralized env loading - ONLY env_loader.py prints messages
 try:
     from shared.utils.env_loader import load_env_once
     load_env_once(verbose=True)
 except ImportError:
-    # Fallback if shared module not available
+    # Silent fallback - no duplicate print
     try:
         from dotenv import load_dotenv
         env_file = _PROJECT_ROOT / '.env'
         if env_file.exists():
             load_dotenv(env_file)
-            print(f"[+] Environment loaded from {env_file}", flush=True)
+            # NO PRINT HERE - env_loader.py handles all output
     except ImportError:
-        print("[!] python-dotenv not installed", flush=True)
+        pass  # Continue without .env
 
 # ============================================================================
 # STANDARD IMPORTS
