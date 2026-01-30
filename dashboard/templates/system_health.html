@@ -18,60 +18,60 @@
 
 {% block content %}
 <div class="system-health">
-    <!-- Quick Stats Row -->
-    <div class="metrics-grid mb-4" id="quick-stats">
-        <div class="metric-card">
-            <div class="metric-card__icon bg-success">
+    <!-- Quick Stats Row - Horizontal Layout -->
+    <div class="metrics-row mb-4" id="quick-stats">
+        <div class="metric-item">
+            <div class="metric-item__icon bg-success">
                 <i class="fas fa-heartbeat"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">System Status</span>
-                <span class="metric-card__value" id="stat-status">--</span>
+            <div class="metric-item__content">
+                <span class="metric-item__label">Status</span>
+                <span class="metric-item__value" id="stat-status">--</span>
             </div>
         </div>
-        <div class="metric-card">
-            <div class="metric-card__icon bg-primary">
+        <div class="metric-item">
+            <div class="metric-item__icon bg-primary">
                 <i class="fas fa-code-branch"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">Version</span>
-                <span class="metric-card__value" id="stat-version">--</span>
+            <div class="metric-item__content">
+                <span class="metric-item__label">Version</span>
+                <span class="metric-item__value" id="stat-version">--</span>
             </div>
         </div>
-        <div class="metric-card">
-            <div class="metric-card__icon bg-info">
+        <div class="metric-item">
+            <div class="metric-item__icon bg-info">
                 <i class="fas fa-clock"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">Uptime</span>
-                <span class="metric-card__value" id="stat-uptime">--</span>
+            <div class="metric-item__content">
+                <span class="metric-item__label">Uptime</span>
+                <span class="metric-item__value" id="stat-uptime">--</span>
             </div>
         </div>
-        <div class="metric-card">
-            <div class="metric-card__icon bg-warning">
+        <div class="metric-item">
+            <div class="metric-item__icon bg-warning">
                 <i class="fas fa-tachometer-alt"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">Requests/min</span>
-                <span class="metric-card__value" id="stat-rpm">--</span>
+            <div class="metric-item__content">
+                <span class="metric-item__label">Req/min</span>
+                <span class="metric-item__value" id="stat-rpm">--</span>
             </div>
         </div>
-        <div class="metric-card">
-            <div class="metric-card__icon bg-danger">
+        <div class="metric-item">
+            <div class="metric-item__icon bg-danger">
                 <i class="fas fa-exclamation-triangle"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">Error Rate</span>
-                <span class="metric-card__value" id="stat-errors">--</span>
+            <div class="metric-item__content">
+                <span class="metric-item__label">Errors</span>
+                <span class="metric-item__value" id="stat-errors">--</span>
             </div>
         </div>
-        <div class="metric-card">
-            <div class="metric-card__icon bg-primary">
+        <div class="metric-item">
+            <div class="metric-item__icon bg-primary">
                 <i class="fas fa-users"></i>
             </div>
-            <div class="metric-card__content">
-                <span class="metric-card__label">Active Users</span>
-                <span class="metric-card__value" id="stat-users">--</span>
+            <div class="metric-item__content">
+                <span class="metric-item__label">Users</span>
+                <span class="metric-item__value" id="stat-users">--</span>
             </div>
         </div>
     </div>
@@ -338,6 +338,99 @@
 </div>
 
 <style>
+/* ==========================================================================
+   METRICS ROW - Horizontal Professional Layout
+   ========================================================================== */
+
+.metrics-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--space-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.metric-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-smooth);
+}
+
+.metric-item:hover {
+    background: var(--bg-card-hover);
+}
+
+.metric-item__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.metric-item__icon.bg-primary { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); }
+.metric-item__icon.bg-success { background: linear-gradient(135deg, var(--color-success), var(--color-success-dark)); }
+.metric-item__icon.bg-warning { background: linear-gradient(135deg, var(--color-warning), var(--color-warning-dark)); }
+.metric-item__icon.bg-danger { background: linear-gradient(135deg, var(--color-danger), var(--color-danger-dark)); }
+.metric-item__icon.bg-info { background: linear-gradient(135deg, var(--color-info), var(--color-info-dark)); }
+
+.metric-item__content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.metric-item__label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.metric-item__value {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-mono);
+    color: var(--text-heading);
+    white-space: nowrap;
+}
+
+/* Responsive for metrics row */
+@media (max-width: 1399.98px) {
+    .metrics-row {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 991.98px) {
+    .metrics-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .metrics-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .metric-item {
+        justify-content: flex-start;
+    }
+}
+
 /* Charts Grid */
 .charts-grid {
     display: grid;
