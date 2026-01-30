@@ -336,14 +336,12 @@ class ProfessionalDashboard:
             self.limiter = None
             logger.info("⚠️ Rate Limiting disabled by configuration")
         
-        # 4. Session Manager
-        session_config = {
-            'session_timeout_minutes': int(os.getenv('SESSION_TIMEOUT_MINUTES', 15)),
-            'max_session_hours': int(os.getenv('SESSION_MAX_LIFETIME_HOURS', 12)),
-            'activity_timeout_minutes': int(os.getenv('ACTIVITY_TIMEOUT_MINUTES', 15)),
-            'secure_cookies': self.is_production
-        }
-        self.session_manager = SessionManager(self.app, config=session_config)
+        # 4. Session Manager (correct signature: app, session_lifetime)
+        session_timeout_seconds = int(os.getenv('SESSION_TIMEOUT_MINUTES', 15)) * 60
+        self.session_manager = SessionManager(
+            self.app,
+            session_lifetime=session_timeout_seconds
+        )
         logger.info("✅ Session Management enabled")
         
         # 5. Security Middleware (Headers, Request Validation)
@@ -527,7 +525,7 @@ class ProfessionalDashboard:
             
             # 🔒 Validate session if session manager available
             if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
-                if not self.session_manager._is_session_valid():
+                if not self.session_manager.is_valid():
                     session.clear()
                     if self.audit_logger:
                         self.audit_logger.log_session_timeout(
@@ -625,7 +623,7 @@ class ProfessionalDashboard:
             
             # 🔒 Destroy session
             if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
-                self.session_manager.clear_session()
+                self.session_manager.destroy_session()
             
             if self.audit_logger and username:
                 self.audit_logger.log_logout(username)
