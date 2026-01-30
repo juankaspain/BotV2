@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """
-Metrics Monitor - System and application metrics collection
+Metrics Monitor - Application metrics collection and monitoring
 
-Provides monitoring for:
-- Request rates and latencies
-- Error tracking
-- Resource usage (CPU, Memory)
-- WebSocket connections
+Provides:
+- Request rate tracking
+- Latency measurements
+- Error rate monitoring
+- User activity tracking
+- WebSocket connection counts
 """
 
 import os
-import time
-import json
 import logging
+import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
+from typing import Dict, List, Any, Optional
 import threading
 from collections import deque
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
@@ -28,290 +28,266 @@ _monitor_instance = None
 @dataclass
 class MetricsSnapshot:
     """Point-in-time metrics snapshot"""
-    timestamp: str
+    timestamp: datetime = field(default_factory=datetime.now)
     request_rate_rpm: float = 0.0
     error_rate_pct: float = 0.0
-    latency_p50_ms: float = 0.0
-    latency_p95_ms: float = 0.0
-    latency_p99_ms: float = 0.0
+    avg_latency_ms: float = 0.0
+    p95_latency_ms: float = 0.0
+    p99_latency_ms: float = 0.0
     active_users: int = 0
-    memory_usage_pct: float = 0.0
-    memory_usage_mb: float = 0.0
-    cpu_usage_pct: float = 0.0
     websocket_connections: int = 0
     total_requests: int = 0
     total_errors: int = 0
-    
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
 
 
 class MetricsMonitor:
     """
-    Monitors system and application metrics.
+    Application metrics monitor.
     
-    Collects and aggregates metrics for dashboard display.
-    In demo mode, generates simulated metrics.
+    Collects and aggregates metrics for:
+    - HTTP request performance
+    - Error tracking
+    - User activity
+    - WebSocket connections
     """
     
-    def __init__(self, history_minutes: int = 60):
-        self.history_minutes = history_minutes
-        self.demo_mode = os.getenv('DEMO_MODE', 'false').lower() in ('true', '1', 'yes')
+    def __init__(self, window_seconds: int = 300):
+        self.window_seconds = window_seconds
         
-        # Metrics storage
-        self._history: deque = deque(maxlen=history_minutes * 60)  # Per-second resolution
-        self._request_times: deque = deque(maxlen=10000)  # Recent request latencies
-        self._lock = threading.Lock()
+        # Request tracking
+        self._requests: deque = deque(maxlen=10000)
+        self._errors: deque = deque(maxlen=1000)
+        self._latencies: deque = deque(maxlen=10000)
+        
+        # User tracking
+        self._active_users: Dict[str, datetime] = {}
+        self._user_activity_timeout = timedelta(minutes=5)
+        
+        # WebSocket tracking
+        self._websocket_connections = 0
         
         # Counters
         self._total_requests = 0
         self._total_errors = 0
-        self._start_time = datetime.now()
         
-        # Active tracking
-        self._active_users: set = set()
-        self._websocket_connections = 0
+        # Lock for thread safety
+        self._lock = threading.Lock()
         
-        logger.info(f"MetricsMonitor initialized (demo={self.demo_mode})")
+        logger.info(f"MetricsMonitor initialized (window={window_seconds}s)")
     
-    def record_request(self, latency_ms: float, is_error: bool = False, user_id: Optional[str] = None):
-        """
-        Record a request.
+    # ==================== REQUEST TRACKING ====================
+    
+    def record_request(self, path: str, method: str, status_code: int, latency_ms: float):
+        """Record an HTTP request"""
+        now = datetime.now()
         
-        Args:
-            latency_ms: Request latency in milliseconds
-            is_error: Whether the request resulted in an error
-            user_id: Optional user identifier for active user tracking
-        """
         with self._lock:
-            self._total_requests += 1
-            if is_error:
-                self._total_errors += 1
-            
-            self._request_times.append({
-                'timestamp': datetime.now(),
-                'latency_ms': latency_ms,
-                'is_error': is_error
+            self._requests.append({
+                'timestamp': now,
+                'path': path,
+                'method': method,
+                'status_code': status_code,
+                'latency_ms': latency_ms
             })
             
-            if user_id:
-                self._active_users.add(user_id)
+            self._latencies.append((now, latency_ms))
+            self._total_requests += 1
+            
+            # Track errors (4xx and 5xx)
+            if status_code >= 400:
+                self._errors.append({
+                    'timestamp': now,
+                    'path': path,
+                    'status_code': status_code
+                })
+                self._total_errors += 1
     
-    def update_websocket_count(self, count: int):
-        """Update active WebSocket connection count"""
+    def record_error(self, path: str, error_type: str):
+        """Record an error"""
+        now = datetime.now()
+        
         with self._lock:
-            self._websocket_connections = count
+            self._errors.append({
+                'timestamp': now,
+                'path': path,
+                'error_type': error_type
+            })
+            self._total_errors += 1
+    
+    # ==================== USER TRACKING ====================
+    
+    def record_user_activity(self, user_id: str):
+        """Record user activity"""
+        with self._lock:
+            self._active_users[user_id] = datetime.now()
+    
+    def get_active_user_count(self) -> int:
+        """Get count of recently active users"""
+        cutoff = datetime.now() - self._user_activity_timeout
+        
+        with self._lock:
+            # Clean up old entries
+            self._active_users = {
+                uid: ts for uid, ts in self._active_users.items()
+                if ts > cutoff
+            }
+            return len(self._active_users)
+    
+    # ==================== WEBSOCKET TRACKING ====================
+    
+    def increment_websocket_connections(self):
+        """Increment WebSocket connection count"""
+        with self._lock:
+            self._websocket_connections += 1
+    
+    def decrement_websocket_connections(self):
+        """Decrement WebSocket connection count"""
+        with self._lock:
+            self._websocket_connections = max(0, self._websocket_connections - 1)
+    
+    def get_websocket_connections(self) -> int:
+        """Get current WebSocket connection count"""
+        return self._websocket_connections
+    
+    # ==================== METRICS CALCULATION ====================
     
     def get_current_snapshot(self) -> MetricsSnapshot:
-        """
-        Get current metrics snapshot.
-        
-        Returns:
-            MetricsSnapshot with current metrics
-        """
-        if self.demo_mode:
-            return self._generate_demo_snapshot()
+        """Get current metrics snapshot"""
+        now = datetime.now()
+        cutoff = now - timedelta(seconds=self.window_seconds)
         
         with self._lock:
-            now = datetime.now()
-            one_minute_ago = now - timedelta(minutes=1)
+            # Filter to window
+            recent_requests = [r for r in self._requests if r['timestamp'] > cutoff]
+            recent_errors = [e for e in self._errors if e['timestamp'] > cutoff]
+            recent_latencies = [lat for ts, lat in self._latencies if ts > cutoff]
             
-            # Filter recent requests
-            recent_requests = [
-                r for r in self._request_times
-                if r['timestamp'] > one_minute_ago
-            ]
-            
-            # Calculate request rate
-            request_rate = len(recent_requests)
+            # Calculate request rate (requests per minute)
+            request_count = len(recent_requests)
+            window_minutes = self.window_seconds / 60
+            request_rate = request_count / window_minutes if window_minutes > 0 else 0
             
             # Calculate error rate
-            recent_errors = sum(1 for r in recent_requests if r['is_error'])
-            error_rate = (recent_errors / request_rate * 100) if request_rate > 0 else 0
+            error_rate = (len(recent_errors) / request_count * 100) if request_count > 0 else 0
             
-            # Calculate latencies
-            latencies = sorted([r['latency_ms'] for r in recent_requests]) if recent_requests else [0]
-            p50 = self._percentile(latencies, 50)
-            p95 = self._percentile(latencies, 95)
-            p99 = self._percentile(latencies, 99)
+            # Calculate latency percentiles
+            avg_latency = 0
+            p95_latency = 0
+            p99_latency = 0
             
-            # Get resource usage
-            memory_usage = self._get_memory_usage()
-            cpu_usage = self._get_cpu_usage()
+            if recent_latencies:
+                sorted_latencies = sorted(recent_latencies)
+                avg_latency = sum(sorted_latencies) / len(sorted_latencies)
+                p95_latency = sorted_latencies[int(len(sorted_latencies) * 0.95)]
+                p99_latency = sorted_latencies[int(len(sorted_latencies) * 0.99)]
             
             return MetricsSnapshot(
-                timestamp=now.isoformat(),
-                request_rate_rpm=request_rate,
-                error_rate_pct=error_rate,
-                latency_p50_ms=p50,
-                latency_p95_ms=p95,
-                latency_p99_ms=p99,
-                active_users=len(self._active_users),
-                memory_usage_pct=memory_usage['percent'],
-                memory_usage_mb=memory_usage['mb'],
-                cpu_usage_pct=cpu_usage,
+                timestamp=now,
+                request_rate_rpm=round(request_rate, 2),
+                error_rate_pct=round(error_rate, 2),
+                avg_latency_ms=round(avg_latency, 2),
+                p95_latency_ms=round(p95_latency, 2),
+                p99_latency_ms=round(p99_latency, 2),
+                active_users=self.get_active_user_count(),
                 websocket_connections=self._websocket_connections,
                 total_requests=self._total_requests,
                 total_errors=self._total_errors
             )
     
-    def _generate_demo_snapshot(self) -> MetricsSnapshot:
-        """Generate demo metrics for testing"""
-        import random
-        
-        now = datetime.now()
-        
-        # Generate realistic demo values with some variance
-        base_rpm = 100 + random.randint(-20, 30)
-        
-        return MetricsSnapshot(
-            timestamp=now.isoformat(),
-            request_rate_rpm=base_rpm,
-            error_rate_pct=round(random.uniform(0.1, 2.0), 2),
-            latency_p50_ms=round(random.uniform(15, 50), 1),
-            latency_p95_ms=round(random.uniform(80, 200), 1),
-            latency_p99_ms=round(random.uniform(150, 400), 1),
-            active_users=random.randint(3, 15),
-            memory_usage_pct=round(random.uniform(35, 65), 1),
-            memory_usage_mb=round(random.uniform(200, 500), 1),
-            cpu_usage_pct=round(random.uniform(10, 45), 1),
-            websocket_connections=random.randint(1, 8),
-            total_requests=10000 + random.randint(0, 1000),
-            total_errors=random.randint(10, 100)
-        )
-    
-    def get_metrics_history(self, minutes: int = 60) -> List[Dict]:
-        """
-        Get metrics history.
-        
-        Args:
-            minutes: Number of minutes of history to return
-        
-        Returns:
-            List of metrics snapshots
-        """
-        if self.demo_mode:
-            # Generate demo history
-            history = []
-            now = datetime.now()
-            for i in range(minutes):
-                snapshot = self._generate_demo_snapshot()
-                snapshot.timestamp = (now - timedelta(minutes=minutes-i)).isoformat()
-                history.append(snapshot.to_dict())
-            return history
-        
-        with self._lock:
-            # Return recent history
-            history_list = list(self._history)
-            return history_list[-minutes:] if len(history_list) > minutes else history_list
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Get comprehensive statistics.
-        
-        Returns:
-            Dict with current, totals, and configuration
-        """
+    def get_metrics_dict(self) -> Dict[str, Any]:
+        """Get metrics as dictionary"""
         snapshot = self.get_current_snapshot()
-        
-        error_rate = (self._total_errors / self._total_requests * 100) if self._total_requests > 0 else 0
-        
         return {
-            'current': snapshot.to_dict(),
-            'totals': {
-                'requests': self._total_requests,
-                'errors': self._total_errors,
-                'error_rate_pct': round(error_rate, 2),
-                'uptime_seconds': (datetime.now() - self._start_time).total_seconds()
-            },
-            'configuration': {
-                'history_minutes': self.history_minutes,
-                'demo_mode': self.demo_mode
-            }
+            'timestamp': snapshot.timestamp.isoformat(),
+            'request_rate_rpm': snapshot.request_rate_rpm,
+            'error_rate_pct': snapshot.error_rate_pct,
+            'avg_latency_ms': snapshot.avg_latency_ms,
+            'p95_latency_ms': snapshot.p95_latency_ms,
+            'p99_latency_ms': snapshot.p99_latency_ms,
+            'active_users': snapshot.active_users,
+            'websocket_connections': snapshot.websocket_connections,
+            'total_requests': snapshot.total_requests,
+            'total_errors': snapshot.total_errors
         }
     
-    def reset_statistics(self):
-        """Reset all statistics"""
+    # ==================== HISTORICAL DATA ====================
+    
+    def get_request_history(self, limit: int = 100) -> List[Dict]:
+        """Get recent request history"""
         with self._lock:
-            self._total_requests = 0
-            self._total_errors = 0
-            self._request_times.clear()
-            self._history.clear()
-            self._active_users.clear()
-            self._start_time = datetime.now()
-            
-            logger.info("Metrics statistics reset")
+            history = list(self._requests)[-limit:]
+            return [
+                {
+                    'timestamp': r['timestamp'].isoformat(),
+                    'path': r['path'],
+                    'method': r['method'],
+                    'status_code': r['status_code'],
+                    'latency_ms': r['latency_ms']
+                }
+                for r in history
+            ]
     
-    def export_to_json(self, filepath: str):
-        """Export metrics to JSON file"""
-        data = {
-            'exported_at': datetime.now().isoformat(),
-            'statistics': self.get_statistics(),
-            'history': self.get_metrics_history()
-        }
-        
-        with open(filepath, 'w') as f:
-            json.dump(data, f, indent=2)
-    
-    def export_to_csv(self, filepath: str):
-        """Export metrics history to CSV file"""
-        history = self.get_metrics_history()
-        
-        if not history:
-            return
-        
-        import csv
-        
-        with open(filepath, 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=history[0].keys())
-            writer.writeheader()
-            writer.writerows(history)
-    
-    @staticmethod
-    def _percentile(data: List[float], percentile: int) -> float:
-        """Calculate percentile from sorted data"""
-        if not data:
-            return 0.0
-        k = (len(data) - 1) * percentile / 100
-        f = int(k)
-        c = f + 1 if f + 1 < len(data) else f
-        return data[f] + (data[c] - data[f]) * (k - f)
-    
-    @staticmethod
-    def _get_memory_usage() -> Dict[str, float]:
-        """Get current memory usage"""
-        try:
-            import psutil
-            process = psutil.Process()
-            mem_info = process.memory_info()
-            mem_percent = process.memory_percent()
-            return {
-                'percent': round(mem_percent, 1),
-                'mb': round(mem_info.rss / 1024 / 1024, 1)
-            }
-        except ImportError:
-            return {'percent': 0.0, 'mb': 0.0}
-    
-    @staticmethod
-    def _get_cpu_usage() -> float:
-        """Get current CPU usage"""
-        try:
-            import psutil
-            return psutil.cpu_percent(interval=0.1)
-        except ImportError:
-            return 0.0
+    def get_error_history(self, limit: int = 50) -> List[Dict]:
+        """Get recent error history"""
+        with self._lock:
+            history = list(self._errors)[-limit:]
+            return [
+                {
+                    'timestamp': e['timestamp'].isoformat(),
+                    'path': e['path'],
+                    'status_code': e.get('status_code'),
+                    'error_type': e.get('error_type')
+                }
+                for e in history
+            ]
 
 
-def get_metrics_monitor() -> MetricsMonitor:
+class MetricsMiddleware:
+    """Flask middleware for automatic request metrics collection"""
+    
+    def __init__(self, app, monitor: MetricsMonitor):
+        self.app = app
+        self.monitor = monitor
+        
+        # Register before/after request handlers
+        app.before_request(self._before_request)
+        app.after_request(self._after_request)
+    
+    def _before_request(self):
+        """Record request start time"""
+        from flask import g, request
+        g.request_start_time = time.time()
+    
+    def _after_request(self, response):
+        """Record request metrics"""
+        from flask import g, request
+        
+        start_time = getattr(g, 'request_start_time', None)
+        if start_time:
+            latency_ms = (time.time() - start_time) * 1000
+            self.monitor.record_request(
+                path=request.path,
+                method=request.method,
+                status_code=response.status_code,
+                latency_ms=latency_ms
+            )
+        
+        return response
+
+
+def get_metrics_monitor(window_seconds: int = 300) -> MetricsMonitor:
     """
     Get the singleton MetricsMonitor instance.
     
+    Args:
+        window_seconds: Metrics aggregation window
+        
     Returns:
         MetricsMonitor instance
     """
     global _monitor_instance
     
     if _monitor_instance is None:
-        _monitor_instance = MetricsMonitor()
+        _monitor_instance = MetricsMonitor(window_seconds)
     
     return _monitor_instance
