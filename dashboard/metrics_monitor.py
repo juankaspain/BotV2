@@ -89,7 +89,7 @@ class MetricsMonitor:
         self._cleanup_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
         self._cleanup_thread.start()
         
-        logger.info("\u2705 MetricsMonitor initialized (window: %ds)", window_seconds)
+        logger.info("[+] MetricsMonitor initialized (window: %ds)", window_seconds)
     
     # ==================== REQUEST TRACKING ====================
     
@@ -377,7 +377,7 @@ class MetricsMonitor:
             self._total_errors = 0
             self._requests.clear()
             self._metrics_history.clear()
-            logger.info("\u2705 Statistics reset")
+            logger.info("[+] Statistics reset")
     
     # ==================== EXPORT ====================
     
@@ -394,7 +394,7 @@ class MetricsMonitor:
         with open(filepath, 'w') as f:
             json.dump(stats, f, indent=2)
         
-        logger.info("\u2705 Metrics exported to %s", filepath)
+        logger.info("[+] Metrics exported to %s", filepath)
     
     def export_to_csv(self, filepath: str):
         """
@@ -415,7 +415,7 @@ class MetricsMonitor:
             writer.writeheader()
             writer.writerows(history)
         
-        logger.info("\u2705 Metrics history exported to %s", filepath)
+        logger.info("[+] Metrics history exported to %s", filepath)
     
     # ==================== CLEANUP ====================
     
@@ -493,7 +493,7 @@ class MetricsMiddleware:
         app.before_request(self._before_request)
         app.after_request(self._after_request)
         
-        logger.info("\u2705 MetricsMiddleware registered")
+        logger.info("[+] MetricsMiddleware registered")
     
     def _before_request(self):
         """Record request start time"""
