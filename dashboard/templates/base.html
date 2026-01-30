@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="BotV2 Professional Trading Dashboard">
-    <meta name="theme-color" content="#1a1a2e">
+    <meta name="theme-color" content="#1a1d21">
 
     <!-- SECURITY: CSRF Token Meta Tag -->
     {% if csrf_token %}
@@ -31,368 +31,141 @@
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
-    <!-- Custom CSS -->
+    <!-- Custom CSS - ALL STYLES UNIFIED HERE -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    
-    <style>
-        :root {
-            --sidebar-width: 250px;
-            --navbar-height: 60px;
-            --bg-primary: #0f1419;
-            --bg-secondary: #16181d;
-            --bg-tertiary: #1e2128;
-            --text-primary: #e4e6eb;
-            --text-secondary: #8e9297;
-            --border-color: #2d3139;
-            --accent-primary: #5865f2;
-            --accent-hover: #4752c4;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: var(--sidebar-width);
-            height: 100vh;
-            background-color: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            z-index: 1000;
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .sidebar-header .logo {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, var(--accent-primary), #7289da);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 18px;
-        }
-
-        .sidebar-header .title {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 16px 0;
-            overflow-y: auto;
-        }
-
-        .nav-section {
-            margin-bottom: 24px;
-        }
-
-        .nav-section-title {
-            padding: 8px 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            letter-spacing: 0.5px;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 20px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .nav-item:hover {
-            background-color: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .nav-item.active {
-            background-color: var(--bg-tertiary);
-            color: var(--accent-primary);
-        }
-
-        .nav-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background-color: var(--accent-primary);
-        }
-
-        .nav-item i {
-            width: 20px;
-            margin-right: 12px;
-            font-size: 16px;
-        }
-
-        .nav-item.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .sidebar-footer {
-            padding: 16px 20px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent-primary), #7289da);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-        }
-
-        .user-details {
-            flex: 1;
-        }
-
-        .user-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .user-status {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .logout-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 6px;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-        }
-
-        .logout-btn:hover {
-            background-color: rgba(255, 59, 48, 0.1);
-            color: #ff3b30;
-        }
-
-        /* Main Content */
-        .main-wrapper {
-            margin-left: var(--sidebar-width);
-            min-height: 100vh;
-            background-color: var(--bg-primary);
-        }
-
-        .navbar {
-            height: var(--navbar-height);
-            background-color: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            padding: 0 32px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .navbar-title {
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .navbar-actions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .navbar-btn {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .navbar-btn:hover {
-            background-color: var(--accent-primary);
-            border-color: var(--accent-primary);
-        }
-
-        .content-area {
-            padding: 32px;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.active {
-                transform: translateX(0);
-            }
-
-            .main-wrapper {
-                margin-left: 0;
-            }
-
-            .mobile-toggle {
-                display: block !important;
-            }
-        }
-
-        .mobile-toggle {
-            display: none;
-        }
-    </style>
 
     {% block head %}{% endblock %}
 </head>
 <body>
+    <!-- Skip Link for Accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-robot"></i>
+            <div class="sidebar-brand">
+                <div class="sidebar-brand__logo">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <span class="sidebar__text">BotV2</span>
             </div>
-            <div class="title">BotV2</div>
         </div>
 
         <nav class="sidebar-nav">
             <!-- Main Section -->
             <div class="nav-section">
-                <div class="nav-section-title">Main</div>
-                <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+                <div class="nav-section__title">Main</div>
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
                     <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
+                    <span class="sidebar__text">Dashboard</span>
                 </a>
-                <a href="{{ url_for('control.control_panel_ui') }}" class="nav-item {% if request.endpoint == 'control.control_panel_ui' %}active{% endif %}">
+                <a href="{{ url_for('control.control_panel_ui') }}" class="nav-link {% if request.endpoint == 'control.control_panel_ui' %}active{% endif %}">
                     <i class="fas fa-sliders-h"></i>
-                    <span>Control Panel</span>
+                    <span class="sidebar__text">Control Panel</span>
                 </a>
-                <a href="{{ url_for('monitoring.monitoring_ui') }}" class="nav-item {% if request.endpoint == 'monitoring.monitoring_ui' %}active{% endif %}">
+                <a href="{{ url_for('monitoring.monitoring_ui') }}" class="nav-link {% if request.endpoint == 'monitoring.monitoring_ui' %}active{% endif %}">
                     <i class="fas fa-eye"></i>
-                    <span>Live Monitor</span>
+                    <span class="sidebar__text">Live Monitor</span>
                 </a>
             </div>
 
             <!-- Trading Section -->
             <div class="nav-section">
-                <div class="nav-section-title">Trading</div>
-                <a href="{{ url_for('strategy_editor.strategy_editor_ui') }}" class="nav-item {% if request.endpoint == 'strategy_editor.strategy_editor_ui' %}active{% endif %}">
+                <div class="nav-section__title">Trading</div>
+                <a href="{{ url_for('strategy_editor.strategy_editor_ui') }}" class="nav-link {% if request.endpoint == 'strategy_editor.strategy_editor_ui' %}active{% endif %}">
                     <i class="fas fa-brain"></i>
-                    <span>Strategies</span>
+                    <span class="sidebar__text">Strategies</span>
                 </a>
-                <!-- Coming soon items -->
-                <a href="#" class="nav-item disabled" title="Coming soon">
+                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
                     <i class="fas fa-chart-line"></i>
-                    <span>Portfolio</span>
+                    <span class="sidebar__text">Portfolio</span>
                 </a>
-                <a href="#" class="nav-item disabled" title="Coming soon">
+                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
                     <i class="fas fa-history"></i>
-                    <span>Trade History</span>
+                    <span class="sidebar__text">Trade History</span>
                 </a>
             </div>
 
             <!-- Analysis Section -->
             <div class="nav-section">
-                <div class="nav-section-title">Analysis</div>
-                <!-- Removed metrics.dashboard - not existent -->
-                <a href="#" class="nav-item disabled" title="Coming soon">
+                <div class="nav-section__title">Analysis</div>
+                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
                     <i class="fas fa-chart-bar"></i>
-                    <span>Performance</span>
+                    <span class="sidebar__text">Performance</span>
                 </a>
-                <a href="#" class="nav-item disabled" title="Coming soon">
+                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
                     <i class="fas fa-shield-alt"></i>
-                    <span>Risk Management</span>
+                    <span class="sidebar__text">Risk Management</span>
                 </a>
             </div>
 
             <!-- System Section -->
             <div class="nav-section">
-                <div class="nav-section-title">System</div>
-                <a href="{{ url_for('health') }}" class="nav-item" target="_blank">
+                <div class="nav-section__title">System</div>
+                <a href="{{ url_for('health') }}" class="nav-link" target="_blank">
                     <i class="fas fa-heartbeat"></i>
-                    <span>System Health</span>
+                    <span class="sidebar__text">System Health</span>
                 </a>
-                <a href="#" class="nav-item disabled" title="Coming soon">
+                <a href="#" class="nav-link nav-link--disabled" title="Coming soon">
                     <i class="fas fa-cog"></i>
-                    <span>Settings</span>
+                    <span class="sidebar__text">Settings</span>
                 </a>
             </div>
         </nav>
 
         <div class="sidebar-footer">
             <div class="user-info">
-                <div class="user-avatar">
+                <div class="user-info__avatar">
                     {{ user[0]|upper if user else 'A' }}
                 </div>
-                <div class="user-details">
-                    <div class="user-name">{{ user or 'Admin' }}</div>
-                    <div class="user-status">Online</div>
+                <div class="user-info__details">
+                    <div class="user-info__name">{{ user or 'Admin' }}</div>
+                    <div class="user-info__status">
+                        <span class="status-indicator online"></span>
+                        <span class="sidebar__text">Online</span>
+                    </div>
                 </div>
-                <button class="logout-btn" onclick="window.location.href='{{ url_for('logout') }}'" title="Logout">
+                <button class="btn-icon btn-icon--ghost" onclick="window.location.href='{{ url_for('logout') }}'" title="Logout" aria-label="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
         </div>
     </aside>
 
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
     <!-- Main Content -->
     <div class="main-wrapper">
-        <nav class="navbar">
-            <div class="d-flex align-items-center gap-3">
-                <button class="navbar-btn mobile-toggle" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
+        <header class="header">
+            <div class="header__left">
+                <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
+                    <span class="hamburger__line"></span>
+                    <span class="hamburger__line"></span>
+                    <span class="hamburger__line"></span>
                 </button>
-                <h1 class="navbar-title mb-0">{% block page_title %}Dashboard{% endblock %}</h1>
+                <h1 class="header__title">{% block page_title %}Dashboard{% endblock %}</h1>
             </div>
-            <div class="navbar-actions">
+            <div class="header__right">
                 {% block navbar_actions %}{% endblock %}
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
             </div>
-        </nav>
+        </header>
 
-        <main class="content-area">
+        <main class="main-content" id="main-content">
             {% block content %}{% endblock %}
         </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container toast-container--top-right" id="toast-container" aria-live="polite"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="global-loading">
+        <div class="loading-overlay__spinner"></div>
+        <div class="loading-overlay__text">Loading...</div>
     </div>
 
     <!-- DOMPurify for XSS Protection -->
@@ -408,14 +181,129 @@
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js" crossorigin="anonymous"></script>
 
     <script>
-        // Toggle sidebar on mobile
+        // =====================================================
+        // GLOBAL UTILITIES
+        // =====================================================
+        
+        // Theme Management
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            }
+        }
+
+        // Initialize theme from localStorage
+        (function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        })();
+
+        // Sidebar Management
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const hamburger = document.getElementById('hamburger');
+            
+            sidebar.classList.toggle('is-open');
+            overlay.classList.toggle('is-active');
+            hamburger.classList.toggle('is-active');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const hamburger = document.getElementById('hamburger');
+            
+            sidebar.classList.remove('is-open');
+            overlay.classList.remove('is-active');
+            hamburger.classList.remove('is-active');
+        }
+
+        // Loading Overlay
+        function showLoading(message = 'Loading...') {
+            const overlay = document.getElementById('global-loading');
+            const text = overlay.querySelector('.loading-overlay__text');
+            if (text) text.textContent = message;
+            overlay.classList.add('is-active');
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('global-loading');
+            overlay.classList.remove('is-active');
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'info', duration = 5000) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast--${type}`;
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+
+            toast.innerHTML = `
+                <i class="toast__icon fas ${icons[type] || icons.info}"></i>
+                <div class="toast__content">
+                    <div class="toast__message">${DOMPurify.sanitize(message)}</div>
+                </div>
+                <button class="toast__close" onclick="this.parentElement.remove()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="toast__progress">
+                    <div class="toast__progress-bar" style="animation-duration: ${duration}ms"></div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.add('toast--exiting');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
         }
 
         // CSRF Token for AJAX requests
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         
+        // Fetch wrapper with CSRF
+        async function secureFetch(url, options = {}) {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(csrfToken && { 'X-CSRFToken': csrfToken })
+                }
+            };
+            
+            try {
+                const response = await fetch(url, { ...defaultOptions, ...options });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response;
+            } catch (error) {
+                showToast(error.message, 'error');
+                throw error;
+            }
+        }
+
         // WebSocket connection with error handling
         let socket = null;
         try {
@@ -429,18 +317,24 @@
 
             socket.on('connect', function() {
                 console.log('WebSocket connected');
+                document.dispatchEvent(new CustomEvent('ws:connected'));
             });
 
             socket.on('disconnect', function() {
                 console.log('WebSocket disconnected');
+                document.dispatchEvent(new CustomEvent('ws:disconnected'));
             });
 
             socket.on('connect_error', function(error) {
                 console.warn('WebSocket connection error:', error.message);
+                document.dispatchEvent(new CustomEvent('ws:error', { detail: error }));
             });
         } catch (e) {
             console.warn('WebSocket initialization failed:', e);
         }
+
+        // Hide loading on page load
+        window.addEventListener('load', hideLoading);
     </script>
 
     {% block scripts %}{% endblock %}
