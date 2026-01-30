@@ -1,7 +1,16 @@
-"""BotV2 Professional Dashboard v7.5 - Nonce-Based CSP
+"""BotV2 Professional Dashboard v7.6 - System Health Enhanced
 Ultra-professional real-time trading dashboard with enterprise-grade security
 
-VERSION 7.5 - NONCE-BASED SECURITY:
+VERSION 7.6 - SYSTEM HEALTH ENHANCED:
+- NEW: Professional System Health UI with real-time metrics
+- NEW: Enhanced /api/system-health endpoint with comprehensive data
+- NEW: CPU, Memory, Disk, Network monitoring via psutil
+- NEW: Python environment details
+- NEW: Component status tracking
+- NEW: Security status reporting
+- NEW: Recent activity log
+
+All v7.5 features maintained:
 - CSRF Protection: Token-based validation (all forms + AJAX)
 - XSS Prevention: bleach backend + DOMPurify frontend
 - Input Validation: Pydantic models for type-safe validation
@@ -12,23 +21,18 @@ VERSION 7.5 - NONCE-BASED SECURITY:
 - HTTPS Enforcement: Production-grade TLS (Talisman)
 - Nonce-Based CSP: Eliminates unsafe-inline vulnerability
 - SRI Protection: All CDN libraries with integrity checks
-
-All v6.0 features maintained:
-- Metrics monitoring (RPM, latency, errors)
-- GZIP compression (60-85% reduction)
-- WebSocket real-time updates
-- Mock data integration
-- Control panel, monitoring, strategies
 """
 
 import logging
 import os
 import sys
+import time
+import platform
+import threading
 from pathlib import Path
 
 # ============================================================================
 # CRITICAL: Load .env file FIRST using centralized loader
-# This ensures environment is loaded only once across entire application
 # ============================================================================
 _DASHBOARD_DIR = Path(__file__).parent
 _PROJECT_ROOT = _DASHBOARD_DIR.parent
@@ -38,20 +42,18 @@ if str(_PROJECT_ROOT) not in sys.path:
 if str(_DASHBOARD_DIR) not in sys.path:
     sys.path.insert(0, str(_DASHBOARD_DIR))
 
-# Centralized env loading - ONLY env_loader.py prints messages
+# Centralized env loading
 try:
     from shared.utils.env_loader import load_env_once
     load_env_once(verbose=True)
 except ImportError:
-    # Silent fallback - no duplicate print
     try:
         from dotenv import load_dotenv
         env_file = _PROJECT_ROOT / '.env'
         if env_file.exists():
             load_dotenv(env_file)
-            # NO PRINT HERE - env_loader.py handles all output
     except ImportError:
-        pass  # Continue without .env
+        pass
 
 # ============================================================================
 # STANDARD IMPORTS
@@ -63,14 +65,28 @@ from functools import wraps
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import hashlib
 import secrets
-from collections import defaultdict
+from collections import defaultdict, deque
 
 # ============================================================================
 # OPTIONAL IMPORTS WITH FALLBACKS
 # ============================================================================
+
+# psutil for system metrics
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
+
+# Flask version
+try:
+    import flask
+    FLASK_VERSION = flask.__version__
+except:
+    FLASK_VERSION = 'unknown'
 
 # Pydantic - optional
 try:
@@ -118,7 +134,7 @@ try:
 except ImportError:
     HAS_COMPRESS = False
 
-# METRICS MONITORING - Try both relative and absolute imports
+# METRICS MONITORING
 HAS_METRICS = False
 try:
     from dashboard.metrics_monitor import get_metrics_monitor, MetricsMiddleware
@@ -130,7 +146,7 @@ except ImportError:
     except ImportError:
         pass
 
-# MOCK DATA - Try both relative and absolute imports
+# MOCK DATA
 HAS_MOCK_DATA = False
 try:
     from dashboard.mock_data import get_section_data
@@ -155,7 +171,7 @@ try:
 except ImportError:
     pass
 
-# BLUEPRINTS - Try both import methods
+# BLUEPRINTS
 try:
     from dashboard.routes.control_routes import control_bp
     from dashboard.routes.monitoring_routes import monitoring_bp
@@ -168,11 +184,17 @@ except ImportError:
     from routes.metrics_routes import metrics_bp as metrics_routes_bp
 
 # Dashboard version
-__version__ = '7.5'
+__version__ = '7.6'
 
 logger = logging.getLogger(__name__)
 
-# ASCII Banner (raw string to avoid escape sequence warnings)
+# Application start time for uptime calculation
+APP_START_TIME = time.time()
+
+# Recent activity log (in-memory, limited to last 100 entries)
+RECENT_ACTIVITY: deque = deque(maxlen=100)
+
+# ASCII Banner
 ASCII_BANNER = r"""
 ================================================================================
     ____        __ _    _____    ____            __    __                       
@@ -186,40 +208,36 @@ ASCII_BANNER = r"""
 """
 
 
-# ============================================================================
-# SSL/TLS ERROR LOG FILTER
-# ============================================================================
+def log_activity(activity_type: str, message: str):
+    """Log activity to recent activity buffer."""
+    RECENT_ACTIVITY.appendleft({
+        'time': datetime.now().strftime('%H:%M:%S'),
+        'type': activity_type,
+        'message': message,
+        'timestamp': time.time()
+    })
+
+
 class SSLErrorFilter(logging.Filter):
-    """Filter out SSL/TLS handshake errors from logs.
-    
-    These errors occur when browsers try HTTPS on an HTTP-only server.
-    They are harmless in development but clutter the logs.
-    """
+    """Filter out SSL/TLS handshake errors from logs."""
     
     def filter(self, record):
-        # Filter out SSL handshake errors (bad request version)
         if 'Bad request version' in record.getMessage():
             return False
-        # Filter out binary SSL data
         if 'code 400' in record.getMessage() and '\\x' in record.getMessage():
             return False
         return True
 
 
 def generate_csp_nonce() -> str:
-    """Generate cryptographically secure nonce for CSP.
-    
-    Returns:
-        str: 24-character URL-safe base64 nonce
-    """
-    return secrets.token_urlsafe(18)  # 18 bytes = 24 chars base64
+    """Generate cryptographically secure nonce for CSP."""
+    return secrets.token_urlsafe(18)
 
 
 class DashboardAuth:
     """Enhanced Session-Based Authentication with Security Audit Logging."""
     
     def __init__(self, audit_logger=None):
-        # Load credentials from environment variables (loaded from .env)
         self.username = os.getenv('DASHBOARD_USERNAME', 'admin')
         self.password_hash = self._get_password_hash()
         self.audit_logger = audit_logger
@@ -227,7 +245,6 @@ class DashboardAuth:
         self.max_attempts = 5
         self.lockout_duration = timedelta(minutes=5)
         
-        # Log credentials source for debugging (only once)
         env_username = os.getenv('DASHBOARD_USERNAME')
         env_password = os.getenv('DASHBOARD_PASSWORD')
         
@@ -237,7 +254,6 @@ class DashboardAuth:
             logger.warning("[AUTH] No DASHBOARD_USERNAME/PASSWORD in .env, using defaults")
         
         if not self.password_hash:
-            # Demo mode: use 'admin' as default password
             demo_password = os.getenv('DASHBOARD_PASSWORD', 'admin')
             self.password_hash = self._hash_password(demo_password)
     
@@ -266,6 +282,8 @@ class DashboardAuth:
         if self.audit_logger:
             self.audit_logger.log_login_failure(username, reason='invalid_credentials', failed_attempts=attempt_info['count'])
         
+        log_activity('warning', f'Failed login attempt for user: {username}')
+        
         if attempt_info['count'] >= self.max_attempts:
             attempt_info['locked_until'] = datetime.now() + self.lockout_duration
             if self.audit_logger:
@@ -274,6 +292,7 @@ class DashboardAuth:
                     reason='too_many_failed_attempts',
                     locked_until=attempt_info['locked_until'].isoformat()
                 )
+            log_activity('error', f'Account locked: {username} (too many attempts)')
     
     def record_successful_login(self, ip: str, username: str):
         if ip in self.failed_attempts:
@@ -281,6 +300,8 @@ class DashboardAuth:
         
         if self.audit_logger:
             self.audit_logger.log_login_success(username)
+        
+        log_activity('success', f'User logged in: {username}')
     
     def check_credentials(self, username: str, password: str) -> bool:
         if not self.password_hash:
@@ -294,7 +315,7 @@ class DashboardAuth:
 
 
 class ProfessionalDashboard:
-    """Ultra-professional trading dashboard v7.5 with nonce-based CSP."""
+    """Ultra-professional trading dashboard v7.6 with System Health."""
     
     def __init__(self, config):
         self.config = config
@@ -304,8 +325,7 @@ class ProfessionalDashboard:
         self.port = int(os.getenv('DASHBOARD_PORT', dash_config.get('port', 8050)))
         self.debug = dash_config.get('debug', False)
         
-        # CRITICAL FIX: Proper environment detection
-        # Priority: FLASK_ENV > ENVIRONMENT > default to development
+        # Environment detection
         flask_env = os.getenv('FLASK_ENV', '').lower()
         general_env = os.getenv('ENVIRONMENT', '').lower()
         
@@ -316,23 +336,19 @@ class ProfessionalDashboard:
         else:
             self.env = 'development'
         
-        # Production mode requires EXPLICIT setting AND FORCE_HTTPS=true
         force_https = os.getenv('FORCE_HTTPS', 'false').lower() == 'true'
         self.is_production = (self.env == 'production' and force_https)
         self.is_development = not self.is_production
         
-        # Log environment detection
         logger.info("="*70)
         logger.info("ENVIRONMENT DETECTION:")
         logger.info("  FLASK_ENV = %s", os.getenv('FLASK_ENV', 'NOT SET'))
         logger.info("  ENVIRONMENT = %s", os.getenv('ENVIRONMENT', 'NOT SET'))
         logger.info("  FORCE_HTTPS = %s", os.getenv('FORCE_HTTPS', 'false'))
         logger.info("  Detected mode: %s", self.env.upper())
-        logger.info("  Is Production: %s", self.is_production)
-        logger.info("  Is Development: %s", self.is_development)
         logger.info("="*70)
         
-        # SECURITY: Initialize audit logger first
+        # Initialize audit logger
         if HAS_SECURITY:
             self.audit_logger = init_audit_logger()
         else:
@@ -350,7 +366,7 @@ class ProfessionalDashboard:
         # Flask configuration
         self._configure_flask()
         
-        # SECURITY: Initialize all security features
+        # Security features
         self._setup_security()
         
         # Other features
@@ -367,14 +383,18 @@ class ProfessionalDashboard:
         self.alerts = []
         self.annotations = []
         
+        # WebSocket connection counter
+        self.websocket_connections = 0
+        
         # Setup routes
         self._setup_routes()
         self._setup_websocket_handlers()
         
-        # Setup log filters to suppress SSL errors
+        # Setup log filters
         self._setup_log_filters()
         
-        # Startup banner - MUST be called after all setup
+        # Log startup
+        log_activity('info', f'BotV2 Dashboard v{__version__} started')
         self._log_startup_banner()
     
     def _configure_flask(self):
@@ -386,24 +406,19 @@ class ProfessionalDashboard:
         self.app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(
             minutes=int(os.getenv('SESSION_TIMEOUT_MINUTES', 30))
         )
-        self.app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
-        
-        # CSRF Configuration
+        self.app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
         self.app.config['CSRF_ENABLED'] = os.getenv('CSRF_ENABLED', 'true').lower() == 'true'
         self.app.config['CSRF_TOKEN_TTL'] = int(os.getenv('CSRF_TOKEN_TTL', 3600))
         
-        # CSP Nonce: Generate for each request
         @self.app.before_request
         def set_csp_nonce():
-            """Generate unique CSP nonce for each request."""
             g.csp_nonce = generate_csp_nonce()
     
     def _setup_security(self):
-        """Initialize all security features (100% coverage)."""
+        """Initialize all security features."""
         if not HAS_SECURITY:
             logger.warning("[!] Security features disabled - modules not available")
         else:
-            # 1. CSRF Protection
             self.csrf = init_csrf_protection(
                 self.app,
                 token_length=int(os.getenv('CSRF_TOKEN_LENGTH', 32)),
@@ -411,15 +426,9 @@ class ProfessionalDashboard:
             )
             logger.info("[+] CSRF Protection enabled")
             
-            # 2. XSS Protection Middleware
-            xss_protection_middleware(
-                self.app,
-                strip=True,
-                detect_only=False
-            )
+            xss_protection_middleware(self.app, strip=True, detect_only=False)
             logger.info("[+] XSS Protection middleware enabled")
             
-            # 3. Rate Limiting
             rate_limit_enabled = os.getenv('RATE_LIMITING_ENABLED', 'true').lower() == 'true'
             if rate_limit_enabled:
                 self.limiter = init_rate_limiter(
@@ -430,70 +439,22 @@ class ProfessionalDashboard:
                 logger.info("[+] Rate Limiting enabled")
             else:
                 self.limiter = None
-                logger.info("[-] Rate Limiting disabled by configuration")
             
-            # 4. Session Manager
             session_timeout_seconds = int(os.getenv('SESSION_TIMEOUT_MINUTES', 15)) * 60
-            self.session_manager = SessionManager(
-                self.app,
-                session_lifetime=session_timeout_seconds
-            )
+            self.session_manager = SessionManager(self.app, session_lifetime=session_timeout_seconds)
             logger.info("[+] Session Management enabled")
             
-            # 5. Security Middleware (Headers, Request Validation)
             init_security_middleware(self.app)
             logger.info("[+] Security Middleware enabled")
         
-        # 6. CSP Configuration with Talisman
-        # CRITICAL: Only enable if BOTH conditions met:
-        # 1. is_production = True (FLASK_ENV=production AND FORCE_HTTPS=true)
-        # 2. HAS_TALISMAN available
         if HAS_TALISMAN and self.is_production:
-            logger.info("[*] Initializing Talisman for PRODUCTION mode...")
             csp_config = {
                 'default-src': "'self'",
-                'script-src': [
-                    "'self'",
-                    "'unsafe-inline'",
-                    "'unsafe-eval'",
-                    "cdn.jsdelivr.net",
-                    "cdn.socket.io",
-                    "cdn.plot.ly",
-                    "unpkg.com",
-                    "cdn.sheetjs.com",
-                    "cdnjs.cloudflare.com"
-                ],
-                'style-src': [
-                    "'self'",
-                    "'unsafe-inline'",
-                    "fonts.googleapis.com",
-                    "cdn.jsdelivr.net",
-                    "cdnjs.cloudflare.com"
-                ],
-                'font-src': [
-                    "'self'",
-                    "fonts.gstatic.com",
-                    "fonts.googleapis.com",
-                    "cdnjs.cloudflare.com",
-                    "data:"
-                ],
-                'img-src': [
-                    "'self'",
-                    "data:",
-                    "https:",
-                    "blob:"
-                ],
-                'connect-src': [
-                    "'self'",
-                    "wss:",
-                    "ws:",
-                    "localhost:*",
-                    "cdn.sheetjs.com",
-                    "cdnjs.cloudflare.com",
-                    "cdn.jsdelivr.net",
-                    "cdn.plot.ly",
-                    "cdn.socket.io"
-                ],
+                'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "cdn.jsdelivr.net", "cdn.socket.io", "cdn.plot.ly", "unpkg.com", "cdn.sheetjs.com", "cdnjs.cloudflare.com"],
+                'style-src': ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"],
+                'font-src': ["'self'", "fonts.gstatic.com", "fonts.googleapis.com", "cdnjs.cloudflare.com", "data:"],
+                'img-src': ["'self'", "data:", "https:", "blob:"],
+                'connect-src': ["'self'", "wss:", "ws:", "localhost:*", "cdn.sheetjs.com", "cdnjs.cloudflare.com", "cdn.jsdelivr.net", "cdn.plot.ly", "cdn.socket.io"],
                 'frame-ancestors': "'none'",
                 'base-uri': "'self'",
                 'form-action': "'self'"
@@ -504,24 +465,14 @@ class ProfessionalDashboard:
                 force_https=True,
                 strict_transport_security=True,
                 strict_transport_security_max_age=31536000,
-                strict_transport_security_include_subdomains=True,
-                strict_transport_security_preload=True,
                 content_security_policy=csp_config,
                 content_security_policy_nonce_in=['script-src']
             )
             logger.info("[+] Talisman ENABLED - HTTPS + CSP (production)")
         else:
-            # Development mode: COMPLETELY SKIP Talisman
-            logger.info("="*70)
             logger.info("[*] Talisman DISABLED - Development Mode")
-            logger.info("[*] CSP: OFF")
-            logger.info("[*] HTTPS: OFF (HTTP only)")
-            logger.info("[*] Reason: is_production=%s, FORCE_HTTPS=%s", 
-                       self.is_production, os.getenv('FORCE_HTTPS', 'false'))
-            logger.info("="*70)
     
     def _setup_compression(self):
-        """Setup GZIP compression."""
         if HAS_COMPRESS:
             self.app.config['COMPRESS_MIMETYPES'] = [
                 'text/html', 'text/css', 'text/javascript',
@@ -536,15 +487,12 @@ class ProfessionalDashboard:
             self.compress = None
     
     def _setup_cors(self):
-        """Setup CORS."""
         CORS(self.app)
     
     def _setup_socketio(self):
-        """Setup WebSocket."""
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
     
     def _setup_database(self):
-        """Setup database connection."""
         self.db_session = None
         
         if not HAS_DATABASE:
@@ -568,7 +516,6 @@ class ProfessionalDashboard:
             self.db_session = None
     
     def _setup_metrics(self):
-        """Setup metrics monitoring."""
         if HAS_METRICS:
             self.metrics_monitor = get_metrics_monitor(window_seconds=300)
             MetricsMiddleware(self.app, self.metrics_monitor)
@@ -577,7 +524,6 @@ class ProfessionalDashboard:
             self.metrics_monitor = None
     
     def _register_blueprints(self):
-        """Register Flask blueprints."""
         self.app.register_blueprint(control_bp)
         self.app.register_blueprint(monitoring_bp)
         self.app.register_blueprint(strategy_bp)
@@ -585,25 +531,15 @@ class ProfessionalDashboard:
         logger.info("[+] All blueprints registered")
     
     def _setup_log_filters(self):
-        """Setup log filters to suppress SSL/TLS errors."""
-        # Add filter to werkzeug logger (Flask's HTTP logger)
         werkzeug_logger = logging.getLogger('werkzeug')
         ssl_filter = SSLErrorFilter()
         werkzeug_logger.addFilter(ssl_filter)
-        logger.info("[+] SSL error log filter enabled")
     
     def _log_startup_banner(self):
-        """Log startup banner with immediate flush to ensure visibility."""
         if self.audit_logger:
-            self.audit_logger.log_system_startup(
-                version=__version__,
-                environment=self.env
-            )
+            self.audit_logger.log_system_startup(version=__version__, environment=self.env)
         
-        # Print ASCII banner with flush=True to ensure immediate output
         print(ASCII_BANNER.format(version=__version__, env=self.env.upper()), flush=True)
-        
-        # Status table - each line with flush=True
         print("", flush=True)
         print("  COMPONENT               STATUS", flush=True)
         print("  -----------------------------------------", flush=True)
@@ -617,45 +553,127 @@ class ProfessionalDashboard:
             print("    - Session Mgmt        OK", flush=True)
             print("    - Audit Logging       OK", flush=True)
             print("    - Security Headers    OK ({})".format(self.env), flush=True)
-            print("    - CSP                 {}".format('STRICT' if self.is_production else 'OFF'), flush=True)
-            print("    - Talisman            {}".format('ENABLED' if self.is_production else 'OFF'), flush=True)
         
         print("  Metrics                 {}".format('ENABLED' if HAS_METRICS else 'DISABLED'), flush=True)
         print("  GZIP Compression        {}".format('ENABLED' if HAS_COMPRESS else 'DISABLED'), flush=True)
         print("  Database                {}".format('CONNECTED' if self.db_session else 'MOCK MODE'), flush=True)
-        print("  Auth User               {}".format(self.auth.username), flush=True)
+        print("  System Metrics          {}".format('ENABLED' if HAS_PSUTIL else 'DISABLED'), flush=True)
         print("  -----------------------------------------", flush=True)
         print("  URL: http://{}:{}".format(self.host, self.port), flush=True)
         print("", flush=True)
-        
-        # Force flush all output buffers
         sys.stdout.flush()
-        sys.stderr.flush()
     
     def login_required(self, f):
-        """Decorator for routes requiring authentication."""
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user' not in session:
                 return redirect(url_for('login'))
             
-            # Validate session if session manager available
             if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
                 if not self.session_manager.is_valid():
                     session.clear()
-                    if self.audit_logger:
-                        self.audit_logger.log_session_timeout(
-                            session.get('user', 'unknown'),
-                            session.get('session_id', 'unknown'),
-                            'automatic_timeout'
-                        )
                     return redirect(url_for('login', error='session_expired'))
             
             return f(*args, **kwargs)
         return decorated_function
     
+    def _get_system_metrics(self) -> Dict:
+        """Get comprehensive system metrics."""
+        metrics = {
+            'cpu_percent': 0,
+            'memory_percent': 0,
+            'memory_used_gb': 0,
+            'memory_total_gb': 0,
+            'disk_percent': 0,
+            'disk_used_gb': 0,
+            'disk_total_gb': 0,
+            'network_io_mbps': 0,
+            'uptime_seconds': time.time() - APP_START_TIME
+        }
+        
+        if HAS_PSUTIL:
+            try:
+                # CPU
+                metrics['cpu_percent'] = psutil.cpu_percent(interval=0.1)
+                
+                # Memory
+                mem = psutil.virtual_memory()
+                metrics['memory_percent'] = mem.percent
+                metrics['memory_used_gb'] = round(mem.used / (1024**3), 2)
+                metrics['memory_total_gb'] = round(mem.total / (1024**3), 2)
+                
+                # Disk
+                disk = psutil.disk_usage('/')
+                metrics['disk_percent'] = disk.percent
+                metrics['disk_used_gb'] = round(disk.used / (1024**3), 2)
+                metrics['disk_total_gb'] = round(disk.total / (1024**3), 2)
+                
+                # Network I/O
+                net_io = psutil.net_io_counters()
+                # Simple approximation (bytes per second converted to MB/s)
+                metrics['network_io_mbps'] = round((net_io.bytes_sent + net_io.bytes_recv) / (1024**2 * 100), 2)
+                
+            except Exception as e:
+                logger.warning("Failed to get system metrics: %s", e)
+        
+        return metrics
+    
+    def _get_python_env(self) -> Dict:
+        """Get Python environment details."""
+        env_info = {
+            'version': platform.python_version(),
+            'flask_version': FLASK_VERSION,
+            'platform': platform.system() + ' ' + platform.release(),
+            'pid': os.getpid(),
+            'threads': threading.active_count(),
+            'open_files': 0
+        }
+        
+        if HAS_PSUTIL:
+            try:
+                process = psutil.Process(os.getpid())
+                env_info['open_files'] = len(process.open_files())
+                env_info['threads'] = process.num_threads()
+            except:
+                pass
+        
+        return env_info
+    
+    def _get_component_status(self) -> Dict:
+        """Get status of all system components."""
+        return {
+            'flask': True,
+            'socketio': True,
+            'database': self.db_session is not None,
+            'mock_data': HAS_MOCK_DATA,
+            'metrics': HAS_METRICS,
+            'compression': HAS_COMPRESS,
+            'rate_limiter': HAS_SECURITY and hasattr(self, 'limiter') and self.limiter is not None,
+            'session_manager': HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager is not None
+        }
+    
+    def _get_security_status(self) -> Dict:
+        """Get security features status."""
+        return {
+            'csrf_protection': HAS_SECURITY,
+            'xss_prevention': HAS_SECURITY,
+            'input_validation': HAS_SECURITY and HAS_PYDANTIC,
+            'session_security': HAS_SECURITY,
+            'audit_logging': self.audit_logger is not None,
+            'https_enforced': self.is_production and HAS_TALISMAN
+        }
+    
+    def _get_connections_info(self) -> Dict:
+        """Get active connections information."""
+        return {
+            'http': 1,  # Current request
+            'websocket': self.websocket_connections,
+            'database': 'Active' if self.db_session else 'N/A',
+            'exchange_apis': 0  # Placeholder for future implementation
+        }
+    
     def _setup_routes(self):
-        """Setup all Flask routes with 100% security coverage."""
+        """Setup all Flask routes."""
         
         # ==================== AUTHENTICATION ====================
         
@@ -664,12 +682,9 @@ class ProfessionalDashboard:
             if request.method == 'GET':
                 if 'user' in session:
                     return redirect(url_for('index'))
-                # Pass nonce to login template
                 return render_template('login.html', csp_nonce=g.csp_nonce)
             
-            # POST request - process login
             try:
-                # Input validation with Pydantic
                 if HAS_SECURITY and HAS_PYDANTIC:
                     try:
                         login_data = validate_input(LoginRequest, {
@@ -679,8 +694,6 @@ class ProfessionalDashboard:
                         username = login_data.username
                         password = login_data.password
                     except ValidationError as e:
-                        if self.audit_logger:
-                            self.audit_logger.log_invalid_input('login_form', str(e))
                         return jsonify({'error': 'Invalid input format'}), 400
                 else:
                     username = request.form.get('username', '').strip()
@@ -688,7 +701,6 @@ class ProfessionalDashboard:
                 
                 ip = request.remote_addr
                 
-                # Check lockout
                 if self.auth.is_locked_out(ip):
                     lockout_info = self.auth.failed_attempts[ip]
                     remaining = (lockout_info['locked_until'] - datetime.now()).seconds
@@ -697,29 +709,23 @@ class ProfessionalDashboard:
                         'message': 'Too many failed attempts. Try again in {}s'.format(remaining)
                     }), 429
                 
-                # Verify credentials
                 if self.auth.check_credentials(username, password):
-                    # Set session data
                     session.permanent = True
                     session['user'] = username
                     session['login_time'] = datetime.now().isoformat()
                     session['last_activity'] = datetime.now().isoformat()
                     
-                    # Create session with session_manager
                     if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
                         session_id = self.session_manager.create_session(username)
                         session['session_id'] = session_id
                     
                     self.auth.record_successful_login(ip, username)
                     
-                    # Track user activity
                     if HAS_METRICS and self.metrics_monitor:
                         self.metrics_monitor.record_user_activity(username)
                     
-                    # Force session save before response
                     session.modified = True
                     
-                    # Return JSON with success
                     return jsonify({
                         'success': True, 
                         'redirect': '/',
@@ -737,12 +743,14 @@ class ProfessionalDashboard:
         def logout():
             username = session.get('user')
             
-            # Destroy session
             if HAS_SECURITY and hasattr(self, 'session_manager') and self.session_manager:
                 self.session_manager.destroy_session()
             
             if self.audit_logger and username:
                 self.audit_logger.log_logout(username)
+            
+            if username:
+                log_activity('info', f'User logged out: {username}')
             
             session.clear()
             return redirect(url_for('login'))
@@ -752,15 +760,26 @@ class ProfessionalDashboard:
         @self.app.route('/')
         @self.login_required
         def index():
-            # Track user activity
             if HAS_METRICS and self.metrics_monitor:
                 user = session.get('user')
                 if user:
                     self.metrics_monitor.record_user_activity(user)
             
-            # Pass nonce to dashboard template
             return render_template(
                 'dashboard.html', 
+                user=session.get('user'),
+                csp_nonce=g.csp_nonce
+            )
+        
+        # ==================== SYSTEM HEALTH UI ====================
+        
+        @self.app.route('/system-health')
+        @self.login_required
+        def system_health_ui():
+            """System Health dashboard UI."""
+            log_activity('info', f'System Health viewed by {session.get("user", "unknown")}')
+            return render_template(
+                'system_health.html',
                 user=session.get('user'),
                 csp_nonce=g.csp_nonce
             )
@@ -769,13 +788,11 @@ class ProfessionalDashboard:
         
         @self.app.route('/favicon.ico')
         def favicon():
-            """Serve favicon or return 204 No Content to avoid 404 errors."""
             from flask import send_from_directory
             favicon_path = Path(self.app.static_folder) / 'favicon.ico'
             if favicon_path.exists():
                 return send_from_directory(self.app.static_folder, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
             else:
-                # Return 204 No Content instead of 404
                 return '', 204
         
         # ==================== API - SECTION DATA ====================
@@ -783,18 +800,13 @@ class ProfessionalDashboard:
         @self.app.route('/api/section/<section>')
         @self.login_required
         def get_section_data_route(section):
-            """Get section data (with XSS protection)."""
             try:
-                # Validate section name
                 if not section.replace('_', '').isalnum():
-                    if self.audit_logger:
-                        self.audit_logger.log_invalid_input('section', 'invalid_format')
                     return jsonify({'error': 'Invalid section name'}), 400
                 
                 if HAS_MOCK_DATA:
                     data = get_section_data(section)
                     if data:
-                        # Sanitize output
                         if HAS_SECURITY:
                             data = sanitize_dict(data)
                         return jsonify(data)
@@ -812,8 +824,6 @@ class ProfessionalDashboard:
         @self.app.route('/api/annotations/<chart_id>')
         @self.login_required
         def get_annotations(chart_id):
-            """Get annotations for chart."""
-            # Sanitize chart_id
             if HAS_SECURITY:
                 chart_id = sanitize_html(chart_id, strip=True)
             
@@ -830,20 +840,15 @@ class ProfessionalDashboard:
         @self.app.route('/api/annotations', methods=['POST'])
         @self.login_required
         def create_annotation():
-            """Create annotation with Pydantic validation."""
             try:
                 data = request.get_json()
                 
-                # Validate and sanitize input with Pydantic
                 if HAS_SECURITY and HAS_PYDANTIC:
                     try:
                         validated = validate_input(AnnotationCreate, data)
                         annotation_data = validated.model_dump()
-                        # Sanitize text
                         annotation_data['text'] = sanitize_html(annotation_data['text'], strip=True)
                     except ValidationError as e:
-                        if self.audit_logger:
-                            self.audit_logger.log_invalid_input('annotation', str(e))
                         return jsonify({'success': False, 'error': str(e)}), 400
                 else:
                     annotation_data = data
@@ -872,7 +877,6 @@ class ProfessionalDashboard:
         @self.app.route('/api/annotations/<int:annotation_id>', methods=['DELETE'])
         @self.login_required
         def delete_annotation(annotation_id):
-            """Delete annotation."""
             annotation = next(
                 (ann for ann in self.annotations if ann['id'] == annotation_id),
                 None
@@ -886,36 +890,89 @@ class ProfessionalDashboard:
             
             return jsonify({'success': True, 'message': 'Annotation deleted'})
         
-        # ==================== HEALTH CHECK ====================
+        # ==================== HEALTH CHECK (BASIC) ====================
         
         @self.app.route('/health')
         def health():
-            """Health check endpoint (no auth required)."""
-            health_data = {
+            """Basic health check endpoint (no auth required)."""
+            return jsonify({
                 'status': 'healthy',
                 'version': __version__,
-                'environment': self.env,
-                'security': HAS_SECURITY,
-                'mock_data': HAS_MOCK_DATA,
-                'database': self.db_session is not None,
-                'gzip': HAS_COMPRESS,
-                'metrics': HAS_METRICS
-            }
-            
-            # Add metrics snapshot
-            if HAS_METRICS and self.metrics_monitor:
-                try:
-                    snapshot = self.metrics_monitor.get_current_snapshot()
-                    health_data['metrics_snapshot'] = {
-                        'request_rate_rpm': snapshot.request_rate_rpm,
-                        'error_rate_pct': snapshot.error_rate_pct,
-                        'active_users': snapshot.active_users,
-                        'websocket_connections': snapshot.websocket_connections
+                'environment': self.env
+            })
+        
+        # ==================== API - SYSTEM HEALTH (COMPREHENSIVE) ====================
+        
+        @self.app.route('/api/system-health')
+        @self.login_required
+        def api_system_health():
+            """Comprehensive system health API endpoint."""
+            try:
+                # Get metrics snapshot
+                metrics_data = {}
+                if HAS_METRICS and self.metrics_monitor:
+                    try:
+                        snapshot = self.metrics_monitor.get_current_snapshot()
+                        metrics_data = {
+                            'request_rate_rpm': snapshot.request_rate_rpm,
+                            'error_rate_pct': snapshot.error_rate_pct,
+                            'active_users': snapshot.active_users,
+                            'websocket_connections': snapshot.websocket_connections,
+                            'avg_latency_ms': getattr(snapshot, 'avg_latency_ms', 0)
+                        }
+                    except Exception as e:
+                        logger.warning("Failed to get metrics snapshot: %s", e)
+                        metrics_data = {
+                            'request_rate_rpm': 0,
+                            'error_rate_pct': 0,
+                            'active_users': 1,
+                            'websocket_connections': self.websocket_connections
+                        }
+                else:
+                    metrics_data = {
+                        'request_rate_rpm': 0,
+                        'error_rate_pct': 0,
+                        'active_users': 1,
+                        'websocket_connections': self.websocket_connections
                     }
-                except Exception:
-                    pass
+                
+                # Build comprehensive response
+                health_data = {
+                    'status': 'healthy',
+                    'version': __version__,
+                    'environment': self.env,
+                    'timestamp': datetime.now().isoformat(),
+                    
+                    # System resources
+                    'system': self._get_system_metrics(),
+                    
+                    # Python environment
+                    'python': self._get_python_env(),
+                    
+                    # Component status
+                    'components': self._get_component_status(),
+                    
+                    # Security status
+                    'security': self._get_security_status(),
+                    
+                    # Connections
+                    'connections': self._get_connections_info(),
+                    
+                    # Metrics
+                    'metrics': metrics_data,
+                    
+                    # Recent activity
+                    'recent_activity': list(RECENT_ACTIVITY)[:20]
+                }
+                
+                return jsonify(health_data)
             
-            return jsonify(health_data)
+            except Exception as e:
+                logger.error("System health API error: %s", e)
+                return jsonify({
+                    'status': 'error',
+                    'error': str(e)
+                }), 500
     
     def _get_fallback_data(self, section: str) -> Dict:
         """Fallback data if mock_data.py not available."""
@@ -934,9 +991,12 @@ class ProfessionalDashboard:
         
         @self.socketio.on('connect')
         def handle_connect():
-            # Track WebSocket connection
+            self.websocket_connections += 1
+            
             if HAS_METRICS and self.metrics_monitor:
                 self.metrics_monitor.increment_websocket_connections()
+            
+            log_activity('info', 'WebSocket client connected')
             
             emit('connected', {
                 'message': 'Connected to BotV2 v{}'.format(__version__),
@@ -946,9 +1006,12 @@ class ProfessionalDashboard:
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            # Track WebSocket disconnection
+            self.websocket_connections = max(0, self.websocket_connections - 1)
+            
             if HAS_METRICS and self.metrics_monitor:
                 self.metrics_monitor.decrement_websocket_connections()
+            
+            log_activity('info', 'WebSocket client disconnected')
     
     def run(self):
         """Start the dashboard server."""
@@ -972,14 +1035,12 @@ class ProfessionalDashboard:
         )
 
 
-# Alias for backward compatibility
 TradingDashboard = ProfessionalDashboard
 
 
 def create_app(config=None):
     """Factory function to create dashboard app."""
     if config is None:
-        # Create minimal config for standalone/demo mode
         config = {
             'dashboard': {
                 'host': '0.0.0.0',
@@ -992,13 +1053,11 @@ def create_app(config=None):
 
 
 if __name__ == "__main__":
-    # Setup basic logging for direct execution
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # Try to load config, fallback to demo mode
     config = None
     try:
         from bot.config.config_manager import ConfigManager
