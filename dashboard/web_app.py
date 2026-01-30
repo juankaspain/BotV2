@@ -27,6 +27,32 @@ import sys
 from pathlib import Path
 
 # ============================================================================
+# CRITICAL: Load .env file FIRST before any other imports or os.getenv calls
+# This ensures DASHBOARD_USERNAME and DASHBOARD_PASSWORD are available
+# ============================================================================
+try:
+    from dotenv import load_dotenv
+    
+    # Find .env file in project root (parent of dashboard folder)
+    _DASHBOARD_DIR = Path(__file__).parent
+    _PROJECT_ROOT = _DASHBOARD_DIR.parent
+    _ENV_FILE = _PROJECT_ROOT / '.env'
+    
+    if _ENV_FILE.exists():
+        load_dotenv(_ENV_FILE)
+        print(f"[+] Loaded environment from {_ENV_FILE}", flush=True)
+    else:
+        # Try current working directory
+        _CWD_ENV = Path.cwd() / '.env'
+        if _CWD_ENV.exists():
+            load_dotenv(_CWD_ENV)
+            print(f"[+] Loaded environment from {_CWD_ENV}", flush=True)
+        else:
+            print(f"[!] No .env file found at {_ENV_FILE} or {_CWD_ENV}", flush=True)
+except ImportError:
+    print("[!] python-dotenv not installed, using system environment variables only", flush=True)
+
+# ============================================================================
 # FIX IMPORTS: Add project root to path for both module and direct execution
 # ============================================================================
 _DASHBOARD_DIR = Path(__file__).parent
@@ -183,12 +209,22 @@ class DashboardAuth:
     """Enhanced Session-Based Authentication with Security Audit Logging."""
     
     def __init__(self, audit_logger=None):
+        # Load credentials from environment variables (loaded from .env)
         self.username = os.getenv('DASHBOARD_USERNAME', 'admin')
         self.password_hash = self._get_password_hash()
         self.audit_logger = audit_logger
         self.failed_attempts = defaultdict(lambda: {'count': 0, 'last_attempt': None, 'locked_until': None})
         self.max_attempts = 5
         self.lockout_duration = timedelta(minutes=5)
+        
+        # Log credentials source for debugging
+        env_username = os.getenv('DASHBOARD_USERNAME')
+        env_password = os.getenv('DASHBOARD_PASSWORD')
+        
+        if env_username and env_password:
+            logger.info(f"[AUTH] Using credentials from .env: username={self.username}")
+        else:
+            logger.warning("[AUTH] No DASHBOARD_USERNAME/PASSWORD in .env, using defaults")
         
         if not self.password_hash:
             # Demo mode: use 'admin' as default password
