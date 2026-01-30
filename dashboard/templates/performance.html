@@ -4,42 +4,53 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Key Metrics -->
-    <div class="row mb-4 g-3">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted mb-2"><i class="fas fa-chart-line me-2"></i>Total Return</h6>
-                    <h3 class="mb-1" id="total-return">0%</h3>
-                    <small id="total-return-usd" class="text-muted">$0.00</small>
-                </div>
+    <!-- Key Metrics - CSS v4.0 -->
+    <div class="card-grid mb-4">
+        <!-- Total Return -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-primary">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Total Return</span>
+                <span class="metric-card__value" id="total-return">0%</span>
+                <small id="total-return-usd" class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">$0.00</small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted mb-2"><i class="fas fa-tachometer-alt me-2"></i>Sharpe Ratio</h6>
-                    <h3 class="mb-1" id="sharpe-ratio">0.00</h3>
-                    <small class="text-muted">Risk-adjusted return</small>
-                </div>
+
+        <!-- Sharpe Ratio -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-info">
+                <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Sharpe Ratio</span>
+                <span class="metric-card__value" id="sharpe-ratio">0.00</span>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">Risk-adjusted return</small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted mb-2"><i class="fas fa-arrow-down me-2 text-danger"></i>Max Drawdown</h6>
-                    <h3 class="mb-1 text-danger" id="max-drawdown">0%</h3>
-                    <small class="text-muted">Peak to trough</small>
-                </div>
+
+        <!-- Max Drawdown -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-danger">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Max Drawdown</span>
+                <span class="metric-card__value text-danger" id="max-drawdown">0%</span>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">Peak to trough</small>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted mb-2"><i class="fas fa-percentage me-2"></i>Win Rate</h6>
-                    <h3 class="mb-1" id="win-rate">0%</h3>
-                    <small class="text-muted">Profitable trades</small>
-                </div>
+
+        <!-- Win Rate -->
+        <div class="metric-card">
+            <div class="metric-card__icon bg-success">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="metric-card__content">
+                <span class="metric-card__label">Win Rate</span>
+                <span class="metric-card__value" id="win-rate">0%</span>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">Profitable trades</small>
             </div>
         </div>
     </div>
@@ -49,45 +60,54 @@
         <!-- Equity Curve -->
         <div class="col-lg-8">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Equity Curve</h5>
-                    <div class="btn-group-period" id="period-buttons">
-                        <button class="btn btn-sm btn-period" data-days="7" onclick="selectPeriod(this, 7)">7D</button>
-                        <button class="btn btn-sm btn-period active" data-days="30" onclick="selectPeriod(this, 30)">30D</button>
-                        <button class="btn btn-sm btn-period" data-days="90" onclick="selectPeriod(this, 90)">90D</button>
+                <div class="card-header">
+                    <div class="card-header__title">
+                        <h5><i class="fas fa-chart-area me-2"></i>Equity Curve</h5>
+                    </div>
+                    <div class="card-header__actions">
+                        <div class="btn-group-period" id="period-buttons">
+                            <button class="btn btn-sm btn-period" data-days="7" onclick="selectPeriod(this, 7)">7D</button>
+                            <button class="btn btn-sm btn-period active" data-days="30" onclick="selectPeriod(this, 30)">30D</button>
+                            <button class="btn btn-sm btn-period" data-days="90" onclick="selectPeriod(this, 90)">90D</button>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="equity-chart" height="300"></canvas>
+                    <!-- Chart Container - CSS v4.0 -->
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="equity-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Additional Metrics -->
         <div class="col-lg-4">
-            <div class="card">
+            <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Additional Metrics</h5>
+                    <div class="card-header__title">
+                        <h5><i class="fas fa-info-circle me-2"></i>Additional Metrics</h5>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
+                        <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Sortino Ratio</span>
                             <strong id="sortino-ratio">0.00</strong>
                         </div>
-                        <div class="d-flex justify-content-between mb-1">
+                        <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Profit Factor</span>
                             <strong id="profit-factor">0.00</strong>
                         </div>
-                        <div class="d-flex justify-content-between mb-1">
+                        <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Avg Trade Duration</span>
                             <strong id="avg-duration">0h</strong>
                         </div>
-                        <div class="d-flex justify-content-between mb-1">
+                        <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Daily Return</span>
                             <strong id="daily-return" class="text-success">0%</strong>
                         </div>
-                        <div class="d-flex justify-content-between mb-1">
+                        <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Monthly Return</span>
                             <strong id="monthly-return" class="text-success">0%</strong>
                         </div>
@@ -102,10 +122,15 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Monthly Performance</h5>
+                    <div class="card-header__title">
+                        <h5><i class="fas fa-calendar-alt me-2"></i>Monthly Performance</h5>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="monthly-chart" height="200"></canvas>
+                    <!-- Chart Container - CSS v4.0 -->
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="monthly-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -147,56 +172,23 @@
     color: white;
 }
 
-/* Light theme adjustments */
 [data-theme="light"] .btn-group-period {
     border-color: var(--border-color);
     box-shadow: var(--shadow-xs);
-}
-
-[data-theme="light"] .btn-period {
-    background: var(--bg-card);
-}
-
-[data-theme="light"] .btn-period:hover {
-    background: var(--bg-card-hover);
-}
-
-[data-theme="light"] .btn-period.active {
-    background: var(--color-primary);
-    color: white;
 }
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Professional color palette (non-fluorescent)
-const CHART_COLORS = {
-    primary: '#6366f1',      // Indigo
-    primaryLight: 'rgba(99, 102, 241, 0.15)',
-    success: '#10b981',      // Emerald
-    successLight: 'rgba(16, 185, 129, 0.7)',
-    danger: '#ef4444',       // Red
-    dangerLight: 'rgba(239, 68, 68, 0.7)',
-    text: '#64748b',
-    grid: 'rgba(100, 116, 139, 0.1)'
-};
-
+// ✅ Use ThemeManager
 let equityChart = null;
 let monthlyChart = null;
 let currentPeriod = 30;
 
-// Period button selection handler
 function selectPeriod(button, days) {
-    // Remove active class from all buttons
-    document.querySelectorAll('.btn-period').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Add active class to clicked button
+    document.querySelectorAll('.btn-period').forEach(btn => btn.classList.remove('active'));
     button.classList.add('active');
-    
-    // Update current period and reload chart
     currentPeriod = days;
     loadEquityCurve(days);
 }
@@ -211,10 +203,9 @@ async function loadPerformanceOverview() {
         if (data.success) {
             const p = data.overview;
             
-            // Update metrics
             const totalReturnEl = document.getElementById('total-return');
             totalReturnEl.textContent = (p.total_return_pct >= 0 ? '+' : '') + p.total_return_pct + '%';
-            totalReturnEl.className = p.total_return_pct >= 0 ? 'mb-1 text-success' : 'mb-1 text-danger';
+            totalReturnEl.className = 'metric-card__value ' + (p.total_return_pct >= 0 ? 'text-success' : 'text-danger');
             
             document.getElementById('total-return-usd').textContent = '$' + p.total_return_usd.toLocaleString();
             document.getElementById('sharpe-ratio').textContent = p.sharpe_ratio.toFixed(2);
@@ -254,6 +245,7 @@ async function loadEquityCurve(days = 30) {
     }
 }
 
+// ✅ Equity chart with ThemeManager
 function renderEquityChart(data) {
     const ctx = document.getElementById('equity-chart');
     
@@ -261,68 +253,29 @@ function renderEquityChart(data) {
         equityChart.destroy();
     }
     
-    equityChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.map(d => d.date),
-            datasets: [{
-                label: 'Equity',
-                data: data.map(d => d.equity),
-                borderColor: CHART_COLORS.primary,
-                backgroundColor: CHART_COLORS.primaryLight,
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2,
-                pointRadius: 0,
-                pointHoverRadius: 5,
-                pointHoverBackgroundColor: CHART_COLORS.primary,
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                intersect: false,
-                mode: 'index'
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                    titleColor: '#fff',
-                    bodyColor: '#cbd5e1',
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderWidth: 1,
-                    cornerRadius: 8,
-                    padding: 12,
-                    callbacks: {
-                        label: (context) => `Equity: $${context.parsed.y.toLocaleString()}`
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    ticks: { 
-                        color: CHART_COLORS.text,
-                        font: { size: 11 }
-                    },
-                    grid: { color: CHART_COLORS.grid },
-                    border: { display: false }
-                },
-                x: {
-                    ticks: { 
-                        color: CHART_COLORS.text,
-                        font: { size: 11 },
-                        maxRotation: 0
-                    },
-                    grid: { display: false },
-                    border: { display: false }
-                }
-            }
-        }
-    });
+    const colors = ThemeManager.getChartColors();
+    const config = ThemeManager.getChartDefaults('line');
+    
+    config.data = {
+        labels: data.map(d => d.date),
+        datasets: [{
+            label: 'Equity',
+            data: data.map(d => d.equity),
+            borderColor: colors.primary,
+            backgroundColor: `${colors.primary}20`,
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 5
+        }]
+    };
+    
+    config.options.plugins.tooltip.callbacks = {
+        label: (context) => `Equity: $${context.parsed.y.toLocaleString()}`
+    };
+    
+    equityChart = new Chart(ctx, config);
 }
 
 async function loadMonthlyPerformance() {
@@ -338,6 +291,7 @@ async function loadMonthlyPerformance() {
     }
 }
 
+// ✅ Monthly chart with ThemeManager
 function renderMonthlyChart(data) {
     const ctx = document.getElementById('monthly-chart');
     
@@ -345,59 +299,33 @@ function renderMonthlyChart(data) {
         monthlyChart.destroy();
     }
     
-    monthlyChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.map(d => d.month),
-            datasets: [{
-                label: 'Monthly Return (%)',
-                data: data.map(d => d.return_pct),
-                backgroundColor: data.map(d => d.return_pct >= 0 ? CHART_COLORS.successLight : CHART_COLORS.dangerLight),
-                borderColor: data.map(d => d.return_pct >= 0 ? CHART_COLORS.success : CHART_COLORS.danger),
-                borderWidth: 1,
-                borderRadius: 4,
-                borderSkipped: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                    titleColor: '#fff',
-                    bodyColor: '#cbd5e1',
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderWidth: 1,
-                    cornerRadius: 8,
-                    padding: 12,
-                    callbacks: {
-                        label: (context) => `Return: ${context.parsed.y.toFixed(2)}%`
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    ticks: { 
-                        color: CHART_COLORS.text,
-                        font: { size: 11 }
-                    },
-                    grid: { color: CHART_COLORS.grid },
-                    border: { display: false }
-                },
-                x: {
-                    ticks: { 
-                        color: CHART_COLORS.text,
-                        font: { size: 11 }
-                    },
-                    grid: { display: false },
-                    border: { display: false }
-                }
-            }
-        }
-    });
+    const colors = ThemeManager.getChartColors();
+    const config = ThemeManager.getChartDefaults('bar');
+    
+    config.data = {
+        labels: data.map(d => d.month),
+        datasets: [{
+            label: 'Monthly Return (%)',
+            data: data.map(d => d.return_pct),
+            backgroundColor: data.map(d => d.return_pct >= 0 ? `${colors.success}B3` : `${colors.danger}B3`),
+            borderColor: data.map(d => d.return_pct >= 0 ? colors.success : colors.danger),
+            borderWidth: 1,
+            borderRadius: 4
+        }]
+    };
+    
+    config.options.plugins.tooltip.callbacks = {
+        label: (context) => `Return: ${context.parsed.y.toFixed(2)}%`
+    };
+    
+    monthlyChart = new Chart(ctx, config);
 }
+
+// ✅ Re-render on theme change
+window.addEventListener('themechange', function() {
+    if (equityChart) loadEquityCurve(currentPeriod);
+    if (monthlyChart) loadMonthlyPerformance();
+});
 
 // Load data on page load
 loadPerformanceOverview();
