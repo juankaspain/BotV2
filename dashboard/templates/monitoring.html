@@ -37,7 +37,7 @@
                 </div>
                 <div class="card-header__actions">
                     <div class="dropdown" id="symbol-dropdown">
-                        <button class="dropdown__trigger" onclick="toggleDropdown('symbol-dropdown')">
+                        <button class="dropdown__trigger" onclick="toggleDropdown('symbol-dropdown')" aria-label="Select trading symbol">
                             <span id="selected-symbol">BTC/USDT</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
@@ -57,7 +57,7 @@
             </div>
             <div class="card-body">
                 <!-- Chart Container - CSS v4.0 ✅ -->
-                <div class="chart-container" id="chart-wrapper">
+                <div class="chart-container" style="height: 350px;" id="chart-wrapper">
                     <div class="skeleton skeleton-chart" id="chart-skeleton"></div>
                     <canvas id="live-chart" style="display: none;"></canvas>
                 </div>
@@ -111,7 +111,7 @@
             </div>
             <div class="card-body p-0">
                 <div class="trades-feed" id="trades-feed">
-                    <table class="table table-sm">
+                    <table class="table table-sm" id="trades-table" style="display: none;">
                         <thead>
                             <tr>
                                 <th>Time</th>
@@ -120,19 +120,15 @@
                                 <th>Side</th>
                             </tr>
                         </thead>
-                        <tbody id="trades-body">
-                            <!-- Empty State - CSS v4.0 ✅ -->
-                            <tr id="trades-empty-state">
-                                <td colspan="4">
-                                    <div class="empty-state empty-state--compact">
-                                        <i class="empty-state__icon fas fa-exchange-alt"></i>
-                                        <div class="empty-state__title">No trades yet</div>
-                                        <div class="empty-state__description">Waiting for trade data...</div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
+                        <tbody id="trades-body"></tbody>
                     </table>
+                    
+                    <!-- Empty State - CSS v4.0 ✅ -->
+                    <div id="trades-empty-state" class="empty-state empty-state--compact">
+                        <i class="empty-state__icon fas fa-exchange-alt"></i>
+                        <div class="empty-state__title">No Trades Yet</div>
+                        <div class="empty-state__description">Waiting for live trade data...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -145,10 +141,10 @@
                     <h5>System Logs</h5>
                 </div>
                 <div class="card-header__actions">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()" title="Clear logs">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()" title="Clear logs" aria-label="Clear system logs">
                         <i class="fas fa-trash"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="downloadLogs()" title="Download logs">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="downloadLogs()" title="Download logs" aria-label="Download system logs">
                         <i class="fas fa-download"></i>
                     </button>
                 </div>
@@ -165,7 +161,7 @@
         </div>
     </div>
 
-    <!-- Real-time Metrics - CSS v4.0 ✅ -->
+    <!-- Real-time Metrics - CSS v4.0 Metric Cards ✅ -->
     <div class="card mt-4">
         <div class="card-header">
             <div class="card-header__title">
@@ -181,6 +177,7 @@
         </div>
         <div class="card-body">
             <div class="metrics-grid">
+                <!-- Latency Metric -->
                 <div class="metric-card">
                     <div class="metric-card__icon bg-primary">
                         <i class="fas fa-clock"></i>
@@ -191,6 +188,7 @@
                     </div>
                 </div>
 
+                <!-- Messages/sec Metric -->
                 <div class="metric-card">
                     <div class="metric-card__icon bg-info">
                         <i class="fas fa-envelope"></i>
@@ -201,6 +199,7 @@
                     </div>
                 </div>
 
+                <!-- CPU Usage Metric -->
                 <div class="metric-card">
                     <div class="metric-card__icon bg-warning">
                         <i class="fas fa-microchip"></i>
@@ -214,6 +213,7 @@
                     </div>
                 </div>
 
+                <!-- Memory Metric -->
                 <div class="metric-card">
                     <div class="metric-card__icon bg-success">
                         <i class="fas fa-memory"></i>
@@ -227,6 +227,7 @@
                     </div>
                 </div>
 
+                <!-- Orders/min Metric -->
                 <div class="metric-card">
                     <div class="metric-card__icon bg-danger">
                         <i class="fas fa-shopping-cart"></i>
@@ -237,6 +238,7 @@
                     </div>
                 </div>
 
+                <!-- Uptime Metric -->
                 <div class="metric-card">
                     <div class="metric-card__icon" style="background: var(--color-primary-light);">
                         <i class="fas fa-hourglass-half"></i>
@@ -284,6 +286,7 @@
         wsStatusText: document.getElementById('ws-status-text'),
         chartSkeleton: document.getElementById('chart-skeleton'),
         liveChart: document.getElementById('live-chart'),
+        tradesTable: document.getElementById('trades-table'),
         tradesBody: document.getElementById('trades-body'),
         tradesEmptyState: document.getElementById('trades-empty-state'),
         tradeCount: document.getElementById('trade-count'),
@@ -359,6 +362,10 @@
             }
         };
         
+        config.options.scales.y.ticks.callback = function(value) {
+            return '$' + value.toLocaleString();
+        };
+        
         state.chart = new Chart(ctx, config);
 
         // Show chart, hide skeleton
@@ -372,20 +379,23 @@
             const colors = ThemeManager.getChartColors();
             state.chart.data.datasets[0].borderColor = colors.primary;
             state.chart.data.datasets[0].backgroundColor = `${colors.primary}1A`;
-            state.chart.options.scales.x.grid.color = colors.gridColor;
-            state.chart.options.scales.y.grid.color = colors.gridColor;
-            state.chart.options.scales.x.ticks.color = colors.textColor;
-            state.chart.options.scales.y.ticks.color = colors.textColor;
+            state.chart.options.scales.x.grid.color = colors.borderColor;
+            state.chart.options.scales.y.grid.color = colors.borderColor;
+            state.chart.options.scales.x.ticks.color = colors.textSecondary;
+            state.chart.options.scales.y.ticks.color = colors.textSecondary;
+            state.chart.options.plugins.legend.labels.color = colors.textPrimary;
             state.chart.update();
         }
     });
 
     // =====================================================
-    // TRADES HANDLING
+    // TRADES HANDLING - ✅ WITH EMPTY STATE TOGGLE
     // =====================================================
     function addTrade(trade) {
-        if (elements.tradesEmptyState) {
-            elements.tradesEmptyState.remove();
+        // Hide empty state, show table
+        if (elements.tradesEmptyState.style.display !== 'none') {
+            elements.tradesEmptyState.style.display = 'none';
+            elements.tradesTable.style.display = 'table';
         }
 
         state.trades.unshift(trade);
@@ -641,7 +651,9 @@
     document.addEventListener('DOMContentLoaded', () => {
         initChart();
         addLog('Monitoring page initialized', 'info');
+        addLog('CSS v4.0 + ThemeManager active', 'success');
         
+        // Hide skeletons after timeout if no connection
         setTimeout(() => {
             if (!state.isConnected) {
                 document.querySelectorAll('.skeleton').forEach(el => {
