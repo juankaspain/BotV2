@@ -4,9 +4,9 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Key Metrics - CSS v4.0 -->
+    <!-- Key Metrics - CSS v4.0 ✅ -->
     <div class="card-grid mb-4">
-        <!-- Total Return -->
+        <!-- Total Return Metric -->
         <div class="metric-card">
             <div class="metric-card__icon bg-primary">
                 <i class="fas fa-chart-line"></i>
@@ -18,7 +18,7 @@
             </div>
         </div>
 
-        <!-- Sharpe Ratio -->
+        <!-- Sharpe Ratio Metric -->
         <div class="metric-card">
             <div class="metric-card__icon bg-info">
                 <i class="fas fa-tachometer-alt"></i>
@@ -30,7 +30,7 @@
             </div>
         </div>
 
-        <!-- Max Drawdown -->
+        <!-- Max Drawdown Metric -->
         <div class="metric-card">
             <div class="metric-card__icon bg-danger">
                 <i class="fas fa-arrow-down"></i>
@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <!-- Win Rate -->
+        <!-- Win Rate Metric -->
         <div class="metric-card">
             <div class="metric-card__icon bg-success">
                 <i class="fas fa-percentage"></i>
@@ -65,15 +65,15 @@
                         <h5><i class="fas fa-chart-area me-2"></i>Equity Curve</h5>
                     </div>
                     <div class="card-header__actions">
-                        <div class="btn-group-period" id="period-buttons">
-                            <button class="btn btn-sm btn-period" data-days="7" onclick="selectPeriod(this, 7)">7D</button>
-                            <button class="btn btn-sm btn-period active" data-days="30" onclick="selectPeriod(this, 30)">30D</button>
-                            <button class="btn btn-sm btn-period" data-days="90" onclick="selectPeriod(this, 90)">90D</button>
+                        <div class="btn-group-period" id="period-buttons" role="group" aria-label="Select time period">
+                            <button class="btn btn-sm btn-period" data-days="7" onclick="selectPeriod(this, 7)" aria-label="7 days">7D</button>
+                            <button class="btn btn-sm btn-period active" data-days="30" onclick="selectPeriod(this, 30)" aria-label="30 days">30D</button>
+                            <button class="btn btn-sm btn-period" data-days="90" onclick="selectPeriod(this, 90)" aria-label="90 days">90D</button>
                         </div>
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Chart Container - CSS v4.0 -->
+                    <!-- Chart Container - CSS v4.0 ✅ -->
                     <div class="chart-container" style="height: 300px;">
                         <canvas id="equity-chart"></canvas>
                     </div>
@@ -127,7 +127,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Chart Container - CSS v4.0 -->
+                    <!-- Chart Container - CSS v4.0 ✅ -->
                     <div class="chart-container" style="height: 200px;">
                         <canvas id="monthly-chart"></canvas>
                     </div>
@@ -181,162 +181,179 @@
 
 {% block scripts %}
 <script>
-// ✅ Use ThemeManager
-let equityChart = null;
-let monthlyChart = null;
-let currentPeriod = 30;
+    // =====================================================
+    // PERFORMANCE PAGE - PROFESSIONAL IMPLEMENTATION
+    // ✅ CSS v4.0 + ThemeManager Integration
+    // =====================================================
+    
+    let equityChart = null;
+    let monthlyChart = null;
+    let currentPeriod = 30;
 
-function selectPeriod(button, days) {
-    document.querySelectorAll('.btn-period').forEach(btn => btn.classList.remove('active'));
-    button.classList.add('active');
-    currentPeriod = days;
-    loadEquityCurve(days);
-}
+    function selectPeriod(button, days) {
+        document.querySelectorAll('.btn-period').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        currentPeriod = days;
+        loadEquityCurve(days);
+    }
 
-async function loadPerformanceOverview() {
-    try {
-        showLoading('Loading performance data...');
+    async function loadPerformanceOverview() {
+        try {
+            showLoading('Loading performance data...');
+            
+            const res = await fetch('/performance/api/overview');
+            const data = await res.json();
+            
+            if (data.success) {
+                const p = data.overview;
+                
+                const totalReturnEl = document.getElementById('total-return');
+                totalReturnEl.textContent = (p.total_return_pct >= 0 ? '+' : '') + p.total_return_pct + '%';
+                totalReturnEl.className = 'metric-card__value ' + (p.total_return_pct >= 0 ? 'text-success' : 'text-danger');
+                
+                document.getElementById('total-return-usd').textContent = '$' + p.total_return_usd.toLocaleString();
+                document.getElementById('sharpe-ratio').textContent = p.sharpe_ratio.toFixed(2);
+                document.getElementById('max-drawdown').textContent = p.max_drawdown_pct.toFixed(2) + '%';
+                document.getElementById('win-rate').textContent = (p.win_rate * 100).toFixed(1) + '%';
+                document.getElementById('sortino-ratio').textContent = p.sortino_ratio.toFixed(2);
+                document.getElementById('profit-factor').textContent = p.profit_factor.toFixed(2);
+                document.getElementById('avg-duration').textContent = p.avg_trade_duration_hours.toFixed(1) + 'h';
+                
+                const dailyEl = document.getElementById('daily-return');
+                dailyEl.textContent = (p.daily_return_pct >= 0 ? '+' : '') + p.daily_return_pct.toFixed(2) + '%';
+                dailyEl.className = p.daily_return_pct >= 0 ? 'text-success' : 'text-danger';
+                
+                const monthlyEl = document.getElementById('monthly-return');
+                monthlyEl.textContent = (p.monthly_return_pct >= 0 ? '+' : '') + p.monthly_return_pct.toFixed(2) + '%';
+                monthlyEl.className = p.monthly_return_pct >= 0 ? 'text-success' : 'text-danger';
+            }
+            
+            hideLoading();
+        } catch (error) {
+            console.error('Error loading performance:', error);
+            hideLoading();
+            showToast('Failed to load performance data', 'error');
+        }
+    }
+
+    async function loadEquityCurve(days = 30) {
+        try {
+            const res = await fetch(`/performance/api/equity-curve?days=${days}`);
+            const data = await res.json();
+            
+            if (data.success) {
+                renderEquityChart(data.equity_curve);
+            }
+        } catch (error) {
+            console.error('Error loading equity curve:', error);
+        }
+    }
+
+    // ✅ Equity chart with ThemeManager
+    function renderEquityChart(data) {
+        const ctx = document.getElementById('equity-chart');
         
-        const res = await fetch('/performance/api/overview');
-        const data = await res.json();
-        
-        if (data.success) {
-            const p = data.overview;
-            
-            const totalReturnEl = document.getElementById('total-return');
-            totalReturnEl.textContent = (p.total_return_pct >= 0 ? '+' : '') + p.total_return_pct + '%';
-            totalReturnEl.className = 'metric-card__value ' + (p.total_return_pct >= 0 ? 'text-success' : 'text-danger');
-            
-            document.getElementById('total-return-usd').textContent = '$' + p.total_return_usd.toLocaleString();
-            document.getElementById('sharpe-ratio').textContent = p.sharpe_ratio.toFixed(2);
-            document.getElementById('max-drawdown').textContent = p.max_drawdown_pct.toFixed(2) + '%';
-            document.getElementById('win-rate').textContent = (p.win_rate * 100).toFixed(1) + '%';
-            document.getElementById('sortino-ratio').textContent = p.sortino_ratio.toFixed(2);
-            document.getElementById('profit-factor').textContent = p.profit_factor.toFixed(2);
-            document.getElementById('avg-duration').textContent = p.avg_trade_duration_hours.toFixed(1) + 'h';
-            
-            const dailyEl = document.getElementById('daily-return');
-            dailyEl.textContent = (p.daily_return_pct >= 0 ? '+' : '') + p.daily_return_pct.toFixed(2) + '%';
-            dailyEl.className = p.daily_return_pct >= 0 ? 'text-success' : 'text-danger';
-            
-            const monthlyEl = document.getElementById('monthly-return');
-            monthlyEl.textContent = (p.monthly_return_pct >= 0 ? '+' : '') + p.monthly_return_pct.toFixed(2) + '%';
-            monthlyEl.className = p.monthly_return_pct >= 0 ? 'text-success' : 'text-danger';
+        if (equityChart) {
+            equityChart.destroy();
         }
         
-        hideLoading();
-    } catch (error) {
-        console.error('Error loading performance:', error);
-        hideLoading();
-        showToast('Failed to load performance data', 'error');
-    }
-}
-
-async function loadEquityCurve(days = 30) {
-    try {
-        const res = await fetch(`/performance/api/equity-curve?days=${days}`);
-        const data = await res.json();
+        const colors = ThemeManager.getChartColors();
+        const config = ThemeManager.getChartDefaults('line');
         
-        if (data.success) {
-            renderEquityChart(data.equity_curve);
-        }
-    } catch (error) {
-        console.error('Error loading equity curve:', error);
-    }
-}
-
-// ✅ Equity chart with ThemeManager
-function renderEquityChart(data) {
-    const ctx = document.getElementById('equity-chart');
-    
-    if (equityChart) {
-        equityChart.destroy();
-    }
-    
-    const colors = ThemeManager.getChartColors();
-    const config = ThemeManager.getChartDefaults('line');
-    
-    config.data = {
-        labels: data.map(d => d.date),
-        datasets: [{
-            label: 'Equity',
-            data: data.map(d => d.equity),
-            borderColor: colors.primary,
-            backgroundColor: `${colors.primary}20`,
-            fill: true,
-            tension: 0.4,
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 5
-        }]
-    };
-    
-    config.options.plugins.tooltip.callbacks = {
-        label: (context) => `Equity: $${context.parsed.y.toLocaleString()}`
-    };
-    
-    equityChart = new Chart(ctx, config);
-}
-
-async function loadMonthlyPerformance() {
-    try {
-        const res = await fetch('/performance/api/monthly');
-        const data = await res.json();
+        config.data = {
+            labels: data.map(d => d.date),
+            datasets: [{
+                label: 'Equity',
+                data: data.map(d => d.equity),
+                borderColor: colors.primary,
+                backgroundColor: `${colors.primary}20`,
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 5
+            }]
+        };
         
-        if (data.success) {
-            renderMonthlyChart(data.monthly_performance);
+        config.options.plugins.tooltip.callbacks = {
+            label: (context) => `Equity: $${context.parsed.y.toLocaleString()}`
+        };
+        
+        config.options.scales.y.ticks.callback = function(value) {
+            return '$' + value.toLocaleString();
+        };
+        
+        equityChart = new Chart(ctx, config);
+    }
+
+    async function loadMonthlyPerformance() {
+        try {
+            const res = await fetch('/performance/api/monthly');
+            const data = await res.json();
+            
+            if (data.success) {
+                renderMonthlyChart(data.monthly_performance);
+            }
+        } catch (error) {
+            console.error('Error loading monthly performance:', error);
         }
-    } catch (error) {
-        console.error('Error loading monthly performance:', error);
     }
-}
 
-// ✅ Monthly chart with ThemeManager
-function renderMonthlyChart(data) {
-    const ctx = document.getElementById('monthly-chart');
-    
-    if (monthlyChart) {
-        monthlyChart.destroy();
+    // ✅ Monthly chart with ThemeManager
+    function renderMonthlyChart(data) {
+        const ctx = document.getElementById('monthly-chart');
+        
+        if (monthlyChart) {
+            monthlyChart.destroy();
+        }
+        
+        const colors = ThemeManager.getChartColors();
+        const config = ThemeManager.getChartDefaults('bar');
+        
+        config.data = {
+            labels: data.map(d => d.month),
+            datasets: [{
+                label: 'Monthly Return (%)',
+                data: data.map(d => d.return_pct),
+                backgroundColor: data.map(d => d.return_pct >= 0 ? `${colors.success}B3` : `${colors.danger}B3`),
+                borderColor: data.map(d => d.return_pct >= 0 ? colors.success : colors.danger),
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        };
+        
+        config.options.plugins.tooltip.callbacks = {
+            label: (context) => `Return: ${context.parsed.y.toFixed(2)}%`
+        };
+        
+        config.options.scales.y.ticks.callback = function(value) {
+            return value + '%';
+        };
+        
+        monthlyChart = new Chart(ctx, config);
     }
-    
-    const colors = ThemeManager.getChartColors();
-    const config = ThemeManager.getChartDefaults('bar');
-    
-    config.data = {
-        labels: data.map(d => d.month),
-        datasets: [{
-            label: 'Monthly Return (%)',
-            data: data.map(d => d.return_pct),
-            backgroundColor: data.map(d => d.return_pct >= 0 ? `${colors.success}B3` : `${colors.danger}B3`),
-            borderColor: data.map(d => d.return_pct >= 0 ? colors.success : colors.danger),
-            borderWidth: 1,
-            borderRadius: 4
-        }]
-    };
-    
-    config.options.plugins.tooltip.callbacks = {
-        label: (context) => `Return: ${context.parsed.y.toFixed(2)}%`
-    };
-    
-    monthlyChart = new Chart(ctx, config);
-}
 
-// ✅ Re-render on theme change
-window.addEventListener('themechange', function() {
-    if (equityChart) loadEquityCurve(currentPeriod);
-    if (monthlyChart) loadMonthlyPerformance();
-});
+    // ✅ Re-render on theme change
+    window.addEventListener('themechange', function() {
+        if (equityChart) loadEquityCurve(currentPeriod);
+        if (monthlyChart) loadMonthlyPerformance();
+    });
 
-// Load data on page load
-loadPerformanceOverview();
-loadEquityCurve(30);
-loadMonthlyPerformance();
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load data on page load
+        loadPerformanceOverview();
+        loadEquityCurve(30);
+        loadMonthlyPerformance();
 
-// Auto-refresh every 60 seconds
-setInterval(() => {
-    loadPerformanceOverview();
-    loadEquityCurve(currentPeriod);
-    loadMonthlyPerformance();
-}, 60000);
+        // Auto-refresh every 60 seconds
+        setInterval(() => {
+            loadPerformanceOverview();
+            loadEquityCurve(currentPeriod);
+            loadMonthlyPerformance();
+        }, 60000);
+    });
 </script>
 {% endblock %}
