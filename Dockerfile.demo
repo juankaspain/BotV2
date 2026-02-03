@@ -10,7 +10,7 @@
 # ============================================================================
 # Stage 1: Builder - Install dependencies (FAST)
 # ============================================================================
-FROM python:3.11-alpine AS builder
+FROM python:3.14-alpine AS builder
 
 LABEL stage=builder description="Demo builder - lightweight dependencies"
 
@@ -53,7 +53,7 @@ RUN python -c "import flask, dash, pandas, numpy; print('✅ Core packages OK')"
 # ============================================================================
 # Stage 2: Runtime - Minimal demo image
 # ============================================================================
-FROM python:3.11-alpine
+FROM python:3.14-alpine
 
 LABEL maintainer="Juan Carlos Garcia <juanca755@hotmail.com>"
 LABEL description="BotV2 Trading System - Demo Mode"
