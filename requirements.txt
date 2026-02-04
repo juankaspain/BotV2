@@ -43,7 +43,7 @@ Flask-Talisman==1.1.0
 Flask-WTF==1.2.1
 Flask-Compress==1.14
 bleach==6.1.0
-dash==2.14.2
+dash==3.4.0
 plotly==5.18.0
 python-socketio==5.10.0
 eventlet==0.33.3
